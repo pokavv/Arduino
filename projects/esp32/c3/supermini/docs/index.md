@@ -16,3 +16,4 @@
 | [09_deepsleep.md](09_deepsleep.md) | 딥슬립, 저전력 모드 |
 | [10_ota_mqtt.md](10_ota_mqtt.md) | OTA 무선 업로드, MQTT |
 | [11_troubleshooting.md](11_troubleshooting.md) | 자주 겪는 문제와 해결법 |
+| [12_features.md](12_features.md) | ESP32 무한 확장 컴포넌트 & 기능 추천 가이드 |
