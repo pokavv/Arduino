@@ -17,10 +17,15 @@ Claude Code가 이 프로젝트에서 작업할 때 참고하는 설정입니다
 Arduino/
 ├── projects/    구현 프로젝트 (.ino)
 ├── docs/
-│   ├── cpp/                   C/C++ 문법
-│   ├── arduino/               아두이노 공통
-│   ├── esp32/c3/supermini/    ESP32-C3 Super Mini 전용
-│   └── guidelines/            개발 가이드라인  ← 코딩 규칙 전체
+│   ├── cpp/          C/C++ 문법
+│   ├── arduino/      아두이노 공통
+│   └── guidelines/   개발 가이드라인  ← 코딩 규칙 전체
+└── projects/
+    └── esp32/
+        └── c3/
+            └── supermini/
+                ├── docs/   ESP32-C3 Super Mini 전용 문서
+                └── test/   기능별 구현 프로젝트
 ├── SKILLS.md    기술 스택 및 구현 현황
 └── CLAUDE.md    이 파일
 ```

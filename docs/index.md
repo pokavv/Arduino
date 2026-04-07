@@ -69,18 +69,18 @@ docs/
 
 ## esp32/c3/supermini/ — ESP32-C3 Super Mini
 
-→ [esp32/c3/supermini/index.md](esp32/c3/supermini/index.md)
+→ [../projects/esp32/c3/supermini/docs/index.md](../projects/esp32/c3/supermini/docs/index.md)
 
 | 파일 | 내용 |
 |------|------|
-| [01_spec.md](esp32/c3/supermini/01_spec.md) | 스펙, 핀맵 |
-| [02_setup.md](esp32/c3/supermini/02_setup.md) | IDE 설정 |
-| [03_gpio.md](esp32/c3/supermini/03_gpio.md) | GPIO 전용 (INPUT_PULLDOWN, 인터럽트) |
-| [04_analog_pwm.md](esp32/c3/supermini/04_analog_pwm.md) | 12비트 ADC, ledcWrite |
-| [05_communication.md](esp32/c3/supermini/05_communication.md) | UART/I2C/SPI + 핀 번호 |
-| [06_wifi.md](esp32/c3/supermini/06_wifi.md) | Wi-Fi, HTTP, 웹서버 |
-| [07_bluetooth.md](esp32/c3/supermini/07_bluetooth.md) | BLE 5.0 |
-| [08_storage.md](esp32/c3/supermini/08_storage.md) | NVS 플래시 저장 |
-| [09_deepsleep.md](esp32/c3/supermini/09_deepsleep.md) | 딥슬립, 저전력 |
-| [10_ota_mqtt.md](esp32/c3/supermini/10_ota_mqtt.md) | OTA, MQTT |
-| [11_troubleshooting.md](esp32/c3/supermini/11_troubleshooting.md) | 문제 해결 |
+| [01_spec.md](../projects/esp32/c3/supermini/docs/01_spec.md) | 스펙, 핀맵 |
+| [02_setup.md](../projects/esp32/c3/supermini/docs/02_setup.md) | IDE 설정 |
+| [03_gpio.md](../projects/esp32/c3/supermini/docs/03_gpio.md) | GPIO 전용 (INPUT_PULLDOWN, 인터럽트) |
+| [04_analog_pwm.md](../projects/esp32/c3/supermini/docs/04_analog_pwm.md) | 12비트 ADC, ledcWrite |
+| [05_communication.md](../projects/esp32/c3/supermini/docs/05_communication.md) | UART/I2C/SPI + 핀 번호 |
+| [06_wifi.md](../projects/esp32/c3/supermini/docs/06_wifi.md) | Wi-Fi, HTTP, 웹서버 |
+| [07_bluetooth.md](../projects/esp32/c3/supermini/docs/07_bluetooth.md) | BLE 5.0 |
+| [08_storage.md](../projects/esp32/c3/supermini/docs/08_storage.md) | NVS 플래시 저장 |
+| [09_deepsleep.md](../projects/esp32/c3/supermini/docs/09_deepsleep.md) | 딥슬립, 저전력 |
+| [10_ota_mqtt.md](../projects/esp32/c3/supermini/docs/10_ota_mqtt.md) | OTA, MQTT |
+| [11_troubleshooting.md](../projects/esp32/c3/supermini/docs/11_troubleshooting.md) | 문제 해결 |
