@@ -6,9 +6,12 @@
 
 ```
 docs/
-├── cpp/        C/C++ 언어 문법
-├── arduino/    아두이노 공통 기초 (보드 무관)
-└── esp32c3/    ESP32-C3 Super Mini 전용
+├── cpp/                   C/C++ 언어 문법
+├── arduino/               아두이노 공통 기초 (보드 무관)
+├── guidelines/            개발 가이드라인
+└── esp32/
+    └── c3/
+        └── supermini/     ESP32-C3 Super Mini 전용
 ```
 
 ---
@@ -64,20 +67,20 @@ docs/
 
 ---
 
-## esp32c3/ — ESP32-C3 Super Mini
+## esp32/c3/supermini/ — ESP32-C3 Super Mini
 
-→ [esp32c3/index.md](esp32c3/index.md)
+→ [esp32/c3/supermini/index.md](esp32/c3/supermini/index.md)
 
 | 파일 | 내용 |
 |------|------|
-| [01_spec.md](esp32c3/01_spec.md) | 스펙, 핀맵 |
-| [02_setup.md](esp32c3/02_setup.md) | IDE 설정 |
-| [03_gpio.md](esp32c3/03_gpio.md) | GPIO 전용 (INPUT_PULLDOWN, 인터럽트) |
-| [04_analog_pwm.md](esp32c3/04_analog_pwm.md) | 12비트 ADC, ledcWrite |
-| [05_communication.md](esp32c3/05_communication.md) | UART/I2C/SPI + 핀 번호 |
-| [06_wifi.md](esp32c3/06_wifi.md) | Wi-Fi, HTTP, 웹서버 |
-| [07_bluetooth.md](esp32c3/07_bluetooth.md) | BLE 5.0 |
-| [08_storage.md](esp32c3/08_storage.md) | NVS 플래시 저장 |
-| [09_deepsleep.md](esp32c3/09_deepsleep.md) | 딥슬립, 저전력 |
-| [10_ota_mqtt.md](esp32c3/10_ota_mqtt.md) | OTA, MQTT |
-| [11_troubleshooting.md](esp32c3/11_troubleshooting.md) | 문제 해결 |
+| [01_spec.md](esp32/c3/supermini/01_spec.md) | 스펙, 핀맵 |
+| [02_setup.md](esp32/c3/supermini/02_setup.md) | IDE 설정 |
+| [03_gpio.md](esp32/c3/supermini/03_gpio.md) | GPIO 전용 (INPUT_PULLDOWN, 인터럽트) |
+| [04_analog_pwm.md](esp32/c3/supermini/04_analog_pwm.md) | 12비트 ADC, ledcWrite |
+| [05_communication.md](esp32/c3/supermini/05_communication.md) | UART/I2C/SPI + 핀 번호 |
+| [06_wifi.md](esp32/c3/supermini/06_wifi.md) | Wi-Fi, HTTP, 웹서버 |
+| [07_bluetooth.md](esp32/c3/supermini/07_bluetooth.md) | BLE 5.0 |
+| [08_storage.md](esp32/c3/supermini/08_storage.md) | NVS 플래시 저장 |
+| [09_deepsleep.md](esp32/c3/supermini/09_deepsleep.md) | 딥슬립, 저전력 |
+| [10_ota_mqtt.md](esp32/c3/supermini/10_ota_mqtt.md) | OTA, MQTT |
+| [11_troubleshooting.md](esp32/c3/supermini/11_troubleshooting.md) | 문제 해결 |

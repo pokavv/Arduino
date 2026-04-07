@@ -17,10 +17,10 @@ Claude Code가 이 프로젝트에서 작업할 때 참고하는 설정입니다
 Arduino/
 ├── projects/    구현 프로젝트 (.ino)
 ├── docs/
-│   ├── cpp/          C/C++ 문법
-│   ├── arduino/      아두이노 공통
-│   ├── esp32c3/      ESP32-C3 전용
-│   └── guidelines/   개발 가이드라인  ← 코딩 규칙 전체
+│   ├── cpp/                   C/C++ 문법
+│   ├── arduino/               아두이노 공통
+│   ├── esp32/c3/supermini/    ESP32-C3 Super Mini 전용
+│   └── guidelines/            개발 가이드라인  ← 코딩 규칙 전체
 ├── SKILLS.md    기술 스택 및 구현 현황
 └── CLAUDE.md    이 파일
 ```
@@ -53,6 +53,16 @@ Arduino/
 - 검증: 단계별 테스트, 시리얼 디버그 매크로 → [04_verification.md](docs/guidelines/04_verification.md)
 - 원칙: 단순함, 논블로킹, 실패 가정 → [05_principles.md](docs/guidelines/05_principles.md)
 - 프로젝트 구성: 폴더명, 파일명, config.h → [06_project_structure.md](docs/guidelines/06_project_structure.md)
+
+## Git 커밋 규칙
+
+**작업할 때마다 단 하나를 작업하더라도 매번 git에 커밋한다.**
+
+```
+형식: <타입>(<범위>): <설명>
+타입: feat / fix / docs / refactor / chore
+예시: feat(gpio-blink): LED 깜빡임 기본 구현
+```
 
 ## 새 프로젝트 체크리스트
 
