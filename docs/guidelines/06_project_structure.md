@@ -28,13 +28,34 @@ Arduino/                          ← 리포 루트 (Arduino IDE 스케치북)
 
 ## 프로젝트 폴더 명명 규칙
 
-### 형식
+### 형식 — 일반 프로젝트
 
 ```
 [기능]-[부품 또는 방식]
 ```
 
-### 예시
+### 형식 — 테스트/학습용 (test/ 하위)
+
+기능 목록 순서대로 번호를 붙여 정렬이 되도록 합니다.
+
+```
+[번호]-[기능]-[부품]
+```
+
+예시:
+```
+gpio/
+├── 01-digital-output/
+├── 02-builtin-led/
+├── 03-digital-input-pullup/
+...
+adc/
+├── 01-basic-read/
+├── 02-voltage-read/
+...
+```
+
+### 예시 — 일반 프로젝트
 
 | 프로젝트 | 폴더명 |
 |---------|--------|
@@ -44,8 +65,6 @@ Arduino/                          ← 리포 루트 (Arduino IDE 스케치북)
 | MQTT 센서 노드 | `mqtt-sensor-node` |
 | OTA 업데이트 기본 | `ota-basic` |
 | 딥슬립 배터리 센서 | `deepsleep-sensor` |
-| RGB LED 컨트롤러 | `rgb-led-fastled` |
-| 서보 웹 제어 | `servo-web-control` |
 
 ### 규칙
 
@@ -53,6 +72,7 @@ Arduino/                          ← 리포 루트 (Arduino IDE 스케치북)
 ✅ 소문자만 사용
 ✅ 단어 구분은 하이픈(-)
 ✅ 기능이 명확히 드러나는 이름
+✅ 테스트 폴더는 앞에 번호 붙여 정렬 (01-, 02-, ...)
 ❌ 대문자 사용 금지
 ❌ 공백, 언더스코어 금지
 ❌ test1, project2 같은 의미 없는 이름

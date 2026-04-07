@@ -52,12 +52,12 @@ Arduino/
 
 ## 개발 규칙 요약
 
-- 주석: **한국어**, why 위주 → [01_comments.md](docs/guidelines/01_comments.md)
+- 주석: **한국어**, 하드웨어 개념·준비물·연결방법 포함, 초보자 눈높이 → [01_comments.md](docs/guidelines/01_comments.md)
 - 코드 스타일: camelCase 변수/함수, UPPER_SNAKE 상수 → [02_code_style.md](docs/guidelines/02_code_style.md)
 - 품질: 매직 넘버 금지, millis() 우선, secrets.h 분리 → [03_code_quality.md](docs/guidelines/03_code_quality.md)
 - 검증: 단계별 테스트, 시리얼 디버그 매크로 → [04_verification.md](docs/guidelines/04_verification.md)
 - 원칙: 단순함, 논블로킹, 실패 가정 → [05_principles.md](docs/guidelines/05_principles.md)
-- 프로젝트 구성: 폴더명, 파일명, config.h → [06_project_structure.md](docs/guidelines/06_project_structure.md)
+- 프로젝트 구성: 폴더명 번호순(01-이름), 파일명, config.h → [06_project_structure.md](docs/guidelines/06_project_structure.md)
 
 ## Git 커밋 규칙
 
