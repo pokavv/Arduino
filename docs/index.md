@@ -49,6 +49,21 @@ docs/
 
 ---
 
+## guidelines/ — 개발 가이드라인
+
+→ [guidelines/index.md](guidelines/index.md)
+
+| 파일 | 내용 |
+|------|------|
+| [01_comments.md](guidelines/01_comments.md) | 주석 작성법 |
+| [02_code_style.md](guidelines/02_code_style.md) | 네이밍, 파일 구조, 들여쓰기 |
+| [03_code_quality.md](guidelines/03_code_quality.md) | 함수 설계, 에러 처리, 메모리 |
+| [04_verification.md](guidelines/04_verification.md) | 검증 체크리스트, 디버깅 |
+| [05_principles.md](guidelines/05_principles.md) | 구현 8원칙 |
+| [06_project_structure.md](guidelines/06_project_structure.md) | 폴더/파일 명명, config.h, secrets.h |
+
+---
+
 ## esp32c3/ — ESP32-C3 Super Mini
 
 → [esp32c3/index.md](esp32c3/index.md)

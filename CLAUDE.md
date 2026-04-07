@@ -1,91 +1,41 @@
-# CLAUDE.md — AI 개발 보조 설정
+# CLAUDE.md
 
-이 파일은 Claude Code가 이 프로젝트에서 작업할 때 참고하는 설정 파일입니다.
+Claude Code가 이 프로젝트에서 작업할 때 참고하는 설정입니다.
+상세 규칙은 `docs/guidelines/` 참고.
 
 ---
 
-## 프로젝트 개요
+## 프로젝트
 
 - **보드**: ESP32-C3 Super Mini
 - **언어**: C/C++ (Arduino Framework)
 - **IDE**: Arduino IDE 2.x
-- **목적**: ESP32-C3 Super Mini 기능 학습 및 프로젝트 구현
-
----
 
 ## 디렉토리 구조
 
 ```
-esp32c3-supermini/
+Arduino/
+├── projects/    구현 프로젝트 (.ino)
 ├── docs/
-│   ├── cpp/          C/C++ 문법 가이드
-│   ├── arduino/      아두이노 공통 기초
-│   └── esp32c3/      ESP32-C3 전용 가이드
-├── projects/         실제 구현 프로젝트
-│   └── 프로젝트명/
-│       └── 프로젝트명.ino
-├── SKILLS.md         기술 스택 및 구현 현황
-├── CLAUDE.md         이 파일
-├── README.md
-├── LICENSE
-└── .gitignore
+│   ├── cpp/          C/C++ 문법
+│   ├── arduino/      아두이노 공통
+│   ├── esp32c3/      ESP32-C3 전용
+│   └── guidelines/   개발 가이드라인  ← 코딩 규칙 전체
+├── SKILLS.md    기술 스택 및 구현 현황
+└── CLAUDE.md    이 파일
 ```
 
----
+## 보드 필수 주의사항
 
-## 코딩 스타일 규칙
+- 내장 LED: **G8**, **LOW = 켜짐** (Active LOW)
+- 동작 전압: **3.3V** — 5V 직접 연결 금지
+- ADC: 12비트 (0~4095), Wi-Fi 켜면 불안정 가능
+- PWM: `analogWrite()` ❌ → `ledcWrite()` ✅
+- USB CDC On Boot: **Enabled** 필수
+- Wi-Fi: **2.4GHz 전용**
+- 부팅핀: G0, G9 조심
 
-- 변수명, 함수명은 **한글 또는 영어** 모두 허용 (이 프로젝트는 학습 목적)
-- 주석은 **한국어**로 작성
-- 핀 번호는 반드시 `const int` 또는 `#define`으로 상단에 정의
-- `delay()` 대신 `millis()` 패턴 사용 권장 (단순 테스트 제외)
-- Wi-Fi 비밀번호 등 민감 정보는 `secrets.h`에 분리 (`.gitignore`에 포함됨)
-
----
-
-## 보드 특성 주의사항
-
-- 내장 LED: **GPIO 8**, **LOW = 켜짐** (반전 로직)
-- 동작 전압: **3.3V** (5V 직접 연결 금지)
-- ADC: 12비트 (0~4095), Wi-Fi 활성 시 불안정 가능
-- PWM: `analogWrite()` 대신 `ledcWrite()` 사용
-- USB CDC On Boot: **Enabled** 필수 (시리얼 모니터 동작)
-- 부팅핀: G0, G9 (부팅 중 외부 신호 주의)
-- Wi-Fi: **2.4GHz 전용** (5GHz 불가)
-
----
-
-## 새 프로젝트 생성 규칙
-
-1. `projects/프로젝트명/` 폴더 생성
-2. `프로젝트명.ino` 파일 생성
-3. `secrets.h` 가 필요하면 동일 폴더에 생성 (Git에 포함되지 않음)
-4. 프로젝트 완료 후 `SKILLS.md`의 구현 상태 업데이트
-
-### secrets.h 템플릿
-
-```cpp
-// secrets.h — Git에 포함되지 않음 (.gitignore)
-#pragma once
-
-const char* WIFI_SSID     = "공유기이름";
-const char* WIFI_PASSWORD = "비밀번호";
-const char* MQTT_SERVER   = "broker.example.com";
-const char* OTA_PASSWORD  = "ota비밀번호";
-```
-
----
-
-## 문서 작성 규칙
-
-- 새로운 기능/라이브러리를 배우면 `docs/esp32c3/` 에 추가
-- 새 프로젝트 시작 전 관련 docs 먼저 확인
-- 문서는 **한국어**로 작성
-- 코드 예제는 반드시 포함
-
----
-
-## 자주 쓰는 보드 설정 (Arduino IDE)
+## Arduino IDE 보드 설정
 
 | 항목 | 값 |
 |------|----|
@@ -95,10 +45,27 @@ const char* OTA_PASSWORD  = "ota비밀번호";
 | Flash Size | 4MB |
 | Upload Speed | 921600 |
 
----
+## 개발 규칙 요약
+
+- 주석: **한국어**, why 위주 → [01_comments.md](docs/guidelines/01_comments.md)
+- 코드 스타일: camelCase 변수/함수, UPPER_SNAKE 상수 → [02_code_style.md](docs/guidelines/02_code_style.md)
+- 품질: 매직 넘버 금지, millis() 우선, secrets.h 분리 → [03_code_quality.md](docs/guidelines/03_code_quality.md)
+- 검증: 단계별 테스트, 시리얼 디버그 매크로 → [04_verification.md](docs/guidelines/04_verification.md)
+- 원칙: 단순함, 논블로킹, 실패 가정 → [05_principles.md](docs/guidelines/05_principles.md)
+- 프로젝트 구성: 폴더명, 파일명, config.h → [06_project_structure.md](docs/guidelines/06_project_structure.md)
+
+## 새 프로젝트 체크리스트
+
+1. `projects/기능-부품/` 폴더 생성 (소문자, 하이픈)
+2. `기능-부품.ino` 파일 생성 (폴더명과 동일)
+3. `config.h` — 핀, 상수, 타이밍
+4. `secrets.h` — Wi-Fi/MQTT 인증 (Git 제외)
+5. `secrets.h.example` — 형식만 담은 예시 (Git 포함)
+6. `README.md` — 연결, 라이브러리, 사용 방법
+7. 완료 후 `SKILLS.md` 구현 상태 업데이트
 
 ## 참고 링크
 
+- [arduino-esp32](https://github.com/espressif/arduino-esp32)
+- [ESP32-C3 Super Mini 가이드](https://randomnerdtutorials.com/getting-started-esp32-c3-super-mini/)
 - [ESP32-C3 데이터시트](https://www.espressif.com/sites/default/files/documentation/esp32-c3_datasheet_en.pdf)
-- [arduino-esp32 GitHub](https://github.com/espressif/arduino-esp32)
-- [ESP32-C3 Super Mini 시작 가이드](https://randomnerdtutorials.com/getting-started-esp32-c3-super-mini/)
