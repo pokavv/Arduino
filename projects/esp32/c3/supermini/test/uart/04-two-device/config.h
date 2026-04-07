@@ -1,28 +1,27 @@
 /*
- * 5-04 두 장치 간 UART 통신 설정
+ * 5-04 두 ESP32 간 UART 통신 설정
  * ================================================================
- *
- * 역할 선택: ROLE_SENDER 또는 ROLE_RECEIVER 중 하나만 활성화하세요.
- * 업로드할 때 각 보드에 맞는 역할을 선택해야 합니다.
  */
 
 #ifndef CONFIG_H
 #define CONFIG_H
 
-// ★ 역할 설정: 이 줄을 주석 처리하면 수신기 역할이 됩니다
-#define ROLE_SENDER
+// USB 시리얼(UART0) 통신 속도
+const int BAUD_RATE = 115200;
 
-// UART 통신에 사용할 핀
-const int TX_PIN = 5;  // G5: 데이터 송신 핀
-const int RX_PIN = 4;  // G4: 데이터 수신 핀
+// 이 장치의 ID (두 장치를 구별하기 위해 사용)
+// 두 번째 장치에 업로드할 때는 "ESP32-B"로 변경하세요
+#define DEVICE_ID "ESP32-A"
 
-// UART 통신 속도
-const int BAUD_RATE = 9600;
+// 메시지 전송 주기 (밀리초)
+// 2000 = 2초마다 한 번씩 상대방에게 메시지를 보냄
+const unsigned long SEND_INTERVAL = 2000;
 
-// 송신 주기 (밀리초) — 송신기 역할일 때만 사용
-const unsigned long SEND_INTERVAL = 1000;
+// UART1 통신 속도 (두 장치 모두 동일하게 설정해야 합니다)
+const int UART1_BAUD = 9600;
 
-// UART0 (USB) 모니터링 속도
-const int MONITOR_BAUD = 115200;
+// UART1 핀 번호
+const int UART1_RX_PIN = 20;  // G20: 상대 장치의 TX1과 연결 (데이터 수신)
+const int UART1_TX_PIN = 21;  // G21: 상대 장치의 RX1과 연결 (데이터 송신)
 
 #endif
