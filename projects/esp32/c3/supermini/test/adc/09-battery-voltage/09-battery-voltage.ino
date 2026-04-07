@@ -1,44 +1,42 @@
 /*
- * 2-09 배터리 전압 모니터링 (분압)
+ * 2-09 배터리 전압 측정하기
  *
- * ESP32-C3 ADC 최대 입력: 3.3V
- * 배터리 전압(예: LiPo 4.2V)은 그대로 연결 불가 → 분압 회로 필요.
+ * 문제:
+ *   리튬 배터리는 최대 4.2V인데, ESP32-C3는 3.3V까지만 읽을 수 있다.
+ *   4.2V를 직접 G0에 연결하면 보드가 망가진다!
  *
- * 분압 회로 (R1=100kΩ, R2=100kΩ → 절반으로 분압):
- *   배터리+ → R1 → G0(측정점) → R2 → GND
- *   실제 전압 = ADC 전압 * (R1+R2)/R2
+ * 해결 — 분압 회로:
+ *   저항 2개를 직렬로 연결하면 전압을 반으로 낮출 수 있다.
+ *   배터리(4.2V) → 100kΩ 저항 → G0(측정) → 100kΩ 저항 → GND
+ *   G0에서 읽히는 전압 = 4.2V ÷ 2 = 2.1V (안전한 범위!)
+ *   실제 배터리 전압 = G0에서 읽은 전압 × 2 (다시 2배 곱하기)
  *
- * 예) 4.2V 배터리, R1=R2=100kΩ:
- *   G0 = 2.1V → raw ≈ 2606
- *   실제 = 2.1 * 2 = 4.2V
- *
- * 회로:
- *   배터리+ → 100kΩ → G0 → 100kΩ → GND
+ * 연결 방법:
+ *   배터리+ → 100kΩ 저항 → G0 → 100kΩ 저항 → GND
+ *   배터리- → GND
  */
 
 #include "config.h"
 
 void setup() {
     Serial.begin(115200);
-    Serial.println("battery-voltage 시작");
-    Serial.print("분압 비율(배수): ");
-    Serial.println(DIVIDER_RATIO, 2);
+    Serial.println("시작! 배터리 전압 모니터링");
 }
 
 void loop() {
     int raw = analogRead(BATT_PIN);
-    float adcVoltage  = raw * (3.3f / 4095.0f);
-    float battVoltage = adcVoltage * DIVIDER_RATIO;
+    float adcVoltage  = raw * (3.3f / 4095.0f);           // G0에서 읽은 전압
+    float battVoltage = adcVoltage * DIVIDER_RATIO;        // 저항으로 낮춘 만큼 다시 곱하기
 
-    // 배터리 잔량 추정 (LiPo: 4.2V = 100%, 3.0V = 0%)
+    // 리튬 배터리 잔량 추정 (4.2V = 100%, 3.0V = 0%)
     int percent = map((int)(battVoltage * 100), 300, 420, 0, 100);
     percent = constrain(percent, 0, 100);
 
-    Serial.print("ADC: ");
+    Serial.print("핀 전압: ");
     Serial.print(adcVoltage, 3);
-    Serial.print("V  배터리: ");
+    Serial.print("V  |  배터리: ");
     Serial.print(battVoltage, 2);
-    Serial.print("V  잔량: ");
+    Serial.print("V  |  잔량: ");
     Serial.print(percent);
     Serial.println("%");
 

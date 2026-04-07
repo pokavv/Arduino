@@ -1,26 +1,36 @@
 /*
- * 2-01 기본 ADC 읽기 (0~4095)
+ * 2-01 아날로그 값 읽기 기초
  *
- * ESP32-C3는 12비트 ADC → 값 범위 0~4095.
- * (일반 Arduino는 10비트 → 0~1023)
- * analogRead()로 핀의 아날로그 전압을 디지털 값으로 읽는다.
+ * "아날로그 입력"이란?
+ *   디지털은 켜짐(1) / 꺼짐(0) 두 가지만 있는데,
+ *   아날로그는 0V에서 3.3V 사이 어느 값이든 될 수 있다.
+ *   예: 가변저항 돌리면 전압이 0V ~ 3.3V 사이에서 연속으로 변한다.
  *
- * 회로:
- *   G0 → 가변저항 중간 단자
- *   가변저항 한쪽 → 3.3V, 반대쪽 → GND
+ * ESP32-C3의 아날로그 읽기 특징:
+ *   일반 아두이노(우노): 0~1023 (10비트)
+ *   ESP32-C3:          0~4095 (12비트) ← 더 세밀하게 읽음
+ *
+ * analogRead() 함수:
+ *   핀의 전압을 0~4095 사이의 숫자로 변환해준다.
+ *   0V → 0, 3.3V → 4095
+ *
+ * 연결 방법:
+ *   가변저항 왼쪽 다리 → GND
+ *   가변저항 가운데 다리 → G0
+ *   가변저항 오른쪽 다리 → 3.3V
  */
 
 #include "config.h"
 
 void setup() {
     Serial.begin(115200);
-    Serial.println("basic-read 시작");
-    Serial.println("ADC 핀: " + String(ADC_PIN) + ", 해상도: 12비트 (0~4095)");
+    Serial.println("시작! 가변저항을 돌려봐");
+    Serial.println("G0 핀 읽기, 범위: 0~4095");
 }
 
 void loop() {
-    int raw = analogRead(ADC_PIN);  // 0~4095
-    Serial.print("ADC raw: ");
+    int raw = analogRead(ADC_PIN);   // 0~4095 사이 숫자로 읽기
+    Serial.print("읽은 값: ");
     Serial.println(raw);
-    delay(500);
+    delay(500);   // 0.5초마다 읽기
 }
