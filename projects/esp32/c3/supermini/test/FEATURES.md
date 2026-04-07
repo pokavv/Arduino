@@ -43,16 +43,16 @@
 
 | # | 기능 | 폴더명 | 상태 |
 |---|------|--------|------|
-| 3-01 | LED 밝기 조절 (ledcWrite) | `pwm/led-brightness` | [ ] |
-| 3-02 | LED 페이드 인/아웃 | `pwm/led-fade` | [ ] |
-| 3-03 | 가변저항으로 LED 밝기 조절 | `pwm/pot-led-brightness` | [ ] |
-| 3-04 | 서보모터 각도 제어 | `pwm/servo-basic` | [ ] |
-| 3-05 | 서보모터 스윕 (0°~180°) | `pwm/servo-sweep` | [ ] |
-| 3-06 | DC 모터 속도 제어 (L298N) | `pwm/dc-motor-l298n` | [ ] |
-| 3-07 | DC 모터 정/역 + 속도 제어 | `pwm/dc-motor-direction` | [ ] |
-| 3-08 | 수동 부저 — 단음 | `pwm/buzzer-tone` | [ ] |
-| 3-09 | 수동 부저 — 멜로디 | `pwm/buzzer-melody` | [ ] |
-| 3-10 | 다중 PWM 채널 (독립 제어) | `pwm/multi-channel` | [ ] |
+| 3-01 | LED 밝기 조절 (ledcWrite) | `pwm/01-led-brightness` | [x] |
+| 3-02 | LED 페이드 인/아웃 | `pwm/02-led-fade` | [x] |
+| 3-03 | 가변저항으로 LED 밝기 조절 | `pwm/03-pot-led-brightness` | [x] |
+| 3-04 | 서보모터 각도 제어 | `pwm/04-servo-basic` | [x] |
+| 3-05 | 서보모터 스윕 (0°~180°) | `pwm/05-servo-sweep` | [x] |
+| 3-06 | DC 모터 속도 제어 (L298N) | `pwm/06-dc-motor-l298n` | [x] |
+| 3-07 | DC 모터 정/역 + 속도 제어 | `pwm/07-dc-motor-direction` | [x] |
+| 3-08 | 수동 부저 — 단음 | `pwm/08-buzzer-tone` | [x] |
+| 3-09 | 수동 부저 — 멜로디 | `pwm/09-buzzer-melody` | [x] |
+| 3-10 | 다중 PWM 채널 (독립 제어) | `pwm/10-multi-channel` | [x] |
 
 ---
 
