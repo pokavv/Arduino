@@ -62,8 +62,23 @@ ESP32-C3 Super Mini로 구현 가능한 기술과 현재 습득 상태를 정리
 | ADC (12비트) | 문서화 | [esp32c3/04_analog_pwm.md](docs/esp32c3/04_analog_pwm.md) |
 | PWM (ledcWrite) | 문서화 | [esp32c3/04_analog_pwm.md](docs/esp32c3/04_analog_pwm.md) |
 | 인터럽트 | 문서화 | [esp32c3/03_gpio.md](docs/esp32c3/03_gpio.md) |
-| 딥슬립 | 문서화 | [esp32c3/09_deepsleep.md](docs/esp32c3/09_deepsleep.md) |
-| NVS 플래시 저장 | 문서화 | [esp32c3/08_storage.md](docs/esp32c3/08_storage.md) |
+| 딥슬립 (타이머) | 구현 | test/power/01-deepsleep-timer |
+| 딥슬립 (GPIO 웨이크업) | 구현 | test/power/02-deepsleep-gpio |
+| 딥슬립 (웨이크업 원인) | 구현 | test/power/03-deepsleep-wakeup-reason |
+| 딥슬립 + NVS 데이터 보존 | 구현 | test/power/04-deepsleep-nvs |
+| 라이트슬립 | 구현 | test/power/05-lightsleep |
+| 모뎀 슬립 (Wi-Fi 절전) | 구현 | test/power/06-modem-sleep |
+| 배터리 센서 노드 (딥슬립+MQTT) | 구현 | test/power/07-battery-sensor-node |
+| NVS 플래시 저장 (Preferences) | 구현 | test/storage/01-nvs-preferences |
+| NVS 설정 저장·복원 | 구현 | test/storage/02-nvs-config-restore |
+| SPIFFS 파일 읽기/쓰기 | 구현 | test/storage/03-spiffs-rw |
+| SPIFFS 웹서버 파일 서빙 | 구현 | test/storage/04-spiffs-web-serve |
+| LittleFS 파일 읽기/쓰기 | 구현 | test/storage/05-littlefs-rw |
+| LittleFS 데이터 로거 (CSV) | 구현 | test/storage/06-littlefs-logger |
+| OTA (ArduinoOTA 기본) | 구현 | test/ota/01-arduino-ota-basic |
+| OTA (ArduinoOTA 비밀번호) | 구현 | test/ota/02-arduino-ota-password |
+| OTA (HTTP Pull OTA) | 구현 | test/ota/03-http-ota |
+| OTA + 딥슬립 대기창 | 구현 | test/ota/04-ota-with-deepsleep |
 | millis 논블로킹 | 문서화 | [arduino/06_timing.md](docs/arduino/06_timing.md) |
 
 ---
@@ -75,8 +90,8 @@ ESP32-C3 Super Mini로 구현 가능한 기술과 현재 습득 상태를 정리
 | Wi-Fi LED 웹 제어 | Wi-Fi, 웹서버, GPIO | 구현 완료 |
 | 온습도 모니터 (OLED) | I2C, DHT22/BME280, OLED | 예정 |
 | BLE 스마트폰 제어 | BLE | 예정 |
-| MQTT 센서 노드 | Wi-Fi, MQTT, 딥슬립 | 예정 |
-| OTA 업데이트 기본 | Wi-Fi, OTA | 예정 |
+| MQTT 센서 노드 | Wi-Fi, MQTT, 딥슬립 | 구현 완료 (power/07) |
+| OTA 업데이트 기본 | Wi-Fi, OTA | 구현 완료 (ota/01~04) |
 | RGB LED 컨트롤러 | PWM, FastLED | 예정 |
 | 서보 웹 제어 | Wi-Fi, 웹서버, PWM | 예정 |
 
