@@ -9,17 +9,17 @@
 
 | # | 기능 | 폴더명 | 상태 |
 |---|------|--------|------|
-| 1-01 | 디지털 출력 — LED ON/OFF | `gpio/digital-output` | [ ] |
-| 1-02 | 내장 LED 제어 (Active LOW 반전 로직) | `gpio/builtin-led` | [ ] |
-| 1-03 | 디지털 입력 — 버튼 (INPUT_PULLUP) | `gpio/digital-input-pullup` | [ ] |
-| 1-04 | 디지털 입력 — 버튼 (INPUT_PULLDOWN) | `gpio/digital-input-pulldown` | [ ] |
-| 1-05 | 버튼으로 LED 토글 | `gpio/button-led-toggle` | [ ] |
-| 1-06 | 외부 인터럽트 — FALLING | `gpio/interrupt-falling` | [ ] |
-| 1-07 | 외부 인터럽트 — RISING | `gpio/interrupt-rising` | [ ] |
-| 1-08 | 외부 인터럽트 — CHANGE | `gpio/interrupt-change` | [ ] |
-| 1-09 | 버튼 디바운싱 (소프트웨어) | `gpio/debounce` | [ ] |
-| 1-10 | 다중 GPIO 동시 제어 | `gpio/multi-gpio` | [ ] |
-| 1-11 | 릴레이 모듈 제어 | `gpio/relay` | [ ] |
+| 1-01 | 디지털 출력 — LED ON/OFF | `gpio/01-digital-output` | [x] |
+| 1-02 | 내장 LED 제어 (Active LOW 반전 로직) | `gpio/02-builtin-led` | [x] |
+| 1-03 | 디지털 입력 — 버튼 (INPUT_PULLUP) | `gpio/03-digital-input-pullup` | [x] |
+| 1-04 | 디지털 입력 — 버튼 (INPUT_PULLDOWN) | `gpio/04-digital-input-pulldown` | [x] |
+| 1-05 | 버튼으로 LED 토글 | `gpio/05-button-led-toggle` | [x] |
+| 1-06 | 외부 인터럽트 — FALLING | `gpio/06-interrupt-falling` | [x] |
+| 1-07 | 외부 인터럽트 — RISING | `gpio/07-interrupt-rising` | [x] |
+| 1-08 | 외부 인터럽트 — CHANGE | `gpio/08-interrupt-change` | [x] |
+| 1-09 | 버튼 디바운싱 (소프트웨어) | `gpio/09-debounce` | [x] |
+| 1-10 | 다중 GPIO 동시 제어 | `gpio/10-multi-gpio` | [x] |
+| 1-11 | 릴레이 모듈 제어 | `gpio/11-relay` | [x] |
 
 ---
 
