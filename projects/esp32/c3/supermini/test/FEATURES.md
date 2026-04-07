@@ -27,15 +27,15 @@
 
 | # | 기능 | 폴더명 | 상태 |
 |---|------|--------|------|
-| 2-01 | 기본 ADC 읽기 (0~4095) | `adc/basic-read` | [ ] |
-| 2-02 | ADC → 전압 변환 (0~3.3V) | `adc/voltage-read` | [ ] |
-| 2-03 | 다중 채널 ADC (A0~A5) | `adc/multi-channel` | [ ] |
-| 2-04 | 평균값 필터 (노이즈 제거) | `adc/averaging-filter` | [ ] |
-| 2-05 | 가변저항 읽기 | `adc/potentiometer` | [ ] |
-| 2-06 | CDS 조도 센서 읽기 | `adc/cds-light-sensor` | [ ] |
-| 2-07 | 토양 수분 센서 | `adc/soil-moisture` | [ ] |
-| 2-08 | LM35 아날로그 온도 센서 | `adc/lm35-temp` | [ ] |
-| 2-09 | 배터리 전압 모니터링 (분압) | `adc/battery-voltage` | [ ] |
+| 2-01 | 기본 ADC 읽기 (0~4095) | `adc/01-basic-read` | [x] |
+| 2-02 | ADC → 전압 변환 (0~3.3V) | `adc/02-voltage-read` | [x] |
+| 2-03 | 다중 채널 ADC (A0~A5) | `adc/03-multi-channel` | [x] |
+| 2-04 | 평균값 필터 (노이즈 제거) | `adc/04-averaging-filter` | [x] |
+| 2-05 | 가변저항 읽기 | `adc/05-potentiometer` | [x] |
+| 2-06 | CDS 조도 센서 읽기 | `adc/06-cds-light-sensor` | [x] |
+| 2-07 | 토양 수분 센서 | `adc/07-soil-moisture` | [x] |
+| 2-08 | LM35 아날로그 온도 센서 | `adc/08-lm35-temp` | [x] |
+| 2-09 | 배터리 전압 모니터링 (분압) | `adc/09-battery-voltage` | [x] |
 
 ---
 
