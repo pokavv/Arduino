@@ -1,0 +1,588 @@
+/* ===================================================
+   ESP32-C3 Arduino Web Simulator — 스타일시트
+   다크 테마, Arduino IDE 스타일
+   =================================================== */
+
+:root {
+  --bg-dark:       #1e1e1e;
+  --bg-panel:      #252526;
+  --bg-sidebar:    #1f1f2e;
+  --bg-input:      #2d2d2d;
+  --bg-hover:      #2a2d2e;
+  --bg-active:     #094771;
+  --border:        #3c3c3c;
+  --text:          #cccccc;
+  --text-dim:      #7f848e;
+  --text-bright:   #ffffff;
+  --accent-blue:   #0e90d2;
+  --accent-green:  #4ec9b0;
+  --accent-yellow: #dcdcaa;
+  --accent-red:    #f44747;
+  --accent-orange: #ce9178;
+  --btn-success:   #388a34;
+  --btn-danger:    #c72e0f;
+  --btn-warning:   #a07800;
+  --btn-secondary: #3a3d41;
+  --circuit-bg:    #0d1117;
+  --grid-color:    #1c2333;
+  --wire-default:  #4CAF50;
+  --wire-power:    #f44747;
+  --wire-gnd:      #888888;
+  --wire-signal:   #4fc3f7;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg-dark);
+  color: var(--text);
+  font-family: 'Segoe UI', Consolas, monospace;
+  font-size: 13px;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== 툴바 ===== */
+#toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: #1a1a2e;
+  border-bottom: 1px solid var(--border);
+  height: 48px;
+  flex-shrink: 0;
+  gap: 12px;
+}
+
+.toolbar-left, .toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toolbar-center {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-logo {
+  font-weight: bold;
+  font-size: 14px;
+  color: #4ec9b0;
+  white-space: nowrap;
+  margin-right: 8px;
+}
+
+/* 버튼 */
+.btn {
+  padding: 5px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  background: var(--btn-secondary);
+  color: var(--text);
+  transition: background 0.15s, transform 0.05s;
+  white-space: nowrap;
+}
+.btn:hover { background: #4a4d51; }
+.btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn.active { background: var(--accent-blue); color: white; }
+
+.btn-success { background: var(--btn-success); color: white; font-weight: bold; }
+.btn-success:hover { background: #4aba47; }
+.btn-danger  { background: var(--btn-danger);  color: white; }
+.btn-danger:hover  { background: #e53935; }
+.btn-warning { background: var(--btn-warning); color: white; }
+.btn-warning:hover { background: #c89000; }
+.btn-primary { background: var(--accent-blue); color: white; }
+.btn-primary:hover { background: #1e9fde; }
+.btn-sm { padding: 3px 8px; font-size: 11px; }
+
+select {
+  background: var(--bg-input);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-family: inherit;
+}
+
+.sim-status {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: bold;
+}
+.sim-status.stopped  { background: #3a3d41; color: #888; }
+.sim-status.running  { background: #1a3a1a; color: #4CAF50; }
+.sim-status.error    { background: #3a1a1a; color: #f44747; }
+.sim-status.paused   { background: #3a3210; color: #dcd20c; }
+
+.sim-time {
+  font-family: Consolas, monospace;
+  font-size: 12px;
+  color: var(--text-dim);
+  min-width: 60px;
+}
+
+/* ===== 메인 레이아웃 ===== */
+#main-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ===== 왼쪽 패널 ===== */
+#left-panel {
+  display: flex;
+  width: 55%;
+  min-width: 400px;
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+}
+
+/* 컴포넌트 팔레트 */
+#component-palette {
+  width: 160px;
+  min-width: 160px;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.palette-title {
+  padding: 8px 10px;
+  font-size: 11px;
+  font-weight: bold;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border);
+}
+
+.palette-section { border-bottom: 1px solid var(--border); }
+
+.palette-section-title {
+  padding: 6px 10px 3px;
+  font-size: 10px;
+  color: var(--accent-green);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  cursor: grab;
+  user-select: none;
+  transition: background 0.1s;
+  font-size: 12px;
+}
+.palette-item:hover { background: var(--bg-hover); }
+.palette-item:active { cursor: grabbing; }
+.palette-item.dragging { opacity: 0.5; }
+.palette-icon { font-size: 14px; }
+
+/* 회로 캔버스 영역 */
+#circuit-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#circuit-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.circuit-hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-left: 8px;
+}
+
+#circuit-canvas-wrapper {
+  flex: 1;
+  overflow: auto;
+  background: var(--circuit-bg);
+  position: relative;
+}
+
+#circuit-svg {
+  width: 100%;
+  height: 100%;
+  min-width: 800px;
+  min-height: 600px;
+  background:
+    radial-gradient(circle, var(--grid-color) 1px, transparent 1px) 0 0 / 20px 20px;
+  cursor: default;
+}
+
+#circuit-svg.wire-mode { cursor: crosshair; }
+#circuit-svg.drag-over { background-color: rgba(78, 201, 176, 0.05); }
+
+/* ===== 오른쪽 패널 ===== */
+#right-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 300px;
+}
+
+/* 에디터 패널 */
+#editor-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  height: 32px;
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.editor-actions { display: flex; gap: 4px; }
+
+#monaco-editor {
+  flex: 1;
+  min-height: 0;
+}
+
+/* 수평 구분선 (드래그 가능) */
+.h-divider {
+  height: 5px;
+  background: var(--border);
+  cursor: row-resize;
+  flex-shrink: 0;
+  transition: background 0.1s;
+}
+.h-divider:hover { background: var(--accent-blue); }
+
+/* 하단 패널 */
+#bottom-panel {
+  display: flex;
+  flex-direction: column;
+  height: 240px;
+  min-height: 120px;
+  border-top: 1px solid var(--border);
+}
+
+/* 탭 바 */
+.tab-bar {
+  display: flex;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.tab-btn {
+  padding: 5px 12px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  transition: color 0.1s;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active {
+  color: var(--text-bright);
+  border-bottom-color: var(--accent-blue);
+}
+
+.tab-content { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+.tab-content.active { display: flex; }
+
+/* 시리얼 모니터 */
+#serial-output {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 10px;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  background: #0d0d0d;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+#serial-output .line { display: block; }
+#serial-output .line.sent { color: #4fc3f7; }
+#serial-output .line.received { color: #4CAF50; }
+#serial-output .line.error { color: #f44747; }
+#serial-output .line.info { color: #888; font-style: italic; }
+#serial-output .line.timestamp { color: #555; font-size: 10px; }
+
+#serial-input-bar {
+  display: flex;
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--bg-panel);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+#serial-input {
+  flex: 1;
+  background: var(--bg-input);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 4px 8px;
+  font-family: Consolas, monospace;
+  font-size: 12px;
+}
+#serial-input:focus { outline: none; border-color: var(--accent-blue); }
+
+/* 핀 상태 그리드 */
+#pin-state-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  padding: 8px;
+  overflow-y: auto;
+}
+
+.pin-state-item {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.pin-state-item.high { border-color: #4CAF50; }
+.pin-state-item.low  { border-color: #333; }
+.pin-state-item.adc  { border-color: #ff9800; }
+.pin-state-item.pwm  { border-color: #9c27b0; }
+
+.pin-state-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #333;
+  flex-shrink: 0;
+}
+.pin-state-item.high .pin-state-dot { background: #4CAF50; box-shadow: 0 0 4px #4CAF50; }
+.pin-state-item.adc .pin-state-dot  { background: #ff9800; }
+.pin-state-item.pwm .pin-state-dot  { background: #9c27b0; }
+
+.pin-state-name { font-weight: bold; color: var(--text-bright); }
+.pin-state-val  { color: var(--text-dim); font-family: Consolas, monospace; }
+
+/* 오실로스코프 */
+#scope-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+#scope-canvas {
+  flex: 1;
+  background: #000;
+  display: block;
+  width: 100%;
+}
+
+/* ===== SVG 컴포넌트 스타일 ===== */
+.component-group {
+  cursor: move;
+  user-select: none;
+}
+.component-group.selected .component-body {
+  stroke: var(--accent-blue);
+  stroke-width: 2;
+}
+.component-group:hover .component-body {
+  stroke: rgba(78, 201, 176, 0.5);
+}
+
+/* LED SVG */
+.led-body      { fill: #333; stroke: #888; stroke-width: 1; }
+.led-body.on   { fill: var(--led-color, #ff4444); stroke: var(--led-color, #ff4444); filter: url(#led-glow); }
+.led-legs      { stroke: #888; stroke-width: 1.5; fill: none; }
+.led-anode     { stroke: #888; }
+.led-cathode   { stroke: #888; }
+
+/* 버튼 SVG */
+.button-base   { fill: #2a2a2a; stroke: #666; stroke-width: 1.5; rx: 3; }
+.button-cap    { fill: #444; stroke: #777; stroke-width: 1; cursor: pointer; }
+.button-cap.pressed { fill: #222; transform: translateY(2px); }
+
+/* 서보 SVG */
+.servo-body    { fill: #1a3a5c; stroke: #2e6da4; stroke-width: 1.5; }
+.servo-arm     { fill: #888; stroke: #aaa; stroke-width: 1; transform-origin: center; transition: transform 0.2s; }
+
+/* 저항 SVG */
+.resistor-body { fill: none; stroke: #cc8844; stroke-width: 2; }
+.resistor-legs { stroke: #888; stroke-width: 1.5; }
+
+/* 가변저항 SVG */
+.pot-body      { fill: #1a3a5c; stroke: #2e6da4; stroke-width: 1.5; }
+.pot-knob      { fill: #aaa; stroke: #888; cursor: pointer; }
+.pot-track     { fill: none; stroke: #555; stroke-width: 3; }
+.pot-fill      { fill: none; stroke: var(--accent-blue); stroke-width: 3; }
+
+/* OLED SVG */
+.oled-bg     { fill: #000; }
+.oled-frame  { fill: none; stroke: #333; stroke-width: 2; }
+.oled-pixel  { fill: #00ff88; }
+
+/* LCD SVG */
+.lcd-bg      { fill: #2a5; }
+.lcd-frame   { fill: none; stroke: #444; stroke-width: 2; }
+.lcd-char    { fill: #000; font-family: monospace; font-size: 8px; }
+
+/* 와이어 */
+.wire {
+  fill: none;
+  stroke: var(--wire-default);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  cursor: pointer;
+  pointer-events: stroke;
+}
+.wire:hover       { stroke-width: 3; opacity: 0.8; }
+.wire.selected    { stroke: var(--accent-blue); stroke-width: 3; }
+.wire.power       { stroke: var(--wire-power); }
+.wire.ground      { stroke: var(--wire-gnd); }
+.wire.signal      { stroke: var(--wire-signal); }
+.wire.temp        { stroke: #888; stroke-dasharray: 5,3; }
+
+.wire-dot {
+  fill: var(--wire-default);
+  stroke: none;
+  r: 4;
+}
+
+/* 핀 연결점 */
+.pin-point {
+  fill: #555;
+  stroke: #777;
+  stroke-width: 1;
+  cursor: crosshair;
+  r: 5;
+}
+.pin-point:hover {
+  fill: var(--accent-green);
+  stroke: var(--accent-green);
+  r: 6;
+}
+.pin-point.connected {
+  fill: var(--wire-default);
+  stroke: var(--wire-default);
+}
+
+/* ESP32 보드 */
+.board-pcb     { fill: #0d2818; stroke: #1a4a28; stroke-width: 2; rx: 6; }
+.board-pin-row { fill: none; }
+.board-pin {
+  fill: #c0a060;
+  stroke: #8a7040;
+  stroke-width: 1;
+}
+.board-pin-label {
+  fill: #aaa;
+  font-size: 9px;
+  font-family: Consolas, monospace;
+  text-anchor: middle;
+}
+.board-pin-label.special { fill: #4ec9b0; }
+.board-chip { fill: #1a1a1a; stroke: #333; stroke-width: 1; }
+.board-chip-label { fill: #888; font-size: 7px; font-family: monospace; text-anchor: middle; }
+.board-led-builtin { fill: #00ff00; r: 3; }
+
+/* 에러 패널 */
+#error-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #2d0000;
+  border-top: 2px solid var(--accent-red);
+  z-index: 1000;
+  max-height: 200px;
+}
+
+.error-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  background: #3d0000;
+  color: var(--accent-red);
+  font-weight: bold;
+}
+
+#error-message {
+  padding: 8px 12px;
+  color: #ff9999;
+  font-family: Consolas, monospace;
+  font-size: 12px;
+  overflow: auto;
+  max-height: 140px;
+}
+
+/* 툴팁 */
+.tooltip {
+  position: fixed;
+  background: #333;
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  pointer-events: none;
+  z-index: 9999;
+  border: 1px solid #555;
+}
+
+/* 스크롤바 */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }
+
+/* 반응형 */
+@media (max-width: 900px) {
+  #main-layout { flex-direction: column; }
+  #left-panel  { width: 100%; height: 50%; border-right: none; border-bottom: 1px solid var(--border); }
+  #right-panel { height: 50%; }
+  #component-palette { width: 120px; }
+}

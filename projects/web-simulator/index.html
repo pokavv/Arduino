@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESP32-C3 Arduino Web Simulator</title>
+  <link rel="stylesheet" href="src/css/app.css">
+  <!-- Monaco Editor CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
+</head>
+<body>
+  <!-- ===== 상단 툴바 ===== -->
+  <header id="toolbar">
+    <div class="toolbar-left">
+      <span class="app-logo">⚡ ESP32-C3 Simulator</span>
+      <select id="template-select">
+        <option value="">-- 템플릿 선택 --</option>
+        <optgroup label="1. GPIO">
+          <option value="gpio-01">01. LED 깜빡임</option>
+          <option value="gpio-02">02. 내장 LED (Active LOW)</option>
+          <option value="gpio-03">03. 버튼 입력 (PULLUP)</option>
+          <option value="gpio-05">05. 버튼으로 LED 토글</option>
+          <option value="gpio-06">06. 인터럽트 FALLING</option>
+          <option value="gpio-09">09. 버튼 디바운싱</option>
+          <option value="gpio-11">11. 릴레이 제어</option>
+        </optgroup>
+        <optgroup label="2. ADC">
+          <option value="adc-01">01. 기본 ADC 읽기</option>
+          <option value="adc-02">02. 전압 변환</option>
+          <option value="adc-05">05. 가변저항</option>
+          <option value="adc-06">06. CDS 조도센서</option>
+        </optgroup>
+        <optgroup label="3. PWM">
+          <option value="pwm-01">01. LED 밝기 조절</option>
+          <option value="pwm-02">02. LED 페이드</option>
+          <option value="pwm-03">03. 가변저항 LED 밝기</option>
+          <option value="pwm-04">04. 서보모터</option>
+          <option value="pwm-08">08. 부저 단음</option>
+          <option value="pwm-09">09. 부저 멜로디</option>
+        </optgroup>
+        <optgroup label="4. 타이밍">
+          <option value="timing-01">01. millis 논블로킹</option>
+          <option value="timing-02">02. 다중 타이머</option>
+        </optgroup>
+        <optgroup label="5. UART">
+          <option value="uart-01">01. 시리얼 에코</option>
+          <option value="uart-02">02. 명령어 파서</option>
+        </optgroup>
+      </select>
+      <button id="btn-load-template" class="btn btn-secondary">불러오기</button>
+    </div>
+    <div class="toolbar-center">
+      <button id="btn-run" class="btn btn-success" title="시뮬레이션 실행 (F5)">
+        ▶ 실행
+      </button>
+      <button id="btn-stop" class="btn btn-danger" disabled title="중지 (F6)">
+        ■ 중지
+      </button>
+      <button id="btn-reset" class="btn btn-warning" title="리셋 (F7)">
+        ↺ 리셋
+      </button>
+      <span id="sim-status" class="sim-status stopped">정지됨</span>
+      <span id="sim-time" class="sim-time">0.000s</span>
+    </div>
+    <div class="toolbar-right">
+      <button id="btn-clear-circuit" class="btn btn-secondary">회로 초기화</button>
+      <button id="btn-export" class="btn btn-secondary">내보내기</button>
+      <button id="btn-import" class="btn btn-secondary">가져오기</button>
+      <input type="file" id="import-file" accept=".json" style="display:none">
+    </div>
+  </header>
+
+  <!-- ===== 메인 레이아웃 ===== -->
+  <main id="main-layout">
+    <!-- ===== 왼쪽: 회로 영역 ===== -->
+    <section id="left-panel">
+      <!-- 컴포넌트 팔레트 -->
+      <div id="component-palette">
+        <div class="palette-title">부품 팔레트</div>
+        <div class="palette-section">
+          <div class="palette-section-title">출력</div>
+          <div class="palette-items">
+            <div class="palette-item" data-type="LED" data-color="red" draggable="true">
+              <span class="palette-icon">💡</span><span>LED (빨강)</span>
+            </div>
+            <div class="palette-item" data-type="LED" data-color="green" draggable="true">
+              <span class="palette-icon">💡</span><span>LED (초록)</span>
+            </div>
+            <div class="palette-item" data-type="LED" data-color="blue" draggable="true">
+              <span class="palette-icon">💡</span><span>LED (파랑)</span>
+            </div>
+            <div class="palette-item" data-type="LED" data-color="yellow" draggable="true">
+              <span class="palette-icon">💡</span><span>LED (노랑)</span>
+            </div>
+            <div class="palette-item" data-type="LED_RGB" draggable="true">
+              <span class="palette-icon">🌈</span><span>RGB LED</span>
+            </div>
+            <div class="palette-item" data-type="Buzzer" draggable="true">
+              <span class="palette-icon">🔔</span><span>부저</span>
+            </div>
+            <div class="palette-item" data-type="Servo" draggable="true">
+              <span class="palette-icon">⚙️</span><span>서보모터</span>
+            </div>
+            <div class="palette-item" data-type="DC_Motor_L298N" draggable="true">
+              <span class="palette-icon">🔄</span><span>DC 모터 (L298N)</span>
+            </div>
+            <div class="palette-item" data-type="Relay_Module" draggable="true">
+              <span class="palette-icon">🔌</span><span>릴레이</span>
+            </div>
+            <div class="palette-item" data-type="OLED_SSD1306" draggable="true">
+              <span class="palette-icon">🖥️</span><span>OLED SSD1306</span>
+            </div>
+            <div class="palette-item" data-type="LCD_1602" draggable="true">
+              <span class="palette-icon">📟</span><span>LCD 1602</span>
+            </div>
+          </div>
+        </div>
+        <div class="palette-section">
+          <div class="palette-section-title">입력</div>
+          <div class="palette-items">
+            <div class="palette-item" data-type="Button" draggable="true">
+              <span class="palette-icon">🔘</span><span>버튼</span>
+            </div>
+            <div class="palette-item" data-type="Potentiometer" draggable="true">
+              <span class="palette-icon">🎚️</span><span>가변저항</span>
+            </div>
+            <div class="palette-item" data-type="DHT11" draggable="true">
+              <span class="palette-icon">🌡️</span><span>DHT11</span>
+            </div>
+            <div class="palette-item" data-type="DHT22" draggable="true">
+              <span class="palette-icon">🌡️</span><span>DHT22</span>
+            </div>
+            <div class="palette-item" data-type="Ultrasonic_HC_SR04" draggable="true">
+              <span class="palette-icon">📡</span><span>HC-SR04</span>
+            </div>
+            <div class="palette-item" data-type="PIR_Sensor" draggable="true">
+              <span class="palette-icon">👁️</span><span>PIR 센서</span>
+            </div>
+          </div>
+        </div>
+        <div class="palette-section">
+          <div class="palette-section-title">수동 소자</div>
+          <div class="palette-items">
+            <div class="palette-item" data-type="Resistor" data-value="220" draggable="true">
+              <span class="palette-icon">⬜</span><span>저항 220Ω</span>
+            </div>
+            <div class="palette-item" data-type="Resistor" data-value="1000" draggable="true">
+              <span class="palette-icon">⬜</span><span>저항 1kΩ</span>
+            </div>
+            <div class="palette-item" data-type="Resistor" data-value="10000" draggable="true">
+              <span class="palette-icon">⬜</span><span>저항 10kΩ</span>
+            </div>
+          </div>
+        </div>
+        <div class="palette-section">
+          <div class="palette-section-title">전원</div>
+          <div class="palette-items">
+            <div class="palette-item" data-type="PowerRail" draggable="true">
+              <span class="palette-icon">🔴</span><span>3.3V 전원 레일</span>
+            </div>
+            <div class="palette-item" data-type="GndRail" draggable="true">
+              <span class="palette-icon">⚫</span><span>GND 레일</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 회로 캔버스 -->
+      <div id="circuit-container">
+        <div id="circuit-toolbar">
+          <button id="btn-wire-mode" class="btn btn-sm" title="와이어 연결 모드 (W)">
+            ➰ 와이어
+          </button>
+          <button id="btn-select-mode" class="btn btn-sm active" title="선택 모드 (S)">
+            ↖ 선택
+          </button>
+          <button id="btn-delete-selected" class="btn btn-sm btn-danger" title="선택 삭제 (Del)">
+            🗑 삭제
+          </button>
+          <span class="circuit-hint" id="circuit-hint">부품을 캔버스로 드래그하거나 팔레트에서 클릭하세요</span>
+        </div>
+        <div id="circuit-canvas-wrapper">
+          <svg id="circuit-svg" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <marker id="arrow-end" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L8,3 z" fill="#4CAF50"/>
+              </marker>
+              <filter id="led-glow">
+                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                <feMerge>
+                  <feMergeNode in="coloredBlur"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+            </defs>
+            <!-- 보드는 JS에서 렌더링 -->
+            <g id="board-layer"></g>
+            <!-- 와이어 -->
+            <g id="wire-layer"></g>
+            <!-- 컴포넌트 -->
+            <g id="component-layer"></g>
+            <!-- 임시 와이어 (그리는 중) -->
+            <g id="temp-wire-layer"></g>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 오른쪽: 코드 + 시리얼 ===== -->
+    <section id="right-panel">
+      <!-- 코드 에디터 -->
+      <div id="editor-panel">
+        <div class="panel-header">
+          <span>📝 코드 에디터 (Arduino C++)</span>
+          <div class="editor-actions">
+            <button id="btn-format" class="btn btn-sm">정렬</button>
+            <button id="btn-example" class="btn btn-sm">예제 코드</button>
+          </div>
+        </div>
+        <div id="monaco-editor"></div>
+      </div>
+
+      <!-- 구분선 (드래그 가능) -->
+      <div id="panel-divider" class="h-divider"></div>
+
+      <!-- 시리얼 모니터 + 핀 상태 -->
+      <div id="bottom-panel">
+        <div class="tab-bar">
+          <button class="tab-btn active" data-tab="serial">📺 시리얼 모니터</button>
+          <button class="tab-btn" data-tab="pins">📌 핀 상태</button>
+          <button class="tab-btn" data-tab="scope">📊 오실로스코프</button>
+        </div>
+
+        <!-- 시리얼 모니터 -->
+        <div id="tab-serial" class="tab-content active">
+          <div id="serial-output"></div>
+          <div id="serial-input-bar">
+            <input type="text" id="serial-input" placeholder="시리얼 전송..." />
+            <select id="serial-line-ending">
+              <option value="">끝 문자 없음</option>
+              <option value="\n" selected>개행 (\n)</option>
+              <option value="\r\n">CR+LF</option>
+            </select>
+            <button id="btn-serial-send" class="btn btn-sm btn-primary">전송</button>
+            <button id="btn-serial-clear" class="btn btn-sm">지우기</button>
+          </div>
+        </div>
+
+        <!-- 핀 상태 -->
+        <div id="tab-pins" class="tab-content">
+          <div id="pin-state-grid">
+            <!-- JS에서 렌더링 -->
+          </div>
+        </div>
+
+        <!-- 오실로스코프 -->
+        <div id="tab-scope" class="tab-content">
+          <div id="scope-controls">
+            <select id="scope-pin">
+              <option value="2">G2</option>
+              <option value="3">G3</option>
+              <option value="4">G4</option>
+              <option value="8">G8 (내장LED)</option>
+              <option value="9">G9 (BOOT)</option>
+            </select>
+            <label>채널 추가</label>
+          </div>
+          <canvas id="scope-canvas"></canvas>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== 에러 패널 ===== -->
+  <div id="error-panel" style="display:none">
+    <div class="error-header">
+      <span>⚠️ 오류</span>
+      <button id="btn-close-error">×</button>
+    </div>
+    <pre id="error-message"></pre>
+  </div>
+
+  <!-- ===== 핵심 JS 파일 로드 ===== -->
+  <!-- 시뮬레이터 엔진 -->
+  <script src="src/js/board/esp32c3.js"></script>
+  <script src="src/js/core/scheduler.js"></script>
+  <script src="src/js/core/runtime.js"></script>
+  <script src="src/js/core/transpiler.js"></script>
+  <!-- 회로 편집기 & 컴포넌트 -->
+  <script src="src/js/components/ComponentBase.js"></script>
+  <script src="src/js/components/components.js"></script>
+  <script src="src/js/circuit/circuit.js"></script>
+  <!-- 템플릿 -->
+  <script src="src/templates/templates.js"></script>
+  <!-- 메인 앱 -->
+  <script src="src/js/ui/app.js"></script>
+</body>
+</html>
