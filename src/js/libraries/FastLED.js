@@ -303,6 +303,8 @@
 
         /** @private DATA 핀이 일치하는 WS2812B 컴포넌트 탐색 */
         function _findStripComponent(pin) {
+            var _pm = (typeof global !== 'undefined' && global._pinNumMatch) ||
+                function(v, n) { if (v === n) return true; if (typeof v === 'string') { var x = parseInt(v.replace(/^[A-Za-z]+/, ''), 10); return !isNaN(x) && x === n; } return false; };
             var circuit = (typeof global !== 'undefined') ? global.currentCircuit : null;
             if (!circuit || typeof circuit.getAllComponents !== 'function') return null;
 
@@ -318,8 +320,8 @@
                 if (!isStrip) continue;
 
                 var conns = comp.connections || {};
-                if (conns['DATA'] === pin || conns['DIN'] === pin ||
-                    conns['IN']   === pin || conns['DO']  === pin) {
+                if (_pm(conns['DATA'], pin) || _pm(conns['DIN'], pin) ||
+                    _pm(conns['IN'],   pin) || _pm(conns['DO'],  pin)) {
                     return comp;
                 }
                 if (!fallback) fallback = comp;
@@ -561,6 +563,8 @@
     };
 
     Adafruit_NeoPixel.prototype._findComponent = function() {
+        var _pm = (typeof global !== 'undefined' && global._pinNumMatch) ||
+            function(v, n) { if (v === n) return true; if (typeof v === 'string') { var x = parseInt(v.replace(/^[A-Za-z]+/, ''), 10); return !isNaN(x) && x === n; } return false; };
         var circuit = (typeof global !== 'undefined') ? global.currentCircuit : null;
         if (!circuit || typeof circuit.getAllComponents !== 'function') return null;
 
@@ -577,8 +581,8 @@
             if (!isStrip) continue;
 
             var conns = comp.connections || {};
-            if (conns['DATA'] === pin || conns['DIN'] === pin ||
-                conns['IN']   === pin || conns['DO']  === pin) {
+            if (_pm(conns['DATA'], pin) || _pm(conns['DIN'], pin) ||
+                _pm(conns['IN'],   pin) || _pm(conns['DO'],  pin)) {
                 return comp;
             }
             if (!fallback) fallback = comp;

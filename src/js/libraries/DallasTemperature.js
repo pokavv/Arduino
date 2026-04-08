@@ -181,6 +181,8 @@
      * @returns {object[]}
      */
     DallasTemperature.prototype._findDevices = function() {
+        var _pinNumMatch = (typeof global !== 'undefined' && global._pinNumMatch) ||
+            function(v, n) { if (v === n) return true; if (typeof v === 'string') { var x = parseInt(v.replace(/^[A-Za-z]+/, ''), 10); return !isNaN(x) && x === n; } return false; };
         var circuit = (typeof global !== 'undefined') ? global.currentCircuit : null;
         if (!circuit || typeof circuit.getAllComponents !== 'function') return [];
 
@@ -192,7 +194,7 @@
             var comp = comps[i];
             if (comp.type !== 'DS18B20') continue;
             var conns = comp.connections || {};
-            if (conns['DATA'] === pin) {
+            if (_pinNumMatch(conns['DATA'], pin)) {
                 found.push(comp);
             }
         }

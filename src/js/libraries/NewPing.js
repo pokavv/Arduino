@@ -136,6 +136,8 @@
      * @returns {object|null}
      */
     NewPing.prototype._findComponent = function() {
+        var _pm = (typeof global !== 'undefined' && global._pinNumMatch) ||
+            function(v, n) { if (v === n) return true; if (typeof v === 'string') { var x = parseInt(v.replace(/^[A-Za-z]+/, ''), 10); return !isNaN(x) && x === n; } return false; };
         var circuit = (typeof global !== 'undefined') ? global.currentCircuit : null;
         if (!circuit || typeof circuit.getAllComponents !== 'function') return null;
 
@@ -149,7 +151,7 @@
             if (comp.type !== 'Ultrasonic_HCSR04') continue;
 
             var conns = comp.connections || {};
-            if (conns['TRIG'] === trigPin || conns['ECHO'] === echoPin) {
+            if (_pm(conns['TRIG'], trigPin) || _pm(conns['ECHO'], echoPin)) {
                 return comp;
             }
             // 첫 번째 HC-SR04를 폴백으로 보관

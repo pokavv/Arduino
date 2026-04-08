@@ -157,6 +157,8 @@
      * @returns {object|null}
      */
     Stepper.prototype._findComponent = function() {
+        var _pm = (typeof global !== 'undefined' && global._pinNumMatch) ||
+            function(v, n) { if (v === n) return true; if (typeof v === 'string') { var x = parseInt(v.replace(/^[A-Za-z]+/, ''), 10); return !isNaN(x) && x === n; } return false; };
         var circuit = (typeof global !== 'undefined') ? global.currentCircuit : null;
         if (!circuit || typeof circuit.getAllComponents !== 'function') return null;
 
@@ -179,7 +181,7 @@
             for (var j = 0; j < pins.length; j++) {
                 if (pins[j] >= 0) {
                     for (var k = 0; k < connValues.length; k++) {
-                        if (connValues[k] === pins[j]) { matched = true; break; }
+                        if (_pm(connValues[k], pins[j])) { matched = true; break; }
                     }
                 }
                 if (matched) break;

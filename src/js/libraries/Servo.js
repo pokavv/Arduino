@@ -202,18 +202,19 @@
      * @returns {object|null}
      */
     Servo.prototype._findServoComponent = function(gpioPin) {
+        var _pm = (typeof global !== 'undefined' && global._pinNumMatch) ||
+            function(v, n) { if (v === n) return true; if (typeof v === 'string') { var x = parseInt(v.replace(/^[A-Za-z]+/, ''), 10); return !isNaN(x) && x === n; } return false; };
         var circuit = (typeof global !== 'undefined') ? global.currentCircuit : null;
         if (!circuit || typeof circuit.getAllComponents !== 'function') return null;
 
-        var pinName = 'G' + gpioPin;
-        var comps   = circuit.getAllComponents();
+        var comps = circuit.getAllComponents();
 
         for (var i = 0; i < comps.length; i++) {
             var comp = comps[i];
             if (comp.type !== 'Servo') continue;
             // SIGNAL 핀이 해당 GPIO 핀에 연결되었는지 확인
             var conns = comp.connections || {};
-            if (conns['SIGNAL'] === pinName || conns['S'] === pinName) {
+            if (_pm(conns['SIGNAL'], gpioPin) || _pm(conns['S'], gpioPin)) {
                 return comp;
             }
         }

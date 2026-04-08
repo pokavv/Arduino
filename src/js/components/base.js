@@ -75,3 +75,22 @@ var SvgUtil = {
 function _pinLabel(x, y, label) {
   return SvgUtil.text(label, { x:x, y:y, 'font-size':'7', fill:'#aaa', 'font-family':'monospace' });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 핀 번호 매칭 유틸리티 (라이브러리 → 컴포넌트 연결에서 사용)
+//
+// connections 딕셔너리에는 보드 핀 이름(문자열)이 저장됩니다:
+//   ESP32: 'G9', Arduino Uno: 'D9', 아날로그: 'A0'
+// 라이브러리는 GPIO 정수 번호(예: 9)로 비교하므로, 이 함수로 매칭합니다.
+// ─────────────────────────────────────────────────────────────────────────────
+function _pinNumMatch(connValue, gpioNum) {
+  // 정수 직접 비교
+  if (connValue === gpioNum) return true;
+  // 문자열에서 숫자 부분 추출: 'G9' → 9, 'D9' → 9, 'A0' → 0
+  if (typeof connValue === 'string') {
+    var n = parseInt(connValue.replace(/^[A-Za-z]+/, ''), 10);
+    if (!isNaN(n) && n === gpioNum) return true;
+  }
+  return false;
+}
+window._pinNumMatch = _pinNumMatch;

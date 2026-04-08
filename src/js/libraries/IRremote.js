@@ -202,17 +202,19 @@
      * @private
      */
     IRrecv.prototype._findComponent = function() {
+        var _pm = (typeof global !== 'undefined' && global._pinNumMatch) ||
+            function(v, n) { if (v === n) return true; if (typeof v === 'string') { var x = parseInt(v.replace(/^[A-Za-z]+/, ''), 10); return !isNaN(x) && x === n; } return false; };
         var circuit = (typeof global !== 'undefined') ? global.currentCircuit : null;
         if (!circuit || typeof circuit.getAllComponents !== 'function') return null;
 
-        var pinName = 'G' + this._pin;
-        var comps   = circuit.getAllComponents();
+        var pin   = this._pin;
+        var comps = circuit.getAllComponents();
 
         for (var i = 0; i < comps.length; i++) {
             var comp = comps[i];
             if (comp.type !== 'IRReceiver') continue;
             var conns = comp.connections || {};
-            if (conns['OUT'] === pinName || conns['SIGNAL'] === pinName) return comp;
+            if (_pm(conns['OUT'], pin) || _pm(conns['SIGNAL'], pin)) return comp;
         }
         return null;
     };
