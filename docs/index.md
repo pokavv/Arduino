@@ -88,6 +88,25 @@ docs/
 
 ---
 
+## components/ — 부품 레퍼런스
+
+→ [components/index.md](components/index.md)
+
+총 49종 부품을 카테고리별로 정리. 데이터시트 기준 스펙, 핀 구성, 연결 방법, 주의사항 포함.
+
+| 카테고리 | 수 | 내용 |
+|---------|-----|------|
+| [passive/](components/passive/) | 6 | 저항, 커패시터, 인덕터, 다이오드, 제너 다이오드, 크리스탈 |
+| [active/](components/active/) | 9 | LED, RGB LED, NeoPixel, 7-세그먼트, LCD, OLED, 트랜지스터 NPN/PNP, MOSFET |
+| [sensors/](components/sensors/) | 11 | DHT, DS18B20, LM35, HC-SR04, PIR, BME280, MPU6050, 광/수분/소리/IR 센서 |
+| [actuators/](components/actuators/) | 6 | 서보, DC모터, 스텝모터, 능동/수동 부저, 릴레이 |
+| [drivers/](components/drivers/) | 5 | L298N, ULN2003, 74HC595, PCF8574, TM1637 |
+| [power/](components/power/) | 4 | AMS1117, LM7805, 벅컨버터, 배터리 |
+| [connectivity/](components/connectivity/) | 3 | 점퍼와이어, 브레드보드, 핀헤더 |
+| [modules/](components/modules/) | 5 | HC-05, HC-06, nRF24L01, SD카드, DS3231 RTC |
+
+---
+
 ## 웹 시뮬레이터 — `projects/web-simulator/`
 
 → [../projects/web-simulator/CLAUDE.md](../projects/web-simulator/CLAUDE.md)
