@@ -24,6 +24,13 @@ export class SimBuzzer extends SimElement {
   override get componentType() { return 'buzzer'; }
   override get pins() { return ['VCC', 'GND']; }
 
+  override getPinPositions() {
+    return new Map([
+      ['VCC', { x: 14, y: 44 }],
+      ['GND', { x: 30, y: 44 }],
+    ]);
+  }
+
   override setPinState(pin: string, value: number) {
     if (pin === 'VCC') {
       const shouldPlay = value > 0;

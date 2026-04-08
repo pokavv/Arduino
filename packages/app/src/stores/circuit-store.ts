@@ -11,6 +11,17 @@ export interface PlacedComponent {
   element?: HTMLElement;
 }
 
+/** 두 핀 사이의 와이어 */
+export interface PlacedWire {
+  id: string;
+  fromCompId: string;
+  fromPin: string;
+  toCompId: string;
+  toPin: string;
+  /** 자동 결정: GND=#333, VCC=#f44, GPIO=#4af, 3V3=#f84 */
+  color?: string;
+}
+
 export type SimState = 'idle' | 'running' | 'error';
 
 /**
@@ -21,7 +32,9 @@ export class CircuitStore {
   private _state = {
     boardId: 'arduino-uno',
     components: [] as PlacedComponent[],
+    wires: [] as PlacedWire[],
     selectedId: null as string | null,
+    selectedWireId: null as string | null,
     simState: 'idle' as SimState,
     serialOutput: '',
     code: DEFAULT_CODE,
@@ -38,13 +51,19 @@ export class CircuitStore {
 
   get boardId() { return this._state.boardId; }
   get components() { return this._state.components; }
+  get wires() { return this._state.wires; }
   get selectedId() { return this._state.selectedId; }
+  get selectedWireId() { return this._state.selectedWireId; }
   get simState() { return this._state.simState; }
   get serialOutput() { return this._state.serialOutput; }
   get code() { return this._state.code; }
 
   get selectedComponent(): PlacedComponent | null {
     return this._state.components.find(c => c.id === this._state.selectedId) ?? null;
+  }
+
+  get selectedWire(): PlacedWire | null {
+    return this._state.wires.find(w => w.id === this._state.selectedWireId) ?? null;
   }
 
   setBoard(boardId: string) {
@@ -76,7 +95,34 @@ export class CircuitStore {
   }
 
   selectComponent(id: string | null) {
-    this._state = { ...this._state, selectedId: id };
+    this._state = { ...this._state, selectedId: id, selectedWireId: null };
+    this._notify();
+  }
+
+  selectWire(id: string | null) {
+    this._state = { ...this._state, selectedWireId: id, selectedId: null };
+    this._notify();
+  }
+
+  addWire(wire: PlacedWire) {
+    // 중복 연결 방지
+    const exists = this._state.wires.some(
+      w => (w.fromCompId === wire.fromCompId && w.fromPin === wire.fromPin &&
+             w.toCompId   === wire.toCompId   && w.toPin   === wire.toPin) ||
+           (w.fromCompId === wire.toCompId   && w.fromPin === wire.toPin &&
+             w.toCompId   === wire.fromCompId && w.toPin   === wire.fromPin)
+    );
+    if (exists) return;
+    this._state = { ...this._state, wires: [...this._state.wires, wire] };
+    this._notify();
+  }
+
+  removeWire(id: string) {
+    this._state = {
+      ...this._state,
+      wires: this._state.wires.filter(w => w.id !== id),
+      selectedWireId: this._state.selectedWireId === id ? null : this._state.selectedWireId,
+    };
     this._notify();
   }
 
@@ -102,6 +148,8 @@ export class CircuitStore {
     this._state = {
       ...this._state,
       components: this._state.components.filter(c => c.id !== id),
+      // 이 컴포넌트에 연결된 와이어도 제거
+      wires: this._state.wires.filter(w => w.fromCompId !== id && w.toCompId !== id),
       selectedId: this._state.selectedId === id ? null : this._state.selectedId,
     };
     this._notify();
@@ -111,7 +159,9 @@ export class CircuitStore {
     this._state = {
       ...this._state,
       components: [],
+      wires: [],
       selectedId: null,
+      selectedWireId: null,
     };
     this._notify();
   }
@@ -120,13 +170,16 @@ export class CircuitStore {
     boardId: string;
     components: object[];
     code: string;
+    wires?: PlacedWire[];
   }) {
     this._state = {
       ...this._state,
       boardId: template.boardId,
       components: (template.components as PlacedComponent[]).slice(),
+      wires: template.wires?.slice() ?? [],
       code: template.code,
       selectedId: null,
+      selectedWireId: null,
       serialOutput: '',
       simState: 'idle',
     };

@@ -3,8 +3,10 @@ import '@sim/elements';
 
 import { CircuitCanvas } from './canvas/circuit-canvas.js';
 import { CodeEditor } from './editor/code-editor.js';
+import { PropertyPanel } from './panels/property-panel.js';
 import { circuitStore } from './stores/circuit-store.js';
 import { simController } from './stores/sim-controller.js';
+import { circuitValidator } from './stores/circuit-validator.js';
 
 const API_BASE = '/api';
 
@@ -32,6 +34,10 @@ canvasEl.addEventListener('drop', (e) => {
 // ② 코드 에디터 (Monaco CDN 로드 후 비동기로 마운트)
 const editorEl = document.getElementById('editor')!;
 new CodeEditor(editorEl);
+
+// ② 속성 패널
+const propPanelEl = document.getElementById('property-panel')!;
+new PropertyPanel(propPanelEl);
 
 // ③ 팔레트 아이템
 const PALETTE_COMPONENTS = [
@@ -92,8 +98,10 @@ document.addEventListener('keydown', (e) => {
   if ((e.key === 'Delete' || e.key === 'Backspace') &&
       (document.activeElement?.tagName !== 'INPUT') &&
       (document.activeElement?.tagName !== 'TEXTAREA')) {
-    const sel = circuitStore.selectedId;
-    if (sel) circuitStore.removeComponent(sel);
+    const selComp = circuitStore.selectedId;
+    const selWire = circuitStore.selectedWireId;
+    if (selComp) circuitStore.removeComponent(selComp);
+    if (selWire) circuitStore.removeWire(selWire);
   }
 });
 
@@ -122,6 +130,41 @@ loadDefaultExample();
 
 // ⑦ 보드/템플릿 서버 데이터 비동기 로드
 loadServerData();
+
+// ⑧ 유효성 검사 바
+const canvasEl2 = document.getElementById('canvas')!;
+const validationBar = document.createElement('div');
+validationBar.id = 'validation-bar';
+canvasEl2.appendChild(validationBar);
+
+circuitStore.subscribe(() => {
+  const results = circuitValidator.validate();
+  const errors = results.filter(r => r.severity === 'error');
+  const warnings = results.filter(r => r.severity === 'warning');
+
+  if (results.length === 0) {
+    validationBar.style.display = 'none';
+    return;
+  }
+  validationBar.style.display = 'block';
+  validationBar.innerHTML = results.slice(0, 3).map(r => `
+    <div class="validation-item ${r.severity}" title="${r.detail ?? ''}" data-comp="${r.compId ?? ''}">
+      <span class="validation-icon">${r.severity === 'error' ? '⛔' : '⚠️'}</span>
+      ${r.message}
+    </div>
+  `).join('') + (results.length > 3 ? `<div class="validation-item info">+ ${results.length - 3}개 더...</div>` : '');
+
+  // 클릭 시 해당 컴포넌트 선택
+  validationBar.querySelectorAll('[data-comp]').forEach(el => {
+    const compId = (el as HTMLElement).dataset.comp;
+    if (compId) {
+      el.addEventListener('click', () => circuitStore.selectComponent(compId));
+    }
+  });
+
+  // 상태 표시에 오류 수 반영
+  const _ = errors.length + warnings.length;
+});
 
 console.log('%c⚡ Arduino Web Simulator 준비 완료', 'color:#4a9eff;font-size:14px;font-weight:bold');
 

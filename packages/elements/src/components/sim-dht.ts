@@ -22,6 +22,14 @@ export class SimDht extends SimElement {
   override get pins() { return ['VCC', 'DATA', 'GND']; }
   override setPinState(_pin: string, _value: number) {}
 
+  override getPinPositions() {
+    return new Map([
+      ['VCC',  { x: 10, y: 56 }],
+      ['DATA', { x: 20, y: 56 }],
+      ['GND',  { x: 30, y: 56 }],
+    ]);
+  }
+
   override render() {
     const isDHT22 = this.model === 'DHT22';
     return html`

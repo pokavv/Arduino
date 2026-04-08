@@ -30,6 +30,14 @@ export class SimPotentiometer extends SimElement {
   override get pins() { return ['VCC', 'GND', 'WIPER']; }
   override setPinState(_pin: string, _value: number) {}
 
+  override getPinPositions() {
+    return new Map([
+      ['VCC',   { x: 16, y: 58 }],
+      ['WIPER', { x: 30, y: 58 }],
+      ['GND',   { x: 44, y: 58 }],
+    ]);
+  }
+
   getAnalogValue(): number {
     return this.value;
   }

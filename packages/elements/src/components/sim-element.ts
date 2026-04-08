@@ -44,6 +44,14 @@ export abstract class SimElement extends LitElement {
   /** 시뮬레이션 엔진에서 핀 상태를 업데이트할 때 호출 */
   abstract setPinState(pin: string, value: number): void;
 
+  /**
+   * 각 핀의 SVG 좌표(컴포넌트 원점 기준)를 반환합니다.
+   * 와이어 연결선 그릴 때 사용됩니다.
+   */
+  getPinPositions(): Map<string, { x: number; y: number }> {
+    return new Map();
+  }
+
   /** 엔진에 전달할 직렬화 상태 */
   getState(): Record<string, unknown> {
     return {

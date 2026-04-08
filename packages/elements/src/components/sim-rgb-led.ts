@@ -28,6 +28,15 @@ export class SimRgbLed extends SimElement {
     else if (pin === 'BLUE') this.b = this.commonAnode ? 255 - value : value;
   }
 
+  override getPinPositions() {
+    return new Map([
+      ['RED',    { x: 12, y: 60 }],
+      ['GREEN',  { x: 20, y: 60 }],
+      ['COMMON', { x: 28, y: 60 }],
+      ['BLUE',   { x: 36, y: 60 }],
+    ]);
+  }
+
   private _toHex(v: number) {
     return Math.round(v).toString(16).padStart(2, '0');
   }

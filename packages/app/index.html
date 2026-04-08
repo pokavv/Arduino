@@ -14,7 +14,7 @@
       grid-template-columns: 180px 1fr 320px;
       grid-template-areas:
         "toolbar toolbar toolbar"
-        "palette canvas editor";
+        "palette canvas right";
       height: 100vh;
     }
 
@@ -80,8 +80,8 @@
 
     /* 오른쪽 패널 */
     #right-panel {
-      grid-area: editor; background: #121216; border-left: 1px solid #222;
-      display: grid; grid-template-rows: 1fr 180px; overflow: hidden;
+      grid-area: right; background: #121216; border-left: 1px solid #222;
+      display: grid; grid-template-rows: 1fr 180px 260px; overflow: hidden;
     }
     #editor { min-height: 0; overflow: hidden; }
     #editor-placeholder {
@@ -102,6 +102,86 @@
       font-family: 'Fira Code', 'Consolas', monospace; font-size: 11px;
       color: #4af44a; background: #0a0a0e; white-space: pre-wrap; word-break: break-all;
     }
+
+    /* 속성 패널 */
+    #property-panel {
+      border-top: 1px solid #222;
+      overflow-y: auto;
+      background: #0e0e14;
+      font-size: 11px;
+    }
+    .prop-empty {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; height: 100%; color: #333;
+      font-size: 11px; text-align: center; line-height: 1.6;
+    }
+    .prop-empty-icon { font-size: 22px; margin-bottom: 6px; }
+    .prop-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px; background: #141418; border-bottom: 1px solid #222;
+    }
+    .prop-icon { font-size: 18px; }
+    .prop-title { font-size: 12px; font-weight: 700; color: #ddd; }
+    .prop-id { font-size: 9px; color: #555; font-family: monospace; }
+    .prop-delete {
+      margin-left: auto; background: transparent; border: none;
+      cursor: pointer; font-size: 14px; opacity: 0.5;
+    }
+    .prop-delete:hover { opacity: 1; }
+    .prop-section { padding: 6px 10px; border-bottom: 1px solid #1a1a22; }
+    .prop-section-title {
+      font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;
+      color: #555; margin-bottom: 4px; font-weight: 600;
+    }
+    .prop-row {
+      display: flex; align-items: center; gap: 6px;
+      padding: 2px 0; font-size: 10px;
+    }
+    .prop-label { color: #666; min-width: 60px; flex-shrink: 0; }
+    .prop-value { color: #aaa; flex: 1; }
+    .spec-highlight { color: #4af44a; font-weight: 600; }
+    .prop-input {
+      background: #1a1a26; border: 1px solid #333; border-radius: 3px;
+      color: #ccc; padding: 2px 6px; font-size: 10px; width: 70px;
+    }
+    .prop-unit { color: #555; font-size: 10px; }
+    .prop-select {
+      background: #1a1a26; border: 1px solid #333; border-radius: 3px;
+      color: #ccc; padding: 2px 4px; font-size: 10px; flex: 1;
+    }
+    .prop-pin-row {
+      display: flex; align-items: flex-start; gap: 6px;
+      padding: 2px 0; font-size: 10px;
+    }
+    .prop-pin-name {
+      font-family: monospace; font-size: 9px; min-width: 54px;
+      padding: 1px 4px; border-radius: 3px; text-align: center;
+      flex-shrink: 0;
+    }
+    .pin-type-power    { background: #4a1a1a; color: #f88; border: 1px solid #8a2a2a; }
+    .pin-type-ground   { background: #1a2a1a; color: #8a8; border: 1px solid #2a4a2a; }
+    .pin-type-input    { background: #1a1a4a; color: #88f; border: 1px solid #2a2a8a; }
+    .pin-type-output   { background: #1a3a4a; color: #8cf; border: 1px solid #2a6a7a; }
+    .pin-type-signal   { background: #2a2a1a; color: #cc8; border: 1px solid #4a4a2a; }
+    .pin-type-bidirectional { background: #2a1a3a; color: #a8f; border: 1px solid #4a2a7a; }
+    .prop-pin-desc { color: #666; font-size: 9px; line-height: 1.4; }
+    .prop-note { color: #666; font-size: 9px; padding: 2px 10px; line-height: 1.5; }
+
+    /* 유효성 검사 결과 */
+    #validation-bar {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: #0a0a10; border-top: 1px solid #222;
+      z-index: 10; font-size: 10px;
+    }
+    .validation-item {
+      display: flex; align-items: center; gap: 6px; padding: 4px 10px;
+      cursor: pointer; transition: background 0.1s;
+    }
+    .validation-item:hover { background: #141418; }
+    .validation-item.error { color: #f66; }
+    .validation-item.warning { color: #fa4; }
+    .validation-item.info { color: #4af; }
+    .validation-icon { font-size: 11px; flex-shrink: 0; }
   </style>
 </head>
 <body>
@@ -144,7 +224,7 @@
       </div>
     </div>
 
-    <!-- 코드 에디터 + 시리얼 모니터 -->
+    <!-- 코드 에디터 + 시리얼 모니터 + 속성 패널 -->
     <div id="right-panel">
       <div id="editor">
         <div id="editor-placeholder">에디터 로딩 중...</div>
@@ -157,6 +237,7 @@
         </div>
         <div id="serial-output"></div>
       </div>
+      <div id="property-panel"></div>
     </div>
 
   </div>

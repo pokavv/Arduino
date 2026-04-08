@@ -53,6 +53,13 @@ export class SimLed extends SimElement {
     }
   }
 
+  override getPinPositions() {
+    return new Map([
+      ['ANODE',   { x: 14, y: 60 }],
+      ['CATHODE', { x: 26, y: 60 }],
+    ]);
+  }
+
   private get _colors() {
     return COLOR_MAP[this.color] ?? COLOR_MAP.red;
   }

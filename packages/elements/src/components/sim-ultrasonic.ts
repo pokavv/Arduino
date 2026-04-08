@@ -20,6 +20,15 @@ export class SimUltrasonic extends SimElement {
   override get pins() { return ['VCC', 'TRIG', 'ECHO', 'GND']; }
   override setPinState(_pin: string, _value: number) {}
 
+  override getPinPositions() {
+    return new Map([
+      ['VCC',  { x:  8, y: 50 }],
+      ['TRIG', { x: 23, y: 50 }],
+      ['ECHO', { x: 38, y: 50 }],
+      ['GND',  { x: 53, y: 50 }],
+    ]);
+  }
+
   override render() {
     return html`
       <svg width="60" height="50" viewBox="0 0 60 50">

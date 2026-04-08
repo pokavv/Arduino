@@ -19,6 +19,14 @@ export class SimServo extends SimElement {
   override get componentType() { return 'servo'; }
   override get pins() { return ['VCC', 'GND', 'SIGNAL']; }
 
+  override getPinPositions() {
+    return new Map([
+      ['VCC',    { x: 14, y: 72 }],
+      ['GND',    { x: 26, y: 72 }],
+      ['SIGNAL', { x: 38, y: 72 }],
+    ]);
+  }
+
   override setPinState(pin: string, value: number) {
     if (pin === 'SIGNAL') {
       // value: 0~180 (도)

@@ -35,6 +35,16 @@ export class SimLcd extends SimElement {
 
   override get componentType() { return 'lcd'; }
   override get pins() { return ['VCC', 'GND', 'SDA', 'SCL']; }
+
+  override getPinPositions() {
+    // LCD 4핀 모듈 하단 핀 위치 (대략적)
+    return new Map([
+      ['VCC', { x: 8,  y: 60 }],
+      ['GND', { x: 22, y: 60 }],
+      ['SDA', { x: 36, y: 60 }],
+      ['SCL', { x: 50, y: 60 }],
+    ]);
+  }
   override setPinState(_pin: string, _value: number) {}
 
   override connectedCallback() {

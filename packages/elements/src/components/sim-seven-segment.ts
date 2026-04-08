@@ -60,6 +60,11 @@ export class SimSevenSegment extends SimElement {
   override get componentType() { return 'seven-segment'; }
   override get pins() { return ['A','B','C','D','E','F','G','DP','COM']; }
 
+  override getPinPositions() {
+    const pins = ['A','B','C','D','E','F','G','DP','COM'];
+    return new Map(pins.map((p, i) => [p, { x: 4 + i * 4, y: 64 }]));
+  }
+
   override setPinState(pin: string, value: number) {
     if (pin in this.segments) {
       this.segments = { ...this.segments, [pin]: value > 0 };

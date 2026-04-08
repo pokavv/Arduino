@@ -39,6 +39,13 @@ export class SimResistor extends SimElement {
   override get pins() { return ['PIN1', 'PIN2']; }
   override setPinState(_pin: string, _value: number) {}
 
+  override getPinPositions() {
+    return new Map([
+      ['PIN1', { x: 0,  y: 12 }],
+      ['PIN2', { x: 60, y: 12 }],
+    ]);
+  }
+
   override render() {
     const [b1, b2, b3, b4] = resistorBands(this.ohms);
     const label = this.ohms >= 1000

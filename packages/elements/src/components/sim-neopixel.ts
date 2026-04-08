@@ -22,6 +22,14 @@ export class SimNeopixel extends SimElement {
   override get componentType() { return 'neopixel'; }
   override get pins() { return ['VCC', 'GND', 'DIN']; }
 
+  override getPinPositions() {
+    return new Map([
+      ['VCC', { x:  8, y: 44 }],
+      ['GND', { x: 22, y: 44 }],
+      ['DIN', { x: 36, y: 44 }],
+    ]);
+  }
+
   override connectedCallback() {
     super.connectedCallback();
     this._pixels = Array.from({ length: this.count }, () => [0, 0, 0]);

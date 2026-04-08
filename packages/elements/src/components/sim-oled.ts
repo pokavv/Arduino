@@ -28,6 +28,15 @@ export class SimOled extends SimElement {
 
   override get componentType() { return 'oled'; }
   override get pins() { return ['VCC', 'GND', 'SDA', 'SCL']; }
+
+  override getPinPositions() {
+    return new Map([
+      ['VCC', { x: 8,  y: 90 }],
+      ['GND', { x: 22, y: 90 }],
+      ['SDA', { x: 36, y: 90 }],
+      ['SCL', { x: 50, y: 90 }],
+    ]);
+  }
   override setPinState(_pin: string, _value: number) {}
 
   override firstUpdated() {

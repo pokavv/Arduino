@@ -34,6 +34,15 @@ export class SimButton extends SimElement {
 
   override setPinState(_pin: string, _value: number) {}
 
+  override getPinPositions() {
+    return new Map([
+      ['PIN1A', { x: 14, y: 50 }],
+      ['PIN1B', { x: 20, y: 50 }],
+      ['PIN2A', { x: 30, y: 50 }],
+      ['PIN2B', { x: 36, y: 50 }],
+    ]);
+  }
+
   /** 시뮬레이션 엔진이 읽는 핀 상태 */
   getPinValue(pin: string): number {
     if (pin === 'PIN1A' || pin === 'PIN1B') {

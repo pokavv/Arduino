@@ -73,6 +73,10 @@ export class SimBoardUno extends SimElement {
     }
   }
 
+  override getPinPositions() {
+    return new Map(UNO_PINS.map(p => [p.name, { x: p.x, y: p.y }]));
+  }
+
   override render() {
     return html`
       <svg width="300" height="200" viewBox="0 0 300 200">

@@ -58,6 +58,10 @@ export class SimBoardEsp32c3 extends SimElement {
     }
   }
 
+  override getPinPositions() {
+    return new Map(C3_PINS.map(p => [p.name, { x: p.x, y: p.y }]));
+  }
+
   override render() {
     return html`
       <svg width="120" height="160" viewBox="0 0 120 160">
