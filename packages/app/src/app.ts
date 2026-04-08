@@ -214,11 +214,7 @@ const validationBar = document.createElement('div');
 validationBar.id = 'validation-bar';
 canvasEl2.appendChild(validationBar);
 
-circuitStore.subscribe(() => {
-  const results = circuitValidator.validate();
-  const errors = results.filter(r => r.severity === 'error');
-  const warnings = results.filter(r => r.severity === 'warning');
-
+function renderValidation(results: import('./stores/circuit-validator.js').ValidationResult[]) {
   if (results.length === 0) {
     validationBar.style.display = 'none';
     return;
@@ -231,44 +227,52 @@ circuitStore.subscribe(() => {
     </div>
   `).join('') + (results.length > 3 ? `<div class="validation-item info">+ ${results.length - 3}개 더...</div>` : '');
 
-  // 클릭 시 해당 컴포넌트 선택
   validationBar.querySelectorAll('[data-comp]').forEach(el => {
     const compId = (el as HTMLElement).dataset.comp;
-    if (compId) {
-      el.addEventListener('click', () => circuitStore.selectComponent(compId));
-    }
+    if (compId) el.addEventListener('click', () => circuitStore.selectComponent(compId));
   });
+}
 
-  // 상태 표시에 오류 수 반영
-  const _ = errors.length + warnings.length;
+// 동기 검사 (즉시 표시)
+circuitStore.subscribe(() => renderValidation(circuitValidator.validate()));
+
+// 비동기 검사: 서버 def 로드 후 더 정밀하게 재검사
+circuitStore.subscribe(() => {
+  circuitValidator.validateAsync().then(results => renderValidation(results));
 });
 
 console.log('%c⚡ Arduino Web Simulator 준비 완료', 'color:#4a9eff;font-size:14px;font-weight:bold');
 
 // ─────────────────────────────────────────────────────────────────
 
-function addComponent(type: string, x: number, y: number) {
+// 로컬 폴백 defaultProps (서버 응답 없을 때)
+const LOCAL_DEFAULTS: Record<string, Record<string, unknown>> = {
+  'led':           { color: 'red' },
+  'resistor':      { ohms: 220 },
+  'servo':         { angle: 90 },
+  'dht':           { model: 'DHT22', temperature: 25, humidity: 60 },
+  'ultrasonic':    { distanceCm: 20 },
+  'lcd':           { rows: 2, cols: 16, i2cAddress: 0x27 },
+  'oled':          { i2cAddress: 0x3C },
+  'neopixel':      { count: 8 },
+};
+
+async function addComponent(type: string, x: number, y: number) {
   const id = `${type}-${Date.now()}`;
-  const DEFAULTS: Record<string, Record<string, unknown>> = {
-    'led':           { color: 'red' },
-    'rgb-led':       {},
-    'button':        {},
-    'resistor':      { ohms: 220 },
-    'buzzer':        {},
-    'potentiometer': {},
-    'servo':         { angle: 90 },
-    'dht':           { model: 'DHT22', temperature: 25, humidity: 60 },
-    'ultrasonic':    { distanceCm: 20 },
-    'lcd':           { rows: 2, cols: 16, i2cAddress: 0x27 },
-    'oled':          { i2cAddress: 0x3C },
-    'seven-segment': {},
-    'neopixel':      { count: 8 },
-    'board-uno':     {},
-    'board-esp32c3': {},
-  };
+
+  // 서버에서 defaultProps 가져오기 (실패 시 로컬 폴백)
+  let serverDefaults: Record<string, unknown> = {};
+  try {
+    const r = await fetch(`${API_BASE}/components/${type}`);
+    if (r.ok) {
+      const def = await r.json() as { defaultProps?: Record<string, unknown> };
+      serverDefaults = def.defaultProps ?? {};
+    }
+  } catch { /* 서버 없으면 조용히 무시 */ }
+
   circuitStore.addComponent({
     id, type, x, y, rotation: 0,
-    props: DEFAULTS[type] ?? {},
+    props: { ...(LOCAL_DEFAULTS[type] ?? {}), ...serverDefaults },
     connections: {},
   });
 }
