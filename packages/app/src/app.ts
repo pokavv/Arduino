@@ -117,7 +117,10 @@ circuitStore.subscribe(() => {
   }
 });
 
-// ⑥ 보드/템플릿 서버 데이터 비동기 로드
+// ⑥ 기본 예제 로드 (Arduino Uno + Blink)
+loadDefaultExample();
+
+// ⑦ 보드/템플릿 서버 데이터 비동기 로드
 loadServerData();
 
 console.log('%c⚡ Arduino Web Simulator 준비 완료', 'color:#4a9eff;font-size:14px;font-weight:bold');
@@ -148,6 +151,47 @@ function addComponent(type: string, x: number, y: number) {
     props: DEFAULTS[type] ?? {},
     connections: {},
   });
+}
+
+function loadDefaultExample() {
+  // Arduino Uno 보드 + LED + 저항 기본 배치
+  circuitStore.addComponent({
+    id: 'board-default', type: 'board-uno',
+    x: 80, y: 80, rotation: 0, props: {}, connections: {},
+  });
+  circuitStore.addComponent({
+    id: 'r1', type: 'resistor',
+    x: 420, y: 100, rotation: 0,
+    props: { ohms: 220 },
+    connections: { PIN1: 13, PIN2: 'r1-led' },
+  });
+  circuitStore.addComponent({
+    id: 'led1', type: 'led',
+    x: 500, y: 80, rotation: 0,
+    props: { color: 'red' },
+    connections: { ANODE: 13, CATHODE: 'GND' },
+  });
+  circuitStore.setCode(`// Blink — LED 깜빡이기
+// D13번 핀의 LED를 1초 간격으로 켜고 끕니다
+
+const int LED_PIN = 13;
+
+void setup() {
+  pinMode(LED_PIN, OUTPUT);
+  Serial.begin(9600);
+  Serial.println("시뮬레이터 시작!");
+}
+
+void loop() {
+  digitalWrite(LED_PIN, HIGH);
+  Serial.println("LED ON");
+  delay(1000);
+
+  digitalWrite(LED_PIN, LOW);
+  Serial.println("LED OFF");
+  delay(1000);
+}
+`);
 }
 
 async function loadServerData() {

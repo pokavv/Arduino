@@ -39,16 +39,8 @@ export class CircuitCanvas {
   }
 
   private _buildDOM() {
-    this._container.innerHTML = '';
-    this._container.style.cssText = `
-      position: relative; overflow: hidden;
-      width: 100%; height: 100%;
-      background: #0f0f12;
-      background-image:
-        radial-gradient(circle, #333 1px, transparent 1px);
-      background-size: 20px 20px;
-      cursor: default;
-    `;
+    // canvas-hint는 index.html에 있음 — 유지
+    const hint = this._container.querySelector('#canvas-hint') as HTMLElement | null;
 
     // SVG 레이어 (와이어용)
     this._svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -61,6 +53,9 @@ export class CircuitCanvas {
     this._layer = document.createElement('div');
     this._layer.style.cssText = 'position:absolute;top:0;left:0;transform-origin:0 0;z-index:2;';
     this._container.appendChild(this._layer);
+
+    // hint를 최상위로 이동
+    if (hint) this._container.appendChild(hint);
   }
 
   private _bindEvents() {
@@ -139,6 +134,10 @@ export class CircuitCanvas {
   private _render() {
     const comps = circuitStore.components;
     const selectedId = circuitStore.selectedId;
+
+    // 컴포넌트 있으면 hint 숨기기
+    const hint = document.getElementById('canvas-hint');
+    if (hint) hint.style.display = comps.length > 0 ? 'none' : '';
 
     // 기존 엘리먼트 중 삭제된 것 제거
     for (const [id, el] of this._elements) {
