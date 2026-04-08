@@ -1,118 +1,185 @@
 import { circuitStore, type PlacedComponent, type PlacedWire } from '../stores/circuit-store.js';
 import { simController } from '../stores/sim-controller.js';
 
-/**
- * 무한 캔버스 — SVG wire + Lit 컴포넌트 오버레이
- * Pan/Zoom: 마우스 휠 + Alt+드래그
- *
- * 와이어 시스템:
- *   - 컴포넌트 핀 위에 마우스를 올리면 연결 포인트(핀 서클) 표시
- *   - 핀 서클 클릭 → 와이어 드로잉 모드
- *   - 다른 핀 서클 클릭 → 와이어 생성 완료 (서버 호환성 검사 포함)
- *   - 와이어 클릭 → 선택 (Delete로 삭제)
- *
- * 서버 연동:
- *   - 컴포넌트 정의 캐시 (_compDefCache)
- *   - 내장 tagMap 없는 타입 → sim-generic + 서버 svgTemplate
- *   - 핀 좌표: getPinPositions() 우선 → 서버 pins[].x,y 폴백
- *   - 와이어 연결 시 /api/components/connections/validate 호출
- */
-
-// 서버 ComponentDef의 필요한 부분만 정의 (import 없이 인라인)
-interface ServerPinDef {
-  name: string;
-  x: number;
-  y: number;
-  type: string;
-  label?: string;
-  description?: string;
-}
+// ─── 내부 타입 ────────────────────────────────────────────────────────────────
 
 interface ServerCompDef {
-  id: string;
-  name: string;
-  element?: string;
-  svgTemplate?: string;
-  width: number;
-  height: number;
-  defaultProps: Record<string, unknown>;
-  pins: ServerPinDef[];
+  id: string; name: string; element?: string; svgTemplate?: string;
+  width: number; height: number; defaultProps: Record<string, unknown>;
+  pins: Array<{ name: string; x: number; y: number; type: string; label?: string }>;
 }
 
-// 내장 Lit 컴포넌트 태그 매핑 (서버 def가 없을 때 폴백)
 const BUILTIN_TAGS: Record<string, string> = {
-  'board-uno':     'sim-board-uno',
-  'board-esp32c3': 'sim-board-esp32c3',
-  'led':           'sim-led',
-  'rgb-led':       'sim-rgb-led',
-  'button':        'sim-button',
-  'resistor':      'sim-resistor',
-  'buzzer':        'sim-buzzer',
-  'potentiometer': 'sim-potentiometer',
-  'seven-segment': 'sim-seven-segment',
-  'lcd':           'sim-lcd',
-  'oled':          'sim-oled',
-  'dht':           'sim-dht',
-  'ultrasonic':    'sim-ultrasonic',
-  'servo':         'sim-servo',
-  'neopixel':      'sim-neopixel',
+  'board-uno':'sim-board-uno','board-esp32c3':'sim-board-esp32c3',
+  'led':'sim-led','rgb-led':'sim-rgb-led','button':'sim-button',
+  'resistor':'sim-resistor','buzzer':'sim-buzzer','potentiometer':'sim-potentiometer',
+  'seven-segment':'sim-seven-segment','lcd':'sim-lcd','oled':'sim-oled',
+  'dht':'sim-dht','ultrasonic':'sim-ultrasonic','servo':'sim-servo','neopixel':'sim-neopixel',
 };
+
+// ─── 와이어 경로 계산 (module-level) ─────────────────────────────────────────
+
+function buildWirePath(
+  from: { x: number; y: number },
+  to:   { x: number; y: number },
+  style: PlacedWire['style'] = 'bezier',
+  waypoints: NonNullable<PlacedWire['waypoints']> = [],
+): string {
+  switch (style) {
+    case 'straight': {
+      if (waypoints.length) {
+        const pts = [from, ...waypoints, to];
+        return pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
+      }
+      return `M${from.x},${from.y} L${to.x},${to.y}`;
+    }
+    case 'orthogonal': {
+      // 3-세그먼트 직각 라우팅: H midX V y2 H x2
+      const midX = waypoints[0]?.x ?? (from.x + to.x) / 2;
+      return `M${from.x},${from.y} H${midX} V${to.y} H${to.x}`;
+    }
+    default: { // bezier
+      if (waypoints.length >= 1) {
+        const wp = waypoints[0];
+        return `M${from.x},${from.y} Q${wp.x},${wp.y} ${to.x},${to.y}`;
+      }
+      const dx = to.x - from.x;
+      return `M${from.x},${from.y} C${from.x + dx * 0.4},${from.y} ${to.x - dx * 0.4},${to.y} ${to.x},${to.y}`;
+    }
+  }
+}
+
+// ─── 컨텍스트 메뉴 ────────────────────────────────────────────────────────────
+
+class WireContextMenu {
+  private _el: HTMLDivElement;
+  private _currentWireId: string | null = null;
+
+  constructor() {
+    this._el = document.createElement('div');
+    this._el.id = 'wire-ctx-menu';
+    this._el.style.display = 'none';
+    document.body.appendChild(this._el);
+
+    document.addEventListener('click', () => this.hide());
+    document.addEventListener('contextmenu', (e) => {
+      if (e.target !== this._el && !this._el.contains(e.target as Node)) this.hide();
+    });
+  }
+
+  show(wireId: string, clientX: number, clientY: number) {
+    this._currentWireId = wireId;
+    const wire = circuitStore.wires.find(w => w.id === wireId);
+    const cur = wire?.style ?? 'bezier';
+
+    this._el.innerHTML = `
+      <div class="ctx-title">라우팅 스타일</div>
+      ${[
+        { s: 'bezier',      icon: '〜', label: '곡선 (Bezier)' },
+        { s: 'straight',    icon: '╱', label: '직선' },
+        { s: 'orthogonal',  icon: '┐', label: '직각' },
+      ].map(({ s, icon, label }) => `
+        <div class="ctx-item${cur === s ? ' active' : ''}" data-style="${s}">
+          <span>${icon}</span>${label}${cur === s ? ' ●' : ''}
+        </div>
+      `).join('')}
+      <div class="ctx-sep"></div>
+      <div class="ctx-item danger" data-action="delete">🗑 삭제</div>
+    `;
+
+    // 이벤트
+    this._el.querySelectorAll('[data-style]').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const style = (el as HTMLElement).dataset.style as PlacedWire['style'];
+        if (this._currentWireId) {
+          circuitStore.updateWire(this._currentWireId, { style, waypoints: [] });
+        }
+        this.hide();
+      });
+    });
+    this._el.querySelector('[data-action="delete"]')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (this._currentWireId) circuitStore.removeWire(this._currentWireId);
+      this.hide();
+    });
+
+    // 화면 밖으로 나가지 않게 위치 조정
+    this._el.style.display = 'block';
+    const rect = this._el.getBoundingClientRect();
+    const x = Math.min(clientX, window.innerWidth  - rect.width  - 8);
+    const y = Math.min(clientY, window.innerHeight - rect.height - 8);
+    this._el.style.left = `${x}px`;
+    this._el.style.top  = `${y}px`;
+  }
+
+  hide() {
+    this._el.style.display = 'none';
+    this._currentWireId = null;
+  }
+}
+
+// ─── CircuitCanvas ────────────────────────────────────────────────────────────
 
 export class CircuitCanvas {
   private _container: HTMLElement;
+
+  // SVG 레이어 (z=1) — 와이어 경로 + rubber-band
   private _svg!: SVGSVGElement;
-  private _layer!: HTMLElement;
   private _wiresLayer!: SVGGElement;
-  private _pinLayer!: SVGGElement;
   private _drawLayer!: SVGGElement;
 
+  // Lit 컴포넌트 레이어 (z=2)
+  private _layer!: HTMLElement;
+
+  // Top SVG (z=3) — 끝점 도트, 경유점 핸들, 핀 서클
+  private _topSvg!: SVGSVGElement;
+  private _endpointLayer!: SVGGElement;  // 와이어 끝점 도트
+  private _waypointLayer!: SVGGElement;  // bezier/straight 경유점 핸들
+  private _pinLayer!: SVGGElement;       // 핀 연결 포인트
+
   private _transform = { x: 0, y: 0, scale: 1 };
-  private _panning = false;
-  private _panStart = { x: 0, y: 0 };
+  private _panning   = false;
+  private _panStart  = { x: 0, y: 0 };
   private _dragging: {
-    id: string;
-    startX: number; startY: number;
-    ox: number; oy: number;
-    /** 드래그 중 실시간 좌표 (commitMove에 사용) */
-    liveX: number; liveY: number;
-    moved: boolean;
+    id: string; startX: number; startY: number;
+    ox: number; oy: number; liveX: number; liveY: number; moved: boolean;
   } | null = null;
 
   private _wireDrawing: {
-    fromCompId: string;
-    fromPin: string;
-    fromX: number;
-    fromY: number;
+    fromCompId: string; fromPin: string; fromX: number; fromY: number;
+  } | null = null;
+
+  private _waypointDrag: {
+    wireId: string; origWaypoints: Array<{ x: number; y: number }>;
+    startX: number; startY: number;
   } | null = null;
 
   private _mousePos = { x: 0, y: 0 };
   private _elements = new Map<string, HTMLElement>();
-
-  /** 서버 컴포넌트 정의 캐시. undefined = 미조회, null = 조회 실패 */
   private _compDefCache = new Map<string, ServerCompDef | null>();
+  private _ctxMenu = new WireContextMenu();
 
   constructor(container: HTMLElement) {
     this._container = container;
     this._buildDOM();
     this._bindEvents();
-
     circuitStore.subscribe(() => this._render());
     this._render();
 
-    simController.onPinState = (pin, value) => {
-      this._updatePinVisual(pin, value);
-    };
+    simController.onPinState = (pin, value) => this._updatePinVisual(pin, value);
     simController.onComponentUpdate = (id, pin, value) => {
       const el = this._elements.get(id);
-      if (el && 'setPinState' in el) {
-        (el as { setPinState: (p: string, v: number) => void }).setPinState(pin, value);
-      }
+      if (el && 'setPinState' in el) (el as any).setPinState(pin, value);
     };
   }
+
+  // ─── DOM 구성 ─────────────────────────────────────────────────────────────
 
   private _buildDOM() {
     const hint = this._container.querySelector('#canvas-hint') as HTMLElement | null;
 
+    // z=1: 와이어 SVG (pointer-events:none — 히트 영역은 각 요소에서 직접 설정)
     this._svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     this._svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none;';
 
@@ -120,20 +187,35 @@ export class CircuitCanvas {
     this._wiresLayer.style.pointerEvents = 'all';
     this._drawLayer  = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     this._drawLayer.style.pointerEvents = 'none';
-    this._pinLayer   = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    this._pinLayer.style.pointerEvents = 'all';
-
     this._svg.appendChild(this._wiresLayer);
     this._svg.appendChild(this._drawLayer);
-    this._svg.appendChild(this._pinLayer);
     this._container.appendChild(this._svg);
 
+    // z=2: Lit 컴포넌트
     this._layer = document.createElement('div');
     this._layer.style.cssText = 'position:absolute;top:0;left:0;transform-origin:0 0;z-index:2;';
     this._container.appendChild(this._layer);
 
+    // z=3: 끝점 도트 / 경유점 핸들 / 핀 서클 (보드 위에 표시)
+    this._topSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    this._topSvg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:3;pointer-events:none;';
+
+    this._endpointLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    this._endpointLayer.style.pointerEvents = 'none';
+    this._waypointLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    this._waypointLayer.style.pointerEvents = 'all';
+    this._pinLayer      = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    this._pinLayer.style.pointerEvents = 'all';
+
+    this._topSvg.appendChild(this._endpointLayer);
+    this._topSvg.appendChild(this._waypointLayer);
+    this._topSvg.appendChild(this._pinLayer);
+    this._container.appendChild(this._topSvg);
+
     if (hint) this._container.appendChild(hint);
   }
+
+  // ─── 이벤트 바인딩 ────────────────────────────────────────────────────────
 
   private _bindEvents() {
     this._container.addEventListener('wheel', (e) => {
@@ -153,6 +235,7 @@ export class CircuitCanvas {
         const t = e.target as Element;
         if (t === this._container || t === this._layer) {
           circuitStore.selectComponent(null);
+          circuitStore.selectPin(null);
           if (this._wireDrawing) {
             this._wireDrawing = null;
             this._renderDrawingWire(null);
@@ -175,23 +258,26 @@ export class CircuitCanvas {
       }
       if (this._dragging) {
         const d = this._dragging;
-        const dx = (e.clientX - d.startX) / this._transform.scale;
-        const dy = (e.clientY - d.startY) / this._transform.scale;
-        d.liveX = d.ox + dx;
-        d.liveY = d.oy + dy;
+        d.liveX = d.ox + (e.clientX - d.startX) / this._transform.scale;
+        d.liveY = d.oy + (e.clientY - d.startY) / this._transform.scale;
         d.moved = true;
-        // DOM 직접 업데이트 (store 거치지 않음 — 드래그 중 매 프레임 re-render 방지)
         const el = this._elements.get(d.id);
         if (el) { el.style.left = `${d.liveX}px`; el.style.top = `${d.liveY}px`; }
-        // 와이어만 재렌더 (pin 서클은 생략해 성능 향상)
         this._renderWiresLive(d.id, d.liveX, d.liveY);
       }
-      if (this._wireDrawing) {
-        this._renderDrawingWire({ x: svgX, y: svgY });
+      if (this._waypointDrag) {
+        const wd = this._waypointDrag;
+        const dx = (e.clientX - wd.startX) / this._transform.scale;
+        const dy = (e.clientY - wd.startY) / this._transform.scale;
+        const base = wd.origWaypoints[0] ?? this._getWireMidpoint(wd.wireId);
+        circuitStore.updateWire(wd.wireId, {
+          waypoints: [{ x: base.x + dx, y: base.y + dy }],
+        });
       }
+      if (this._wireDrawing) this._renderDrawingWire({ x: svgX, y: svgY });
     });
 
-    this._container.addEventListener('pointerup', () => {
+    this._container.addEventListener('pointerup', (e) => {
       if (this._panning) {
         this._panning = false;
         this._container.style.cursor = this._wireDrawing ? 'crosshair' : 'default';
@@ -199,11 +285,12 @@ export class CircuitCanvas {
       if (this._dragging) {
         const d = this._dragging;
         this._dragging = null;
-        if (d.moved) {
-          // 드래그 완료: store에 최종 위치 커밋 (히스토리 1회 기록)
-          circuitStore.commitMove(d.id, d.liveX, d.liveY);
-        }
+        if (d.moved) circuitStore.commitMove(d.id, d.liveX, d.liveY);
       }
+      if (this._waypointDrag) {
+        this._waypointDrag = null;
+      }
+      void e;
     });
 
     document.addEventListener('keydown', (e) => {
@@ -215,13 +302,10 @@ export class CircuitCanvas {
     });
   }
 
-  // ─── 서버 컴포넌트 정의 캐시 ─────────────────────────────────────
+  // ─── 서버 CompDef 캐시 ────────────────────────────────────────────────────
 
-  /** 서버에서 컴포넌트 정의를 가져와 캐시에 저장 */
   private async _fetchCompDef(type: string): Promise<ServerCompDef | null> {
-    if (this._compDefCache.has(type)) {
-      return this._compDefCache.get(type) ?? null;
-    }
+    if (this._compDefCache.has(type)) return this._compDefCache.get(type) ?? null;
     try {
       const r = await fetch(`/api/components/${type}`);
       if (!r.ok) { this._compDefCache.set(type, null); return null; }
@@ -234,14 +318,14 @@ export class CircuitCanvas {
     }
   }
 
-  // ─── 렌더링 ──────────────────────────────────────────────────────
+  // ─── 좌표 변환 ────────────────────────────────────────────────────────────
 
   private _zoomAt(cx: number, cy: number, factor: number) {
-    const newScale = Math.max(0.2, Math.min(3, this._transform.scale * factor));
-    const scaleRatio = newScale / this._transform.scale;
-    this._transform.x = cx - scaleRatio * (cx - this._transform.x);
-    this._transform.y = cy - scaleRatio * (cy - this._transform.y);
-    this._transform.scale = newScale;
+    const ns = Math.max(0.2, Math.min(3, this._transform.scale * factor));
+    const sr = ns / this._transform.scale;
+    this._transform.x = cx - sr * (cx - this._transform.x);
+    this._transform.y = cy - sr * (cy - this._transform.y);
+    this._transform.scale = ns;
     this._applyTransform();
   }
 
@@ -251,82 +335,67 @@ export class CircuitCanvas {
     const tx = `translate(${x} ${y}) scale(${scale})`;
     this._wiresLayer.setAttribute('transform', tx);
     this._drawLayer.setAttribute('transform', tx);
+    this._endpointLayer.setAttribute('transform', tx);
+    this._waypointLayer.setAttribute('transform', tx);
     this._pinLayer.setAttribute('transform', tx);
   }
 
+  // ─── 메인 렌더 ────────────────────────────────────────────────────────────
+
   private _render() {
-    const comps = circuitStore.components;
+    const comps     = circuitStore.components;
     const selectedId = circuitStore.selectedId;
 
     const hint = document.getElementById('canvas-hint');
     if (hint) hint.style.display = comps.length > 0 ? 'none' : '';
 
-    // 삭제된 컴포넌트 DOM 제거
     for (const [id, el] of this._elements) {
-      if (!comps.find(c => c.id === id)) {
-        el.remove();
-        this._elements.delete(id);
-      }
+      if (!comps.find(c => c.id === id)) { el.remove(); this._elements.delete(id); }
     }
-
     for (const comp of comps) {
       if (!this._elements.has(comp.id)) this._createElement(comp);
       const el = this._elements.get(comp.id);
       if (!el) continue;
-      el.style.left   = `${comp.x}px`;
-      el.style.top    = `${comp.y}px`;
+      el.style.left      = `${comp.x}px`;
+      el.style.top       = `${comp.y}px`;
       el.style.transform = `rotate(${comp.rotation ?? 0}deg)`;
       el.classList.toggle('selected', comp.id === selectedId);
     }
 
     this._renderWires();
+    this._renderEndpointDots();
+    this._renderWaypointHandles();
     this._renderPinPoints();
   }
 
   private _createElement(comp: PlacedComponent) {
-    // ① 캐시된 서버 def가 있으면 element 태그 우선 사용
-    const cachedDef = this._compDefCache.has(comp.type)
-      ? this._compDefCache.get(comp.type)
-      : undefined;
+    const cachedDef = this._compDefCache.has(comp.type) ? this._compDefCache.get(comp.type) : undefined;
     const tag = cachedDef?.element ?? BUILTIN_TAGS[comp.type] ?? 'sim-generic';
 
     const el = document.createElement(tag);
     el.style.cssText = `position:absolute;left:${comp.x}px;top:${comp.y}px;cursor:grab;user-select:none;`;
 
-    // props 적용
-    for (const [k, v] of Object.entries(comp.props)) {
-      (el as HTMLElement & Record<string, unknown>)[k] = v;
-    }
-    (el as HTMLElement & Record<string, unknown>)['compId'] = comp.id;
+    for (const [k, v] of Object.entries(comp.props)) (el as any)[k] = v;
+    (el as any)['compId'] = comp.id;
 
-    // ② sim-generic: 캐시 있으면 즉시 적용
-    if (tag === 'sim-generic' && cachedDef) {
-      this._applyGenericDef(el, cachedDef);
-    }
+    if (tag === 'sim-generic' && cachedDef) this._applyGenericDef(el, cachedDef);
 
-    // ③ 서버 def 비동기 조회 → sim-generic 업데이트 / 핀/와이어 재렌더
     this._fetchCompDef(comp.type).then(def => {
       if (!def) return;
       const existing = this._elements.get(comp.id);
       if (!existing) return;
-      if (existing.tagName.toLowerCase() === 'sim-generic') {
-        this._applyGenericDef(existing, def);
-      }
-      // 핀 좌표가 바뀌었을 수 있으므로 재렌더
+      if (existing.tagName.toLowerCase() === 'sim-generic') this._applyGenericDef(existing, def);
       this._renderWires();
+      this._renderEndpointDots();
       this._renderPinPoints();
     });
-
-    // ─── 이벤트 바인딩 ───────────────────────────────────────────
 
     el.addEventListener('pointerdown', (e: PointerEvent) => {
       if (e.button !== 0 || this._wireDrawing) return;
       e.stopPropagation();
       circuitStore.selectComponent(comp.id);
-      // 현재 위치를 store에서 직접 읽음 — stale closure 버그 방지
       const cur = circuitStore.components.find(c => c.id === comp.id);
-      const ox = cur?.x ?? 0;
-      const oy = cur?.y ?? 0;
+      const ox = cur?.x ?? 0, oy = cur?.y ?? 0;
       this._dragging = { id: comp.id, startX: e.clientX, startY: e.clientY, ox, oy, liveX: ox, liveY: oy, moved: false };
       el.style.cursor = 'grabbing';
       el.setPointerCapture(e.pointerId);
@@ -348,11 +417,9 @@ export class CircuitCanvas {
         simController.sendSensorUpdate(comp.id, { value: 0 });
       });
     }
-
     if (comp.type === 'potentiometer') {
       el.addEventListener('sim-change', (e: Event) => {
-        const detail = (e as CustomEvent).detail;
-        simController.sendSensorUpdate(comp.id, { value: detail.value });
+        simController.sendSensorUpdate(comp.id, { value: (e as CustomEvent).detail.value });
       });
     }
 
@@ -360,9 +427,8 @@ export class CircuitCanvas {
     this._elements.set(comp.id, el);
   }
 
-  /** sim-generic 엘리먼트에 서버 def 데이터 적용 */
   private _applyGenericDef(el: HTMLElement, def: ServerCompDef) {
-    const g = el as HTMLElement & Record<string, unknown>;
+    const g = el as any;
     g['svgTemplate'] = def.svgTemplate ?? '';
     g['pinDefs']     = def.pins.map(p => ({ name: p.name, x: p.x, y: p.y }));
     g['compWidth']   = def.width;
@@ -370,128 +436,43 @@ export class CircuitCanvas {
     g['label']       = def.name;
   }
 
-  // ─── 핀 절대 좌표 계산 ───────────────────────────────────────────
+  // ─── 핀 좌표 계산 ─────────────────────────────────────────────────────────
 
-  /**
-   * 핀의 절대 SVG 좌표를 반환
-   * 1순위: Lit getPinPositions() (내장 컴포넌트)
-   * 2순위: 서버 def pins[].x,y
-   * 3순위: 컴포넌트 원점 + 오프셋 (최후 폴백)
-   */
   private _getPinAbsPos(compId: string, pinName: string): { x: number; y: number } | null {
     const comp = circuitStore.components.find(c => c.id === compId);
     if (!comp) return null;
+    return this._getPinPosWithBase(compId, pinName, { x: comp.x, y: comp.y });
+  }
 
+  private _getPinPosWithBase(compId: string, pinName: string, base: { x: number; y: number }): { x: number; y: number } | null {
     const el = this._elements.get(compId);
     if (el && 'getPinPositions' in el) {
-      const positions = (el as { getPinPositions: () => Map<string, { x: number; y: number }> }).getPinPositions();
+      const positions = (el as any).getPinPositions() as Map<string, { x: number; y: number }>;
       const local = positions.get(pinName);
-      if (local) return { x: comp.x + local.x, y: comp.y + local.y };
+      if (local) return { x: base.x + local.x, y: base.y + local.y };
     }
-
-    // 서버 def 폴백
-    const def = this._compDefCache.get(comp.type);
+    const comp = circuitStore.components.find(c => c.id === compId);
+    const def = comp ? this._compDefCache.get(comp.type) : undefined;
     if (def) {
       const pin = def.pins.find(p => p.name === pinName);
-      if (pin) return { x: comp.x + pin.x, y: comp.y + pin.y };
+      if (pin) return { x: base.x + pin.x, y: base.y + pin.y };
     }
-
-    return { x: comp.x + 20, y: comp.y + 20 };
+    return { x: base.x + 20, y: base.y + 20 };
   }
 
-  // ─── 와이어 렌더링 ────────────────────────────────────────────────
-
-  /**
-   * 드래그 중 와이어만 재렌더 (핀 서클/핀레이어 갱신 없음 — 성능 최적화)
-   * 드래그 중인 컴포넌트 좌표는 store 대신 liveX/liveY 사용
-   */
-  private _renderWiresLive(dragId: string, liveX: number, liveY: number) {
-    while (this._wiresLayer.firstChild) this._wiresLayer.firstChild.remove();
-
-    const selectedWireId = circuitStore.selectedWireId;
-
-    for (const wire of circuitStore.wires) {
-      const fromComp = circuitStore.components.find(c => c.id === wire.fromCompId);
-      const toComp   = circuitStore.components.find(c => c.id === wire.toCompId);
-      if (!fromComp || !toComp) continue;
-
-      // 드래그 중인 컴포넌트면 라이브 좌표 사용
-      const fromBase = wire.fromCompId === dragId
-        ? { x: liveX, y: liveY } : { x: fromComp.x, y: fromComp.y };
-      const toBase   = wire.toCompId   === dragId
-        ? { x: liveX, y: liveY } : { x: toComp.x,   y: toComp.y };
-
-      const fromPins = this._getPinPositionsFor(wire.fromCompId, fromBase);
-      const toPins   = this._getPinPositionsFor(wire.toCompId,   toBase);
-      const from = fromPins.get(wire.fromPin);
-      const to   = toPins.get(wire.toPin);
-      if (!from || !to) continue;
-
-      this._drawWirePath(wire, from, to, wire.id === selectedWireId);
-    }
-  }
-
-  /** 지정 base 좌표로 핀 절대 위치 Map 반환 */
-  private _getPinPositionsFor(
-    compId: string,
-    base: { x: number; y: number },
-  ): Map<string, { x: number; y: number }> {
+  private _getPinsForComp(compId: string): Map<string, { x: number; y: number }> {
     const el = this._elements.get(compId);
     let pinMap = new Map<string, { x: number; y: number }>();
-    if (el && 'getPinPositions' in el) {
-      pinMap = (el as { getPinPositions: () => Map<string, { x: number; y: number }> }).getPinPositions();
-    }
+    if (el && 'getPinPositions' in el) pinMap = (el as any).getPinPositions();
     if (pinMap.size === 0) {
       const comp = circuitStore.components.find(c => c.id === compId);
       const def = comp ? this._compDefCache.get(comp.type) : undefined;
       if (def) for (const p of def.pins) pinMap.set(p.name, { x: p.x, y: p.y });
     }
-    // base 오프셋 적용
-    const result = new Map<string, { x: number; y: number }>();
-    for (const [name, local] of pinMap) {
-      result.set(name, { x: base.x + local.x, y: base.y + local.y });
-    }
-    return result;
+    return pinMap;
   }
 
-  /** SVG에 와이어 경로 그리기 (공용 헬퍼) */
-  private _drawWirePath(
-    wire: PlacedWire,
-    from: { x: number; y: number },
-    to: { x: number; y: number },
-    isSelected: boolean,
-  ) {
-    const color = this._wireColor(wire);
-    const dx = to.x - from.x;
-    const d  = `M${from.x},${from.y} C${from.x + dx * 0.4},${from.y} ${to.x - dx * 0.4},${to.y} ${to.x},${to.y}`;
-
-    const hit = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    hit.setAttribute('d', d);
-    hit.setAttribute('stroke', 'transparent');
-    hit.setAttribute('stroke-width', '12');
-    hit.setAttribute('fill', 'none');
-    hit.style.cursor = 'pointer';
-    hit.addEventListener('click', (e) => { e.stopPropagation(); circuitStore.selectWire(wire.id); });
-
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.setAttribute('d', d);
-    path.setAttribute('stroke', isSelected ? '#fff' : color);
-    path.setAttribute('stroke-width', isSelected ? '2.5' : '1.8');
-    path.setAttribute('fill', 'none');
-    path.setAttribute('opacity', '0.9');
-    path.style.pointerEvents = 'none';
-    if (isSelected) path.setAttribute('stroke-dasharray', '6 3');
-
-    for (const pos of [from, to]) {
-      const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      dot.setAttribute('cx', `${pos.x}`); dot.setAttribute('cy', `${pos.y}`);
-      dot.setAttribute('r', '2.5'); dot.setAttribute('fill', color);
-      dot.style.pointerEvents = 'none';
-      this._wiresLayer.appendChild(dot);
-    }
-    this._wiresLayer.appendChild(hit);
-    this._wiresLayer.appendChild(path);
-  }
+  // ─── 와이어 색상 ──────────────────────────────────────────────────────────
 
   private _wireColor(wire: PlacedWire): string {
     if (wire.color) return wire.color;
@@ -512,72 +493,224 @@ export class CircuitCanvas {
     return '#4af';
   }
 
+  // ─── 와이어 렌더링 ────────────────────────────────────────────────────────
+
   private _renderWires() {
     while (this._wiresLayer.firstChild) this._wiresLayer.firstChild.remove();
-
-    const selectedWireId = circuitStore.selectedWireId;
+    const selWireId = circuitStore.selectedWireId;
 
     for (const wire of circuitStore.wires) {
       const from = this._getPinAbsPos(wire.fromCompId, wire.fromPin);
       const to   = this._getPinAbsPos(wire.toCompId,   wire.toPin);
       if (!from || !to) continue;
-      this._drawWirePath(wire, from, to, wire.id === selectedWireId);
+      this._drawWirePath(wire, from, to, wire.id === selWireId);
     }
   }
 
-  /** 핀 연결 포인트(서클) 렌더링 */
+  /** 드래그 중 와이어 라이브 렌더 */
+  private _renderWiresLive(dragId: string, liveX: number, liveY: number) {
+    while (this._wiresLayer.firstChild) this._wiresLayer.firstChild.remove();
+    while (this._endpointLayer.firstChild) this._endpointLayer.firstChild.remove();
+
+    const selWireId = circuitStore.selectedWireId;
+    for (const wire of circuitStore.wires) {
+      const fromComp = circuitStore.components.find(c => c.id === wire.fromCompId);
+      const toComp   = circuitStore.components.find(c => c.id === wire.toCompId);
+      if (!fromComp || !toComp) continue;
+      const fromBase = wire.fromCompId === dragId ? { x: liveX, y: liveY } : { x: fromComp.x, y: fromComp.y };
+      const toBase   = wire.toCompId   === dragId ? { x: liveX, y: liveY } : { x: toComp.x,   y: toComp.y   };
+      const from = this._getPinPosWithBase(wire.fromCompId, wire.fromPin, fromBase);
+      const to   = this._getPinPosWithBase(wire.toCompId,   wire.toPin,   toBase);
+      if (!from || !to) continue;
+      this._drawWirePath(wire, from, to, wire.id === selWireId);
+      this._addEndpointDots(from, to, this._wireColor(wire));
+    }
+  }
+
+  private _drawWirePath(
+    wire: PlacedWire,
+    from: { x: number; y: number },
+    to:   { x: number; y: number },
+    isSelected: boolean,
+  ) {
+    const color = this._wireColor(wire);
+    const d = buildWirePath(from, to, wire.style, wire.waypoints ?? []);
+
+    // 히트 영역 (우클릭 포함)
+    const hit = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    hit.setAttribute('d', d);
+    hit.setAttribute('stroke', 'transparent');
+    hit.setAttribute('stroke-width', '14');
+    hit.setAttribute('fill', 'none');
+    hit.style.cursor = 'pointer';
+    hit.addEventListener('click', (e) => { e.stopPropagation(); circuitStore.selectWire(wire.id); });
+    hit.addEventListener('contextmenu', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      circuitStore.selectWire(wire.id);
+      this._ctxMenu.show(wire.id, e.clientX, e.clientY);
+    });
+
+    // 실제 선
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', d);
+    path.setAttribute('stroke', isSelected ? '#fff' : color);
+    path.setAttribute('stroke-width', isSelected ? '2.5' : '1.8');
+    path.setAttribute('fill', 'none');
+    path.setAttribute('opacity', '0.9');
+    path.style.pointerEvents = 'none';
+    if (isSelected) path.setAttribute('stroke-dasharray', '6 3');
+
+    this._wiresLayer.appendChild(hit);
+    this._wiresLayer.appendChild(path);
+  }
+
+  /** 와이어 끝점 도트를 _endpointLayer(z=3)에 렌더 — 보드 위에 표시 */
+  private _renderEndpointDots() {
+    while (this._endpointLayer.firstChild) this._endpointLayer.firstChild.remove();
+
+    for (const wire of circuitStore.wires) {
+      const from = this._getPinAbsPos(wire.fromCompId, wire.fromPin);
+      const to   = this._getPinAbsPos(wire.toCompId,   wire.toPin);
+      if (!from || !to) continue;
+      this._addEndpointDots(from, to, this._wireColor(wire));
+    }
+  }
+
+  private _addEndpointDots(
+    from: { x: number; y: number },
+    to:   { x: number; y: number },
+    color: string,
+  ) {
+    for (const pos of [from, to]) {
+      const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      dot.setAttribute('cx', `${pos.x}`); dot.setAttribute('cy', `${pos.y}`);
+      dot.setAttribute('r', '3'); dot.setAttribute('fill', color);
+      dot.setAttribute('stroke', '#000'); dot.setAttribute('stroke-width', '0.5');
+      dot.style.pointerEvents = 'none';
+      this._endpointLayer.appendChild(dot);
+    }
+  }
+
+  // ─── 경유점 핸들 렌더링 ────────────────────────────────────────────────────
+
+  private _getWireMidpoint(wireId: string): { x: number; y: number } {
+    const wire = circuitStore.wires.find(w => w.id === wireId);
+    if (!wire) return { x: 0, y: 0 };
+    const from = this._getPinAbsPos(wire.fromCompId, wire.fromPin);
+    const to   = this._getPinAbsPos(wire.toCompId,   wire.toPin);
+    if (!from || !to) return { x: 0, y: 0 };
+    return { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 };
+  }
+
+  private _renderWaypointHandles() {
+    while (this._waypointLayer.firstChild) this._waypointLayer.firstChild.remove();
+
+    const selWireId = circuitStore.selectedWireId;
+    if (!selWireId) return;
+
+    const wire = circuitStore.wires.find(w => w.id === selWireId);
+    if (!wire || wire.style === 'orthogonal') return; // orthogonal은 자동 라우팅
+
+    // 경유점이 있으면 그 위치, 없으면 from-to 중간점
+    const handlePos = wire.waypoints?.[0] ?? this._getWireMidpoint(wire.id);
+
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.style.cursor = 'move';
+
+    // 핸들 원
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', `${handlePos.x}`); circle.setAttribute('cy', `${handlePos.y}`);
+    circle.setAttribute('r', '7');
+    circle.setAttribute('fill', wire.waypoints?.length ? '#ff8c00' : '#888');
+    circle.setAttribute('stroke', '#fff'); circle.setAttribute('stroke-width', '1.5');
+    circle.setAttribute('opacity', '0.9');
+
+    // 십자선
+    for (const [x1, y1, x2, y2] of [
+      [handlePos.x - 4, handlePos.y, handlePos.x + 4, handlePos.y],
+      [handlePos.x, handlePos.y - 4, handlePos.x, handlePos.y + 4],
+    ] as [number,number,number,number][]) {
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1',`${x1}`); line.setAttribute('y1',`${y1}`);
+      line.setAttribute('x2',`${x2}`); line.setAttribute('y2',`${y2}`);
+      line.setAttribute('stroke','#fff'); line.setAttribute('stroke-width','1.5');
+      line.style.pointerEvents = 'none';
+      g.appendChild(line);
+    }
+
+    g.appendChild(circle);
+
+    // 드래그 시작
+    g.addEventListener('pointerdown', (e: PointerEvent) => {
+      e.stopPropagation();
+      this._waypointDrag = {
+        wireId: wire.id,
+        origWaypoints: wire.waypoints ? [...wire.waypoints] : [handlePos],
+        startX: e.clientX,
+        startY: e.clientY,
+      };
+      g.setPointerCapture(e.pointerId);
+    });
+    // 더블클릭 → 경유점 리셋
+    g.addEventListener('dblclick', (e) => {
+      e.stopPropagation();
+      circuitStore.updateWire(wire.id, { waypoints: [] });
+    });
+
+    this._waypointLayer.appendChild(g);
+  }
+
+  // ─── 핀 연결 포인트 렌더링 ────────────────────────────────────────────────
+
   private _renderPinPoints() {
     while (this._pinLayer.firstChild) this._pinLayer.firstChild.remove();
 
+    const selPin = circuitStore.selectedPin;
+
     for (const comp of circuitStore.components) {
-      const el = this._elements.get(comp.id);
+      const pins = this._getPinsForComp(comp.id);
+      if (pins.size === 0) continue;
 
-      // 핀 맵 수집: Lit 우선, 서버 def 폴백
-      let pinMap = new Map<string, { x: number; y: number }>();
-      if (el && 'getPinPositions' in el) {
-        pinMap = (el as { getPinPositions: () => Map<string, { x: number; y: number }> }).getPinPositions();
-      }
-      if (pinMap.size === 0) {
-        const def = this._compDefCache.get(comp.type);
-        if (def) {
-          for (const p of def.pins) pinMap.set(p.name, { x: p.x, y: p.y });
-        }
-      }
-      if (pinMap.size === 0) continue;
-
-      for (const [pinName, local] of pinMap) {
+      for (const [pinName, local] of pins) {
         const ax = comp.x + local.x;
         const ay = comp.y + local.y;
-
-        const isFromPin = this._wireDrawing?.fromCompId === comp.id &&
-                          this._wireDrawing?.fromPin    === pinName;
-
-        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        circle.setAttribute('cx', `${ax}`); circle.setAttribute('cy', `${ay}`);
-        circle.setAttribute('r',  isFromPin ? '5' : '4');
-        circle.setAttribute('fill', isFromPin ? '#ff0' : '#4af');
-        circle.setAttribute('opacity', isFromPin ? '1' : '0.0');
-        circle.setAttribute('stroke', '#fff'); circle.setAttribute('stroke-width', '1');
-        circle.style.cursor = 'crosshair';
-        circle.style.transition = 'opacity 0.1s';
+        const isFrom   = this._wireDrawing?.fromCompId === comp.id && this._wireDrawing?.fromPin === pinName;
+        const isSelPin = selPin?.compId === comp.id && selPin?.pinName === pinName;
 
         const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         g.setAttribute('data-comp', comp.id);
         g.setAttribute('data-pin',  pinName);
         g.style.cursor = 'crosshair';
 
-        g.addEventListener('mouseenter', () => circle.setAttribute('opacity', '0.85'));
+        // 히트 영역
+        const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        hitArea.setAttribute('cx', `${ax}`); hitArea.setAttribute('cy', `${ay}`);
+        hitArea.setAttribute('r', '8'); hitArea.setAttribute('fill', 'transparent');
+
+        // 핀 서클
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', `${ax}`); circle.setAttribute('cy', `${ay}`);
+        circle.setAttribute('r',  isFrom || isSelPin ? '5' : '4');
+        circle.setAttribute('fill', isFrom ? '#ff0' : isSelPin ? '#a0f' : '#4af');
+        circle.setAttribute('opacity', (isFrom || isSelPin) ? '1' : '0');
+        circle.setAttribute('stroke', '#fff'); circle.setAttribute('stroke-width', '1');
+        circle.style.transition = 'opacity 0.12s';
+
+        g.addEventListener('mouseenter', () => circle.setAttribute('opacity', '0.9'));
         g.addEventListener('mouseleave', () => {
-          if (!isFromPin) circle.setAttribute('opacity', '0.0');
+          if (!isFrom && !isSelPin) circle.setAttribute('opacity', '0');
         });
+
+        // 좌클릭 → 와이어 드로잉
         g.addEventListener('click', (e) => {
           e.stopPropagation();
           this._handlePinClick(comp.id, pinName, ax, ay);
         });
-
-        const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        hitArea.setAttribute('cx', `${ax}`); hitArea.setAttribute('cy', `${ay}`);
-        hitArea.setAttribute('r', '8'); hitArea.setAttribute('fill', 'transparent');
+        // 우클릭 → 핀 선택 (속성 패널)
+        g.addEventListener('contextmenu', (e) => {
+          e.preventDefault(); e.stopPropagation();
+          circuitStore.selectPin(comp.id, pinName);
+        });
 
         g.appendChild(hitArea);
         g.appendChild(circle);
@@ -586,7 +719,7 @@ export class CircuitCanvas {
     }
   }
 
-  // ─── 와이어 드로잉 ────────────────────────────────────────────────
+  // ─── 와이어 드로잉 ────────────────────────────────────────────────────────
 
   private async _handlePinClick(compId: string, pinName: string, ax: number, ay: number) {
     if (!this._wireDrawing) {
@@ -595,8 +728,6 @@ export class CircuitCanvas {
       this._renderPinPoints();
       return;
     }
-
-    // 같은 핀 클릭 → 취소
     if (this._wireDrawing.fromCompId === compId && this._wireDrawing.fromPin === pinName) {
       this._wireDrawing = null;
       this._renderDrawingWire(null);
@@ -604,55 +735,34 @@ export class CircuitCanvas {
       this._renderPinPoints();
       return;
     }
-
     const from = this._wireDrawing;
-
-    // ① 서버 핀 타입 호환성 검사
     await this._validateAndWarnConnection(from.fromCompId, from.fromPin, compId, pinName);
-
-    // ② 와이어 색상 결정 (서버 API)
     const wireColor = await this._resolveWireColor(from.fromPin);
-
-    const wire: PlacedWire = {
+    circuitStore.addWire({
       id: `wire-${Date.now()}`,
-      fromCompId: from.fromCompId,
-      fromPin:    from.fromPin,
-      toCompId:   compId,
-      toPin:      pinName,
-      color:      wireColor,
-    };
-    circuitStore.addWire(wire);
+      fromCompId: from.fromCompId, fromPin: from.fromPin,
+      toCompId:   compId,          toPin:   pinName,
+      color: wireColor,
+    });
     this._wireDrawing = null;
     this._renderDrawingWire(null);
     this._container.style.cursor = 'default';
   }
 
-  /** 서버 /connections/validate 로 핀 타입 호환성 검사, 오류 시 토스트 표시 */
-  private async _validateAndWarnConnection(
-    fromCompId: string, fromPin: string,
-    toCompId:   string, toPin:   string,
-  ) {
+  private async _validateAndWarnConnection(fromCompId: string, fromPin: string, toCompId: string, toPin: string) {
     try {
-      // 두 컴포넌트 def를 병렬로 가져옴
       const fromComp = circuitStore.components.find(c => c.id === fromCompId);
       const toComp   = circuitStore.components.find(c => c.id === toCompId);
       if (!fromComp || !toComp) return;
-
       const [fromDef, toDef] = await Promise.all([
-        this._fetchCompDef(fromComp.type),
-        this._fetchCompDef(toComp.type),
+        this._fetchCompDef(fromComp.type), this._fetchCompDef(toComp.type),
       ]);
       if (!fromDef || !toDef) return;
-
       const fromPinDef = fromDef.pins.find(p => p.name === fromPin);
       const toPinDef   = toDef.pins.find(p => p.name === toPin);
       if (!fromPinDef || !toPinDef) return;
-
-      const r = await fetch(
-        `/api/components/connections/validate?from=${encodeURIComponent(fromPinDef.type)}&to=${encodeURIComponent(toPinDef.type)}`
-      );
+      const r = await fetch(`/api/components/connections/validate?from=${encodeURIComponent(fromPinDef.type)}&to=${encodeURIComponent(toPinDef.type)}`);
       if (!r.ok) return;
-
       const result = await r.json() as { compatible: boolean; severity?: string; message?: string };
       if (!result.compatible) {
         this._showToast(
@@ -662,22 +772,17 @@ export class CircuitCanvas {
           result.severity === 'error' ? '#f66' : '#fa8',
         );
       }
-    } catch { /* 검사 실패해도 연결은 허용 */ }
+    } catch { /* ignore */ }
   }
 
-  /** 핀 이름으로 서버에서 전선 색상 결정 */
   private async _resolveWireColor(pinName: string): Promise<string | undefined> {
     try {
       const r = await fetch(`/api/components/wires/auto?pin=${encodeURIComponent(pinName)}`);
       if (!r.ok) return undefined;
-      const wire = await r.json() as { color: string };
-      return wire.color;
-    } catch {
-      return undefined;
-    }
+      return ((await r.json()) as { color: string }).color;
+    } catch { return undefined; }
   }
 
-  /** 그리는 중인 와이어 (rubber-band) 렌더링 */
   private _renderDrawingWire(mousePos: { x: number; y: number } | null) {
     while (this._drawLayer.firstChild) this._drawLayer.firstChild.remove();
     if (!this._wireDrawing || !mousePos) return;
@@ -687,12 +792,9 @@ export class CircuitCanvas {
     const d  = `M${fromX},${fromY} C${fromX + dx * 0.4},${fromY} ${mousePos.x - dx * 0.4},${mousePos.y} ${mousePos.x},${mousePos.y}`;
 
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.setAttribute('d', d);
-    path.setAttribute('stroke', '#4af');
-    path.setAttribute('stroke-width', '1.8');
-    path.setAttribute('stroke-dasharray', '6 4');
-    path.setAttribute('fill', 'none');
-    path.setAttribute('opacity', '0.8');
+    path.setAttribute('d', d); path.setAttribute('stroke', '#4af');
+    path.setAttribute('stroke-width', '1.8'); path.setAttribute('stroke-dasharray', '6 4');
+    path.setAttribute('fill', 'none'); path.setAttribute('opacity', '0.8');
     this._drawLayer.appendChild(path);
 
     const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -701,24 +803,21 @@ export class CircuitCanvas {
     this._drawLayer.appendChild(dot);
   }
 
-  // ─── 시뮬레이션 핀 시각 업데이트 ────────────────────────────────
+  // ─── 시뮬레이션 핀 시각 업데이트 ──────────────────────────────────────────
 
   private _updatePinVisual(pin: number, value: number) {
-    // 와이어 기반 연결 정보에서 GPIO → 컴포넌트 핀 매핑
     const derived = circuitStore.getDerivedConnections();
     for (const [compId, connMap] of derived) {
       for (const [pinName, target] of Object.entries(connMap)) {
         if (target === pin) {
           const el = this._elements.get(compId);
-          if (el && 'setPinState' in el) {
-            (el as { setPinState: (p: string, v: number) => void }).setPinState(pinName, value);
-          }
+          if (el && 'setPinState' in el) (el as any).setPinState(pinName, value);
         }
       }
     }
   }
 
-  // ─── 토스트 알림 ─────────────────────────────────────────────────
+  // ─── 토스트 알림 ──────────────────────────────────────────────────────────
 
   private _showToast(icon: string, msg: string, bg: string, color: string) {
     const toast = document.createElement('div');
@@ -733,7 +832,7 @@ export class CircuitCanvas {
     setTimeout(() => toast.remove(), 3500);
   }
 
-  // ─── 공개 API ────────────────────────────────────────────────────
+  // ─── 공개 API ─────────────────────────────────────────────────────────────
 
   fitView()  { this._transform = { x: 40, y: 40, scale: 1 }; this._applyTransform(); }
   zoomIn()   { this._zoomAt(this._container.clientWidth / 2, this._container.clientHeight / 2, 1.2); }

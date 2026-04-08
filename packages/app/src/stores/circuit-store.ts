@@ -18,8 +18,18 @@ export interface PlacedWire {
   fromPin: string;
   toCompId: string;
   toPin: string;
-  /** 자동 결정: GND=#333, VCC=#f44, GPIO=#4af, 3V3=#f84 */
+  /** 자동 결정: GND=#666, VCC=#e44, GPIO=#4af, 3V3=#f84 */
   color?: string;
+  /** 라우팅 스타일 — bezier(기본) | straight | orthogonal */
+  style?: 'bezier' | 'straight' | 'orthogonal';
+  /** 커스텀 경유점: bezier용 제어점 또는 꺾임점 */
+  waypoints?: Array<{ x: number; y: number }>;
+}
+
+/** 선택된 핀 노드 */
+export interface SelectedPin {
+  compId: string;
+  pinName: string;
 }
 
 export type SimState = 'idle' | 'running' | 'error';
@@ -42,6 +52,7 @@ export class CircuitStore {
     wires: [] as PlacedWire[],
     selectedId: null as string | null,
     selectedWireId: null as string | null,
+    selectedPin: null as SelectedPin | null,
     simState: 'idle' as SimState,
     serialOutput: '',
     code: DEFAULT_CODE,
@@ -130,6 +141,8 @@ export class CircuitStore {
     return this._state.wires.find(w => w.id === this._state.selectedWireId) ?? null;
   }
 
+  get selectedPin(): SelectedPin | null { return this._state.selectedPin; }
+
   setBoard(boardId: string) {
     this._state = { ...this._state, boardId };
     this._notify();
@@ -164,7 +177,22 @@ export class CircuitStore {
   }
 
   selectWire(id: string | null) {
-    this._state = { ...this._state, selectedWireId: id, selectedId: null };
+    this._state = { ...this._state, selectedWireId: id, selectedId: null, selectedPin: null };
+    this._notify();
+  }
+
+  selectPin(compId: string | null, pinName?: string) {
+    const pin = compId && pinName ? { compId, pinName } : null;
+    this._state = { ...this._state, selectedPin: pin, selectedId: null, selectedWireId: null };
+    this._notify();
+  }
+
+  updateWire(id: string, patch: Partial<PlacedWire>) {
+    this._pushHistory();
+    this._state = {
+      ...this._state,
+      wires: this._state.wires.map(w => w.id === id ? { ...w, ...patch } : w),
+    };
     this._notify();
   }
 

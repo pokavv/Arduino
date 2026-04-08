@@ -76,8 +76,11 @@ export class PropertyPanel {
   private _render() {
     const comp = circuitStore.selectedComponent;
     const wire = circuitStore.selectedWire;
+    const pin  = circuitStore.selectedPin;
 
-    if (comp) {
+    if (pin) {
+      this._renderPin(pin.compId, pin.pinName);
+    } else if (comp) {
       this._renderComponent(comp);
     } else if (wire) {
       this._renderWire(wire);
@@ -249,9 +252,145 @@ export class PropertyPanel {
     return html;
   }
 
+  private async _renderPin(compId: string, pinName: string) {
+    const comp = circuitStore.components.find(c => c.id === compId);
+    if (!comp) { this._renderEmpty(); return; }
+
+    // 즉시 기본 뷰
+    this._el.innerHTML = this._buildPinHtml(comp, pinName, null);
+
+    const def = await fetchDef(comp.type);
+    if (circuitStore.selectedPin?.compId !== compId ||
+        circuitStore.selectedPin?.pinName !== pinName) return;
+
+    this._el.innerHTML = this._buildPinHtml(comp, pinName, def);
+
+    this._el.querySelector('[data-action="deselect-pin"]')?.addEventListener('click', () => {
+      circuitStore.selectPin(null);
+    });
+  }
+
+  private _buildPinHtml(
+    comp: PlacedComponent,
+    pinName: string,
+    def: ComponentDefRemote | null,
+  ): string {
+    const compLabel  = def?.name ?? comp.type;
+    const compIcon   = COMP_ICONS[comp.type] ?? '📦';
+    const pinDef     = def?.pins.find(p => p.name === pinName);
+    const typeClass  = pinDef ? `pin-type-${pinDef.type}` : 'pin-type-signal';
+    const typeLabel  = pinDef?.type ?? '—';
+
+    // 연결된 와이어 및 GPIO 번호 찾기
+    const wires = circuitStore.wires.filter(
+      w => (w.fromCompId === comp.id && w.fromPin === pinName) ||
+           (w.toCompId   === comp.id && w.toPin   === pinName)
+    );
+    const derived = circuitStore.getDerivedConnections();
+    const gpio = derived.get(comp.id)?.[pinName];
+
+    let html = `
+      <div class="prop-header">
+        <span class="prop-icon">${compIcon}</span>
+        <div>
+          <div class="prop-title">${compLabel}</div>
+          <div class="prop-id">${comp.id}</div>
+        </div>
+        <button class="prop-delete" data-action="deselect-pin" title="선택 해제">✕</button>
+      </div>
+      <div class="prop-section">
+        <div class="prop-section-title">핀 정보</div>
+        <div class="prop-row">
+          <span class="prop-label">핀 이름</span>
+          <span class="prop-value">
+            <span class="pin-info-badge ${typeClass}">${pinDef?.label ?? pinName}</span>
+          </span>
+        </div>
+        <div class="prop-row">
+          <span class="prop-label">유형</span>
+          <span class="prop-value" style="text-transform:capitalize">${typeLabel}</span>
+        </div>
+        ${pinDef?.description ? `
+        <div class="prop-row">
+          <span class="prop-label">설명</span>
+          <span class="prop-value" style="font-size:9px;color:#999">${pinDef.description}</span>
+        </div>` : ''}
+        ${pinDef?.required ? `
+        <div class="prop-row">
+          <span class="prop-label">필수</span>
+          <span class="prop-value spec-highlight">필수 연결</span>
+        </div>` : ''}
+      </div>
+    `;
+
+    // GPIO/연결 상태
+    html += `<div class="prop-section"><div class="prop-section-title">연결 상태</div>`;
+    if (gpio !== undefined) {
+      const gpioLabel = typeof gpio === 'number'
+        ? `GPIO ${gpio}`
+        : gpio === 'GND' ? '접지 (GND)'
+        : gpio === 'VCC' ? '전원 5V (VCC)'
+        : gpio === '3V3' ? '전원 3.3V'
+        : String(gpio);
+      html += `
+        <div class="prop-row">
+          <span class="prop-label">연결됨</span>
+          <span class="prop-value spec-highlight">${gpioLabel}</span>
+        </div>
+      `;
+    } else {
+      html += `
+        <div class="prop-row">
+          <span class="prop-label">연결됨</span>
+          <span class="prop-value" style="color:#555">미연결</span>
+        </div>
+      `;
+    }
+
+    if (wires.length > 0) {
+      for (const w of wires) {
+        const isFrom = w.fromCompId === comp.id;
+        const otherCompId  = isFrom ? w.toCompId   : w.fromCompId;
+        const otherPin     = isFrom ? w.toPin       : w.fromPin;
+        const otherComp    = circuitStore.components.find(c => c.id === otherCompId);
+        const otherLabel   = otherComp?.type ?? otherCompId;
+        html += `
+          <div class="prop-row">
+            <span class="prop-label" style="color:#4af">→ 와이어</span>
+            <span class="prop-value" style="font-size:9px">${otherLabel} · <b>${otherPin}</b></span>
+          </div>
+        `;
+      }
+    }
+    html += `</div>`;
+
+    if (!def) {
+      html += `<div class="prop-note" style="color:#555">📡 사양 로드 중...</div>`;
+    }
+
+    return html;
+  }
+
   private _renderWire(wire: PlacedWire) {
     const fromComp = circuitStore.components.find(c => c.id === wire.fromCompId);
     const toComp   = circuitStore.components.find(c => c.id === wire.toCompId);
+    const style    = wire.style ?? 'bezier';
+
+    const styleOpts: Array<{ value: string; label: string }> = [
+      { value: 'bezier',     label: '곡선 (Bezier)' },
+      { value: 'straight',   label: '직선 (Straight)' },
+      { value: 'orthogonal', label: '직각 (Orthogonal)' },
+    ];
+
+    const colorOpts = [
+      { value: '',      label: '자동' },
+      { value: '#4af',  label: '파랑 (Signal)' },
+      { value: '#e44',  label: '빨강 (VCC)' },
+      { value: '#666',  label: '회색 (GND)' },
+      { value: '#f84',  label: '주황 (3.3V)' },
+      { value: '#4f4',  label: '초록' },
+      { value: '#fff',  label: '흰색' },
+    ];
 
     this._el.innerHTML = `
       <div class="prop-header">
@@ -273,11 +412,43 @@ export class PropertyPanel {
           <span class="prop-value">${toComp?.type ?? '?'} · <b>${wire.toPin}</b></span>
         </div>
       </div>
-      <div class="prop-note" style="margin-top:8px">Delete 키 또는 🗑 버튼으로 삭제</div>
+      <div class="prop-section">
+        <div class="prop-section-title">스타일</div>
+        <div class="prop-row">
+          <span class="prop-label">라우팅</span>
+          <select class="prop-select" data-action="set-wire-style">
+            ${styleOpts.map(o => `<option value="${o.value}" ${style === o.value ? 'selected' : ''}>${o.label}</option>`).join('')}
+          </select>
+        </div>
+        <div class="prop-row">
+          <span class="prop-label">색상</span>
+          <select class="prop-select" data-action="set-wire-color">
+            ${colorOpts.map(o => `<option value="${o.value}" ${(wire.color ?? '') === o.value ? 'selected' : ''}>${o.label}</option>`).join('')}
+          </select>
+        </div>
+        ${wire.waypoints?.length ? `
+        <div class="prop-row">
+          <span class="prop-label">경유점</span>
+          <span class="prop-value" style="color:#888">${wire.waypoints.length}개</span>
+          <button class="toolbar-btn" style="font-size:9px;padding:1px 5px" data-action="clear-waypoints">초기화</button>
+        </div>` : ''}
+      </div>
+      <div class="prop-note">Delete 키 또는 🗑 버튼으로 삭제</div>
     `;
 
     this._el.querySelector('[data-action="delete-wire"]')?.addEventListener('click', () => {
       circuitStore.removeWire(wire.id);
+    });
+    this._el.querySelector('[data-action="set-wire-style"]')?.addEventListener('change', (e) => {
+      const val = (e.target as HTMLSelectElement).value as 'bezier' | 'straight' | 'orthogonal';
+      circuitStore.updateWire(wire.id, { style: val });
+    });
+    this._el.querySelector('[data-action="set-wire-color"]')?.addEventListener('change', (e) => {
+      const val = (e.target as HTMLSelectElement).value;
+      circuitStore.updateWire(wire.id, { color: val || undefined });
+    });
+    this._el.querySelector('[data-action="clear-waypoints"]')?.addEventListener('click', () => {
+      circuitStore.updateWire(wire.id, { waypoints: [] });
     });
   }
 

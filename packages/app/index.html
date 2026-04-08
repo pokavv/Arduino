@@ -195,6 +195,34 @@
     .validation-item.warning { color: #fa4; }
     .validation-item.info { color: #4af; }
     .validation-icon { font-size: 11px; flex-shrink: 0; }
+
+    /* 와이어 컨텍스트 메뉴 */
+    #wire-ctx-menu {
+      position: fixed; z-index: 9999;
+      background: #1e1e2a; border: 1px solid #333; border-radius: 6px;
+      padding: 4px 0; min-width: 160px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.6);
+      font-size: 12px; color: #ccc; user-select: none;
+    }
+    #wire-ctx-menu .ctx-title {
+      padding: 5px 12px 3px; font-size: 10px;
+      color: #555; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    #wire-ctx-menu .ctx-item {
+      padding: 6px 12px; cursor: pointer;
+      display: flex; align-items: center; gap: 8px;
+    }
+    #wire-ctx-menu .ctx-item:hover { background: #2a2a3e; color: #eee; }
+    #wire-ctx-menu .ctx-item.active { color: #4af; font-weight: 600; }
+    #wire-ctx-menu .ctx-sep { height: 1px; background: #2a2a3a; margin: 3px 0; }
+    #wire-ctx-menu .ctx-item.danger:hover { background: #3a1a1a; color: #f66; }
+
+    /* 핀 속성 패널 */
+    .pin-info-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 6px; border-radius: 3px; font-size: 10px;
+      font-family: monospace; font-weight: 600;
+    }
   </style>
 </head>
 <body>
