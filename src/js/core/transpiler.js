@@ -748,11 +748,8 @@ class Transpiler {
         // ── millis / micros ───────────────────────────────
         // (런타임의 millis()/micros()를 그대로 사용)
 
-        // ── analogWrite (ESP32에서 사용 불가) ─────────────
-        code = code.replace(
-            /\banalogWrite\s*\(([^,)]+),\s*([^)]+)\)/g,
-            (m, pin, duty) => `ledcWrite(0, ${duty}) /* analogWrite → ledcWrite */`
-        );
+        // ── analogWrite → 런타임 analogWrite 그대로 유지 (채널 자동 관리)
+        // (별도 변환 불필요 — _buildGlobals()에서 analogWrite가 바인딩됨)
 
         // ── pgm_read 계열 (PROGMEM 접근) ─────────────────
         code = code.replace(
