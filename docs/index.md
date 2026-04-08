@@ -84,3 +84,19 @@ docs/
 | [09_deepsleep.md](../projects/esp32/c3/supermini/docs/09_deepsleep.md) | 딥슬립, 저전력 |
 | [10_ota_mqtt.md](../projects/esp32/c3/supermini/docs/10_ota_mqtt.md) | OTA, MQTT |
 | [11_troubleshooting.md](../projects/esp32/c3/supermini/docs/11_troubleshooting.md) | 문제 해결 |
+| [12_features.md](../projects/esp32/c3/supermini/docs/12_features.md) | 부품 카테고리별 쇼핑 가이드 |
+
+---
+
+## 웹 시뮬레이터 — `projects/web-simulator/`
+
+→ [../projects/web-simulator/CLAUDE.md](../projects/web-simulator/CLAUDE.md)
+
+Wokwi / TinkerCAD 수준의 Arduino 웹 시뮬레이터 (pnpm monorepo)
+
+| 패키지 | 내용 |
+|--------|------|
+| `packages/elements` | Lit 3 Web Components (sim-led, sim-button 등 14종) |
+| `packages/sim-engine` | Web Worker 기반 Arduino C++ 시뮬레이션 엔진 |
+| `packages/app` | Vite 5 SPA (무한 캔버스, Monaco 에디터, 속성 패널) |
+| `server` | Express 4 REST API (부품 정의, 보드, 템플릿) |

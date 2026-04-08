@@ -8,26 +8,25 @@ Claude Code가 이 프로젝트에서 작업할 때 참고하는 설정입니다
 ## 프로젝트
 
 - **보드**: ESP32-C3 Super Mini
-- **언어**: C/C++ (Arduino Framework)
+- **언어**: C/C++ (Arduino Framework) + TypeScript (웹 시뮬레이터)
 - **IDE**: Arduino IDE 2.x
 
 ## 디렉토리 구조
 
 ```
 Arduino/
-├── projects/    구현 프로젝트 (.ino)
 ├── docs/
-│   ├── cpp/          C/C++ 문법
-│   ├── arduino/      아두이노 공통
-│   └── guidelines/   개발 가이드라인  ← 코딩 규칙 전체
-└── projects/
-    └── esp32/
-        └── c3/
-            └── supermini/
-                ├── docs/   ESP32-C3 Super Mini 전용 문서
-                └── test/   기능별 구현 프로젝트
+│   ├── cpp/                C/C++ 문법 (10개)
+│   ├── arduino/            아두이노 공통 (8개)
+│   ├── guidelines/         개발 가이드라인 ← 코딩 규칙 전체
+│   └── esp32/c3/supermini/ ESP32-C3 Super Mini 전용 문서 (12개)
+├── projects/
+│   ├── esp32/c3/supermini/test/  기능별 구현 프로젝트 (162개)
+│   ├── web-simulator/            Arduino 웹 시뮬레이터 (pnpm monorepo)
+│   └── _web-simulator-archive/   구버전 단일 HTML 시뮬레이터 보관
 ├── SKILLS.md    기술 스택 및 구현 현황
-└── CLAUDE.md    이 파일
+├── CLAUDE.md    이 파일
+└── README.md    프로젝트 소개
 ```
 
 ## 보드 필수 주의사항
@@ -50,6 +49,16 @@ Arduino/
 | Flash Size | 4MB |
 | Upload Speed | 921600 |
 
+## 웹 시뮬레이터 실행
+
+```bash
+cd projects/web-simulator
+pnpm install
+pnpm dev   # 프론트(5173) + 백엔드(3001) 동시 실행
+```
+
+자세한 구조 및 아키텍처: [`projects/web-simulator/CLAUDE.md`](projects/web-simulator/CLAUDE.md)
+
 ## 개발 규칙 요약
 
 - 주석: **한국어**, 하드웨어 개념·준비물·연결방법 포함, 초보자 눈높이 → [01_comments.md](docs/guidelines/01_comments.md)
@@ -66,18 +75,23 @@ Arduino/
 ```
 형식: <타입>(<범위>): <설명>
 타입: feat / fix / docs / refactor / chore
-예시: feat(gpio-blink): LED 깜빡임 기본 구현
+범위: elements / engine / app / server / canvas / arduino / docs
+
+예시:
+  feat(canvas): 와이어 라우팅 커스텀 구현
+  fix(engine): for 루프 변수 선언 트랜스파일 수정
+  docs(readme): 웹 시뮬레이터 섹션 추가
 ```
 
-## 새 프로젝트 체크리스트
+## 새 Arduino 프로젝트 체크리스트
 
-1. `projects/기능-부품/` 폴더 생성 (소문자, 하이픈)
-2. `기능-부품.ino` 파일 생성 (폴더명과 동일)
+1. `projects/esp32/c3/supermini/test/카테고리/번호-이름/` 폴더 생성
+2. `번호-이름.ino` 파일 생성 (폴더명과 동일)
 3. `config.h` — 핀, 상수, 타이밍
 4. `secrets.h` — Wi-Fi/MQTT 인증 (Git 제외)
 5. `secrets.h.example` — 형식만 담은 예시 (Git 포함)
 6. `README.md` — 연결, 라이브러리, 사용 방법
-7. 완료 후 `SKILLS.md` 구현 상태 업데이트
+7. 완료 후 `SKILLS.md` 및 `FEATURES.md` 상태 업데이트
 
 ## 참고 링크
 
