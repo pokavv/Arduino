@@ -4,6 +4,7 @@ import '@sim/elements';
 import { CircuitCanvas } from './canvas/circuit-canvas.js';
 import { CodeEditor } from './editor/code-editor.js';
 import { PropertyPanel } from './panels/property-panel.js';
+import { componentEditor } from './panels/component-editor.js';
 import { circuitStore } from './stores/circuit-store.js';
 import { simController } from './stores/sim-controller.js';
 import { circuitValidator } from './stores/circuit-validator.js';
@@ -13,6 +14,11 @@ const API_BASE = '/api';
 interface BoardInfo  { id: string; name: string; vendor: string; mcu: string; }
 interface TemplateInfo { id: string; name: string; category: string; boardId: string; description: string; }
 interface TemplateDetail extends TemplateInfo { components: object[]; code: string; }
+
+interface CompSummary {
+  id: string; name: string; category: string;
+  description: string; _builtIn: boolean;
+}
 
 // ─────────────────────────────────────────────────────────────────
 // 앱 초기화 — index.html의 DOM이 이미 있으므로 즉시 실행
@@ -39,36 +45,107 @@ new CodeEditor(editorEl);
 const propPanelEl = document.getElementById('property-panel')!;
 new PropertyPanel(propPanelEl);
 
-// ③ 팔레트 아이템
-const PALETTE_COMPONENTS = [
-  { type: 'led',           label: 'LED',       icon: '💡' },
-  { type: 'rgb-led',       label: 'RGB LED',   icon: '🌈' },
-  { type: 'button',        label: 'Button',    icon: '🔘' },
-  { type: 'resistor',      label: 'Resistor',  icon: '〰️' },
-  { type: 'buzzer',        label: 'Buzzer',    icon: '🔊' },
-  { type: 'potentiometer', label: 'Pot.',      icon: '🔄' },
-  { type: 'servo',         label: 'Servo',     icon: '⚙️' },
-  { type: 'dht',           label: 'DHT22',     icon: '🌡️' },
-  { type: 'ultrasonic',    label: 'HC-SR04',   icon: '📡' },
-  { type: 'lcd',           label: 'LCD',       icon: '🖥️' },
-  { type: 'oled',          label: 'OLED',      icon: '📺' },
-  { type: 'seven-segment', label: '7-Seg',     icon: '7️⃣' },
-  { type: 'neopixel',      label: 'NeoPixel',  icon: '✨' },
-  { type: 'board-uno',     label: 'Uno 보드',  icon: '🟢' },
-  { type: 'board-esp32c3', label: 'ESP32-C3',  icon: '🔵' },
+// ③ 팔레트 — 서버에서 동적 로드
+const palette = document.getElementById('palette')!;
+
+async function loadPalette() {
+  try {
+    const data = await fetch(`${API_BASE}/components`).then(r => r.json()) as { components: CompSummary[] };
+    renderPalette(data.components);
+  } catch {
+    // 서버 없을 때 기본 목록 폴백
+    renderPalette(FALLBACK_PALETTE.map(p => ({
+      id: p.type, name: p.label, category: 'passive', description: '', _builtIn: true,
+    })));
+  }
+}
+
+function renderPalette(comps: CompSummary[]) {
+  // 카테고리별 그룹화
+  const groups: Record<string, CompSummary[]> = {};
+  for (const c of comps) {
+    (groups[c.category] ??= []).push(c);
+  }
+
+  palette.innerHTML = '';
+
+  // 부품 추가 버튼
+  const addBtn = document.createElement('button');
+  addBtn.className = 'palette-add-btn';
+  addBtn.textContent = '+ 새 부품 등록';
+  addBtn.addEventListener('click', () => componentEditor.openNew(() => loadPalette()));
+  palette.appendChild(addBtn);
+
+  const CAT_LABELS: Record<string, string> = {
+    mcu: '보드', passive: '수동 소자', active: '능동 소자',
+    sensor: '센서', display: '디스플레이', actuator: '액추에이터', power: '전원',
+  };
+  const CAT_ORDER = ['mcu','passive','active','sensor','display','actuator','power'];
+
+  for (const cat of CAT_ORDER) {
+    if (!groups[cat]?.length) continue;
+
+    const title = document.createElement('div');
+    title.className = 'palette-title';
+    title.textContent = CAT_LABELS[cat] ?? cat;
+    palette.appendChild(title);
+
+    for (const comp of groups[cat]) {
+      const item = document.createElement('div');
+      item.className = 'palette-item';
+      item.dataset.compId = comp.id;
+
+      const icon = COMP_ICONS[comp.id] ?? '📦';
+      item.innerHTML = `
+        <span class="palette-icon">${icon}</span>
+        <span class="palette-label">${comp.name}</span>
+        <button class="palette-edit-btn" title="편집">✏️</button>
+      `;
+      item.title = comp.description || comp.name;
+      item.draggable = true;
+
+      item.addEventListener('dragstart', (e) => {
+        e.dataTransfer?.setData('component-type', comp.id);
+      });
+      item.addEventListener('dblclick', () =>
+        addComponent(comp.id, 200 + Math.random() * 80, 150 + Math.random() * 80)
+      );
+      item.querySelector('.palette-edit-btn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        componentEditor.openEdit(comp.id, () => loadPalette());
+      });
+
+      palette.appendChild(item);
+    }
+  }
+}
+
+// 서버 없을 때 폴백 목록
+const FALLBACK_PALETTE = [
+  { type: 'board-uno',     label: 'Uno 보드' },
+  { type: 'board-esp32c3', label: 'ESP32-C3' },
+  { type: 'led',           label: 'LED' },
+  { type: 'rgb-led',       label: 'RGB LED' },
+  { type: 'button',        label: 'Button' },
+  { type: 'resistor',      label: 'Resistor' },
+  { type: 'buzzer',        label: 'Buzzer' },
+  { type: 'potentiometer', label: 'Pot.' },
+  { type: 'servo',         label: 'Servo' },
+  { type: 'dht',           label: 'DHT22' },
+  { type: 'ultrasonic',    label: 'HC-SR04' },
+  { type: 'lcd',           label: 'LCD' },
+  { type: 'oled',          label: 'OLED' },
+  { type: 'seven-segment', label: '7-Seg' },
+  { type: 'neopixel',      label: 'NeoPixel' },
 ];
 
-const palette = document.getElementById('palette')!;
-for (const comp of PALETTE_COMPONENTS) {
-  const item = document.createElement('div');
-  item.className = 'palette-item';
-  item.innerHTML = `<span class="palette-icon">${comp.icon}</span><span>${comp.label}</span>`;
-  item.title = `클릭/드래그: ${comp.label}`;
-  item.draggable = true;
-  item.addEventListener('dragstart', (e) => e.dataTransfer?.setData('component-type', comp.type));
-  item.addEventListener('dblclick', () => addComponent(comp.type, 200 + Math.random() * 80, 150 + Math.random() * 80));
-  palette.appendChild(item);
-}
+const COMP_ICONS: Record<string, string> = {
+  led:'💡', 'rgb-led':'🌈', button:'🔘', resistor:'〰️', buzzer:'🔊',
+  potentiometer:'🔄', servo:'⚙️', dht:'🌡️', ultrasonic:'📡', lcd:'🖥️',
+  oled:'📺', 'seven-segment':'7️⃣', neopixel:'✨', 'board-uno':'🟢', 'board-esp32c3':'🔵',
+};
+
+loadPalette();
 
 // ④ 시리얼 모니터
 const serialOutput = document.getElementById('serial-output')!;
