@@ -167,19 +167,70 @@ document.getElementById('btn-run')!.addEventListener('click', () => {
 });
 
 document.getElementById('btn-clear-serial')!.addEventListener('click', () => circuitStore.clearSerial());
-document.getElementById('btn-zoom-in')!.addEventListener('click', () => canvas.zoomIn());
+document.getElementById('btn-zoom-in')!.addEventListener('click',  () => canvas.zoomIn());
 document.getElementById('btn-zoom-out')!.addEventListener('click', () => canvas.zoomOut());
-document.getElementById('btn-fit')!.addEventListener('click', () => canvas.fitView());
+document.getElementById('btn-fit')!.addEventListener('click',      () => canvas.fitView());
+
+// Undo / Redo
+document.getElementById('btn-undo')!.addEventListener('click', () => circuitStore.undo());
+document.getElementById('btn-redo')!.addEventListener('click', () => circuitStore.redo());
+
+// 저장 — JSON 파일 다운로드
+document.getElementById('btn-save')!.addEventListener('click', () => {
+  const json = circuitStore.saveToJson();
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `circuit-${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+// 불러오기 — 파일 선택 후 JSON 파싱
+const fileInput = document.getElementById('file-input') as HTMLInputElement;
+document.getElementById('btn-load')!.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => {
+  const file = fileInput.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      circuitStore.loadFromJson(reader.result as string);
+      const hint = document.getElementById('canvas-hint');
+      if (hint) hint.style.display = 'none';
+    } catch {
+      alert('파일 형식이 올바르지 않습니다.');
+    }
+  };
+  reader.readAsText(file);
+  fileInput.value = '';
+});
 
 document.addEventListener('keydown', (e) => {
-  if ((e.key === 'Delete' || e.key === 'Backspace') &&
-      (document.activeElement?.tagName !== 'INPUT') &&
-      (document.activeElement?.tagName !== 'TEXTAREA')) {
+  const active = document.activeElement?.tagName;
+  const isEditing = active === 'INPUT' || active === 'TEXTAREA';
+
+  // Ctrl+Z / Ctrl+Y — 에디터 외부에서만
+  if ((e.ctrlKey || e.metaKey) && !isEditing) {
+    if (e.key === 'z') { e.preventDefault(); circuitStore.undo(); return; }
+    if (e.key === 'y') { e.preventDefault(); circuitStore.redo(); return; }
+  }
+
+  if ((e.key === 'Delete' || e.key === 'Backspace') && !isEditing) {
     const selComp = circuitStore.selectedId;
     const selWire = circuitStore.selectedWireId;
     if (selComp) circuitStore.removeComponent(selComp);
     if (selWire) circuitStore.removeWire(selWire);
   }
+});
+
+// Undo/Redo 버튼 활성화 상태 업데이트
+circuitStore.subscribe(() => {
+  const undoBtn = document.getElementById('btn-undo') as HTMLButtonElement | null;
+  const redoBtn = document.getElementById('btn-redo') as HTMLButtonElement | null;
+  if (undoBtn) undoBtn.style.opacity = circuitStore.canUndo ? '1' : '0.3';
+  if (redoBtn) redoBtn.style.opacity = circuitStore.canRedo ? '1' : '0.3';
 });
 
 // 실행 상태 → 버튼/인디케이터 업데이트
@@ -278,25 +329,32 @@ async function addComponent(type: string, x: number, y: number) {
 }
 
 function loadDefaultExample() {
-  // Arduino Uno 보드 + LED + 저항 기본 배치
+  // ── 기본 회로: Arduino Uno + 저항 + LED (Blink 예제) ──────────
+  // 모든 connections는 빈 객체 — 연결 정보는 와이어에서 도출됨
+
   circuitStore.addComponent({
     id: 'board-default', type: 'board-uno',
-    x: 80, y: 80, rotation: 0, props: {}, connections: {},
+    x: 60, y: 60, rotation: 0, props: {}, connections: {},
   });
   circuitStore.addComponent({
     id: 'r1', type: 'resistor',
-    x: 420, y: 100, rotation: 0,
-    props: { ohms: 220 },
-    connections: { PIN1: 13, PIN2: 'r1-led' },
+    x: 420, y: 120, rotation: 0,
+    props: { ohms: 220 }, connections: {},
   });
   circuitStore.addComponent({
     id: 'led1', type: 'led',
-    x: 500, y: 80, rotation: 0,
-    props: { color: 'red' },
-    connections: { ANODE: 13, CATHODE: 'GND' },
+    x: 510, y: 90, rotation: 0,
+    props: { color: 'red' }, connections: {},
   });
+
+  // 와이어로 연결 (보드 D13 → 저항 PIN1, 저항 PIN2 → LED ANODE, LED CATHODE → 보드 GND)
+  circuitStore.addWire({ id: 'w1', fromCompId: 'board-default', fromPin: 'D13',     toCompId: 'r1',    toPin: 'PIN1',    color: '#4af' });
+  circuitStore.addWire({ id: 'w2', fromCompId: 'r1',            fromPin: 'PIN2',    toCompId: 'led1',  toPin: 'ANODE',   color: '#4af' });
+  circuitStore.addWire({ id: 'w3', fromCompId: 'led1',          fromPin: 'CATHODE', toCompId: 'board-default', toPin: 'GND', color: '#666' });
+
   circuitStore.setCode(`// Blink — LED 깜빡이기
-// D13번 핀의 LED를 1초 간격으로 켜고 끕니다
+// D13번 핀에 연결된 LED를 1초 간격으로 켜고 끕니다
+// 회로: D13 → 220Ω 저항 → LED → GND
 
 const int LED_PIN = 13;
 

@@ -30,11 +30,12 @@ export class SimOled extends SimElement {
   override get pins() { return ['VCC', 'GND', 'SDA', 'SCL']; }
 
   override getPinPositions() {
+    // SVG: ['GND','VCC','SCL','SDA'].map((p,i) => x="${18 + i*18}", y1=76, y2=84)
     return new Map([
-      ['VCC', { x: 8,  y: 90 }],
-      ['GND', { x: 22, y: 90 }],
-      ['SDA', { x: 36, y: 90 }],
-      ['SCL', { x: 50, y: 90 }],
+      ['GND', { x: 18, y: 80 }],
+      ['VCC', { x: 36, y: 80 }],
+      ['SCL', { x: 54, y: 80 }],
+      ['SDA', { x: 72, y: 80 }],
     ]);
   }
   override setPinState(_pin: string, _value: number) {}
