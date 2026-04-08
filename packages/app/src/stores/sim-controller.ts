@@ -106,9 +106,11 @@ export class SimController {
         circuitStore.setSimState('idle');
         break;
 
-      case 'LOG':
-        console[msg.level]('[Worker]', msg.message);
+      case 'LOG': {
+        const fn = msg.level === 'error' ? console.error : msg.level === 'warn' ? console.warn : console.log;
+        fn('[Worker]', msg.message);
         break;
+      }
     }
   }
 }

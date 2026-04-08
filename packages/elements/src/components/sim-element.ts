@@ -1,4 +1,4 @@
-import { LitElement, css } from 'lit';
+import { LitElement, css, type CSSResultGroup } from 'lit';
 import { property } from 'lit/decorators.js';
 import type { PinConnection } from '../types.js';
 
@@ -7,7 +7,7 @@ import type { PinConnection } from '../types.js';
  * SVG 기반의 시각적 표현 + 핀 연결 상태 관리
  */
 export abstract class SimElement extends LitElement {
-  static override styles = css`
+  static override styles: CSSResultGroup = css`
     :host {
       display: block;
       position: absolute;

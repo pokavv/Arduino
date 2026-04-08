@@ -1,9 +1,12 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+    "noEmit": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "paths": {
+      "@sim/elements": ["../elements/src/index.ts"],
+      "@sim/engine":   ["../sim-engine/src/index.ts"]
+    }
   },
-  "include": ["src"]
+  "include": ["src", "../elements/src", "../sim-engine/src"]
 }

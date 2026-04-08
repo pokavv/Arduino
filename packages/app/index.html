@@ -5,10 +5,161 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Arduino Web Simulator</title>
   <style>
-    html, body { margin: 0; padding: 0; overflow: hidden; height: 100%; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; overflow: hidden; height: 100%; background: #0a0a0e; color: #ccc; font-family: system-ui, sans-serif; }
+
+    #app {
+      display: grid;
+      grid-template-rows: 44px 1fr;
+      grid-template-columns: 180px 1fr 320px;
+      grid-template-areas:
+        "toolbar toolbar toolbar"
+        "palette canvas editor";
+      height: 100vh;
+    }
+
+    /* 툴바 */
+    #toolbar {
+      grid-area: toolbar;
+      background: #141418;
+      border-bottom: 1px solid #282830;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      gap: 8px;
+    }
+    .toolbar-logo { font-weight: 700; font-size: 15px; color: #4a9eff; margin-right: 8px; }
+    .toolbar-sep { width: 1px; height: 24px; background: #333; margin: 0 4px; }
+    select.toolbar-select {
+      background: #1e1e26; border: 1px solid #333; border-radius: 4px;
+      color: #ccc; padding: 3px 6px; font-size: 12px; cursor: pointer;
+    }
+    .toolbar-btn {
+      background: #1e1e26; border: 1px solid #333; border-radius: 4px;
+      color: #aaa; padding: 3px 8px; font-size: 12px; cursor: pointer; white-space: nowrap;
+    }
+    .toolbar-btn:hover { background: #2a2a36; color: #eee; }
+    #btn-run { background: #1a4a1a; border-color: #2a7a2a; color: #4af44a; font-weight: 600; padding: 3px 14px; }
+    #btn-run.running { background: #4a1a1a; border-color: #8a2a2a; color: #f44a4a; }
+    #btn-run.error   { background: #4a2a0a; border-color: #8a5a0a; color: #fa8; }
+    #status-indicator { width: 8px; height: 8px; border-radius: 50%; background: #444; margin-left: auto; }
+    #status-indicator.running { background: #4af44a; box-shadow: 0 0 6px #4af44a; }
+    #status-indicator.error   { background: #fa4;   box-shadow: 0 0 6px #fa4; }
+
+    /* 팔레트 */
+    #palette {
+      grid-area: palette;
+      background: #121216; border-right: 1px solid #222;
+      overflow-y: auto; padding: 8px 4px;
+    }
+    .palette-title { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 8px 2px; }
+    .palette-item {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 8px; border-radius: 4px; cursor: grab;
+      font-size: 11px; color: #aaa; transition: background 0.1s;
+    }
+    .palette-item:hover { background: #1e1e26; color: #eee; }
+    .palette-item:active { cursor: grabbing; }
+    .palette-icon { font-size: 14px; min-width: 18px; }
+
+    /* 캔버스 */
+    #canvas {
+      grid-area: canvas;
+      position: relative; overflow: hidden;
+      background: #0f0f12;
+      background-image: radial-gradient(circle, #2a2a35 1px, transparent 1px);
+      background-size: 20px 20px;
+      cursor: default;
+    }
+    #canvas-hint {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      text-align: center; color: #333; pointer-events: none;
+      font-size: 13px; line-height: 1.8;
+    }
+    #canvas-hint .hint-icon { font-size: 32px; display: block; margin-bottom: 8px; }
+
+    /* 오른쪽 패널 */
+    #right-panel {
+      grid-area: editor; background: #121216; border-left: 1px solid #222;
+      display: grid; grid-template-rows: 1fr 180px; overflow: hidden;
+    }
+    #editor { min-height: 0; overflow: hidden; }
+    #editor-placeholder {
+      display: flex; align-items: center; justify-content: center;
+      height: 100%; color: #444; font-size: 12px;
+    }
+
+    /* 시리얼 패널 */
+    #serial-panel { border-top: 1px solid #222; display: flex; flex-direction: column; }
+    .serial-header {
+      display: flex; align-items: center; padding: 4px 8px;
+      background: #0e0e14; border-bottom: 1px solid #222;
+      font-size: 11px; color: #666; gap: 6px;
+    }
+    .serial-header span { font-weight: 600; color: #888; }
+    #serial-output {
+      flex: 1; overflow-y: auto; padding: 6px 10px;
+      font-family: 'Fira Code', 'Consolas', monospace; font-size: 11px;
+      color: #4af44a; background: #0a0a0e; white-space: pre-wrap; word-break: break-all;
+    }
   </style>
 </head>
 <body>
+  <div id="app">
+
+    <!-- 툴바 -->
+    <div id="toolbar">
+      <span class="toolbar-logo">⚡ Arduino Sim</span>
+      <div class="toolbar-sep"></div>
+      <select id="board-select" class="toolbar-select" title="보드 선택">
+        <option value="arduino-uno">Arduino Uno R3</option>
+        <option value="esp32-c3-supermini">ESP32-C3 Super Mini</option>
+        <option value="arduino-nano">Arduino Nano</option>
+        <option value="esp32-devkit">ESP32 DevKit</option>
+      </select>
+      <select id="template-select" class="toolbar-select" title="예제 불러오기">
+        <option value="">예제 불러오기...</option>
+      </select>
+      <div class="toolbar-sep"></div>
+      <button id="btn-run" class="toolbar-btn">▶ 실행</button>
+      <div class="toolbar-sep"></div>
+      <button id="btn-zoom-in"  class="toolbar-btn" title="확대 (+)">+</button>
+      <button id="btn-zoom-out" class="toolbar-btn" title="축소 (-)">−</button>
+      <button id="btn-fit"      class="toolbar-btn" title="전체 보기">⊡</button>
+      <div id="status-indicator" title="정지"></div>
+    </div>
+
+    <!-- 부품 팔레트 -->
+    <div id="palette">
+      <div class="palette-title">부품 라이브러리</div>
+      <!-- JS로 채워짐 -->
+    </div>
+
+    <!-- 회로 캔버스 -->
+    <div id="canvas">
+      <div id="canvas-hint">
+        <span class="hint-icon">🔌</span>
+        부품을 왼쪽에서 드래그하거나<br>더블클릭하여 추가하세요<br>
+        <small>휠: 줌 / Alt+드래그: 이동</small>
+      </div>
+    </div>
+
+    <!-- 코드 에디터 + 시리얼 모니터 -->
+    <div id="right-panel">
+      <div id="editor">
+        <div id="editor-placeholder">에디터 로딩 중...</div>
+      </div>
+      <div id="serial-panel">
+        <div class="serial-header">
+          <span>시리얼 모니터</span>
+          <button id="btn-clear-serial" class="toolbar-btn"
+            style="margin-left:auto;padding:1px 6px;font-size:10px">지우기</button>
+        </div>
+        <div id="serial-output"></div>
+      </div>
+    </div>
+
+  </div>
   <script type="module" src="/src/app.ts"></script>
 </body>
 </html>

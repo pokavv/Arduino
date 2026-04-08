@@ -7,9 +7,9 @@ import { simController } from '../stores/sim-controller.js';
  */
 export class CircuitCanvas {
   private _container: HTMLElement;
-  private _svg: SVGSVGElement;
-  private _layer: HTMLElement; // 컴포넌트들 올라가는 레이어
-  private _wiresLayer: SVGGElement;
+  private _svg!: SVGSVGElement;
+  private _layer!: HTMLElement; // 컴포넌트들 올라가는 레이어
+  private _wiresLayer!: SVGGElement;
 
   private _transform = { x: 0, y: 0, scale: 1 };
   private _panning = false;
