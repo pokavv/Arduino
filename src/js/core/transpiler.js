@@ -347,6 +347,15 @@ class Transpiler {
      * @private
      */
     _transformVariableDeclarations(code) {
+        // for 루프 내부의 타입 선언: for (int i = 0; ...) → for (let i = 0; ...)
+        code = this._transformForLoopDecls(code);
+
+        // enum 정의 변환
+        code = this._transformEnums(code);
+
+        // 다중 변수 선언: int x = 0, y = 0; → let x = 0;\nlet y = 0;
+        code = this._transformMultiVarDecls(code);
+
         const lines = code.split('\n');
         const result = [];
 
@@ -354,6 +363,78 @@ class Transpiler {
             result.push(this._transformVarLine(line));
         }
 
+        return result.join('\n');
+    }
+
+    /**
+     * for 루프 초기화의 C++ 타입 선언을 변환합니다.
+     * for (int i = 0; ...) → for (let i = 0; ...)
+     * @private
+     */
+    _transformForLoopDecls(code) {
+        // 기본 타입 목록
+        const typeRe = '(?:unsigned\\s+)?(?:int|long|short|byte|char|float|double|bool|boolean|uint8_t|uint16_t|uint32_t|int8_t|int16_t|int32_t|size_t)';
+        return code.replace(
+            new RegExp(`\\bfor\\s*\\(\\s*(${typeRe})\\s+(\\w+)\\s*=`, 'g'),
+            (match, type, name) => `for (let ${name} =`
+        );
+    }
+
+    /**
+     * enum 정의를 JS const 선언으로 변환합니다.
+     * enum Color { RED, GREEN=2, BLUE }; → const RED=0, GREEN=2, BLUE=3;
+     * @private
+     */
+    _transformEnums(code) {
+        return code.replace(
+            /(?:typedef\s+)?enum\s+(?:\w+\s*)?\{([^}]+)\}\s*(?:\w+\s*)?;/g,
+            (match, body) => {
+                let counter = 0;
+                const decls = body.split(',').map(item => {
+                    item = item.trim();
+                    if (!item) return null;
+                    const eq = item.indexOf('=');
+                    if (eq >= 0) {
+                        const name = item.substring(0, eq).trim();
+                        const val  = parseInt(item.substring(eq + 1).trim(), 10);
+                        if (!isNaN(val)) counter = val;
+                        const decl = `const ${name} = ${counter};`;
+                        counter++;
+                        return decl;
+                    } else {
+                        const decl = `const ${item} = ${counter};`;
+                        counter++;
+                        return decl;
+                    }
+                }).filter(Boolean);
+                return decls.join('\n');
+            }
+        );
+    }
+
+    /**
+     * 다중 변수 선언을 분리합니다.
+     * int x = 0, y = 1; → let x = 0;\nlet y = 1;
+     * @private
+     */
+    _transformMultiVarDecls(code) {
+        const typeRe = /^(\s*)(?:unsigned\s+)?(?:int|long|short|byte|char|float|double|bool|boolean|uint8_t|uint16_t|uint32_t|int8_t|int16_t|int32_t)\s+(\w+\s*(?:=\s*[^,;]+)?(?:\s*,\s*\w+\s*(?:=\s*[^,;]+)?)+)\s*;$/;
+        const lines = code.split('\n');
+        const result = [];
+        for (const line of lines) {
+            const m = line.match(typeRe);
+            if (m) {
+                const indent = m[1];
+                const parts  = m[2].split(',');
+                for (const part of parts) {
+                    const p = part.trim();
+                    if (!p) continue;
+                    result.push(`${indent}let ${p};`);
+                }
+            } else {
+                result.push(line);
+            }
+        }
         return result.join('\n');
     }
 
@@ -683,6 +764,65 @@ class Transpiler {
             '$1'
         );
 
+        // ── Serial2/Serial1 등 → _Serial (간단 에뮬레이션) ──
+        code = code.replace(/\bSerial[12]\b/g, '_Serial');
+
+        // ── Wire/SPI begin/end (라이브러리가 전역 관리) ───────
+        // 이미 전역 Wire, SPI 객체가 있으므로 변환 불필요
+
+        // ── Arduino String 메서드 변환 ────────────────────
+        // String(x) → String(x) 는 JS와 동일
+        // .toInt() → parseInt(...) 는 라이브러리에서 처리
+
+        // ── bitRead/bitWrite/bitSet/bitClear ─────────────
+        code = code.replace(
+            /\bbitRead\s*\(([^,)]+),\s*([^)]+)\)/g,
+            '(($1 >> ($2)) & 1)'
+        );
+        code = code.replace(
+            /\bbitSet\s*\(([^,)]+),\s*([^)]+)\)/g,
+            '(($1) |= (1 << ($2)))'
+        );
+        code = code.replace(
+            /\bbitClear\s*\(([^,)]+),\s*([^)]+)\)/g,
+            '(($1) &= ~(1 << ($2)))'
+        );
+        code = code.replace(
+            /\bbitWrite\s*\(([^,]+),\s*([^,]+),\s*([^)]+)\)/g,
+            '(($3) ? (($1) |= (1 << ($2))) : (($1) &= ~(1 << ($2))))'
+        );
+        code = code.replace(
+            /\bbit\s*\(([^)]+)\)/g,
+            '(1 << ($1))'
+        );
+
+        // ── highByte/lowByte ──────────────────────────────
+        code = code.replace(/\bhighByte\s*\(([^)]+)\)/g, '((($1) >> 8) & 0xFF)');
+        code = code.replace(/\blowByte\s*\(([^)]+)\)/g,  '(($1) & 0xFF)');
+
+        // ── word(h, l) → (h << 8 | l) ─────────────────────
+        code = code.replace(
+            /\bword\s*\(([^,)]+),\s*([^)]+)\)/g,
+            '(($1) << 8 | ($2))'
+        );
+
+        // ── isDigit/isAlpha/isAlphaNumeric/isSpace ────────
+        code = code.replace(/\bisDigit\s*\(([^)]+)\)/g,       '(/[0-9]/.test($1))');
+        code = code.replace(/\bisAlpha\s*\(([^)]+)\)/g,       '(/[a-zA-Z]/.test($1))');
+        code = code.replace(/\bisAlphaNumeric\s*\(([^)]+)\)/g,'(/[a-zA-Z0-9]/.test($1))');
+        code = code.replace(/\bisSpace\s*\(([^)]+)\)/g,       '(/\\s/.test($1))');
+        code = code.replace(/\bisLowerCase\s*\(([^)]+)\)/g,   '(/[a-z]/.test($1))');
+        code = code.replace(/\bisUpperCase\s*\(([^)]+)\)/g,   '(/[A-Z]/.test($1))');
+        code = code.replace(/\btoLowerCase\s*\(([^)]+)\)/g,   '($1).toLowerCase()');
+        code = code.replace(/\btoUpperCase\s*\(([^)]+)\)/g,   '($1).toUpperCase()');
+
+        // ── noInterrupts/interrupts (no-op) ──────────────
+        code = code.replace(/\bnoInterrupts\s*\(\s*\)/g, '/* noInterrupts() */');
+        code = code.replace(/\binterrupts\s*\(\s*\)/g,   '/* interrupts() */');
+
+        // ── yield → await _delay(0) ───────────────────────
+        code = code.replace(/\byield\s*\(\s*\)/g, 'await _delay(0)');
+
         return code;
     }
 
@@ -728,6 +868,24 @@ class Transpiler {
         code = code.replace(/\bextern\s+"C"\s*/g, '');
 
         // #ifndef / #ifdef 이미 처리됨
+
+        // ── Arduino String 메서드 → JS 등가 ──────────────
+        // .toInt() → parseInt(x, 10) — 메서드 형태는 런타임에서 처리
+        // .toFloat() → parseFloat(x) — 메서드 형태는 런타임에서 처리
+        // .length() → .length (프로퍼티)
+        code = code.replace(/\.length\(\)/g, '.length');
+        // .charAt(n) → JS String이 동일하게 지원
+        // .substring(), .indexOf(), .replace() — JS와 동일
+
+        // ── 후행 세미콜론 없는 단독 ++ / -- 표현문 ────────
+        // (C++에서 유효한 것은 JS도 유효 — 변환 불필요)
+
+        // ── float/double 리터럴 f 접미사 제거 ─────────────
+        code = code.replace(/\b(\d+\.\d*)[fF]\b/g, '$1');
+        code = code.replace(/\b(\d+)[fF]\b/g, '$1.0');
+
+        // ── UL/L/u/U 정수 접미사 제거 ─────────────────────
+        code = code.replace(/\b(\d+)[uUlL]+\b/g, '$1');
 
         return code;
     }
