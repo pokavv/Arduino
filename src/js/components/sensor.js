@@ -510,6 +510,7 @@ function MPU6050(id, config) {
   this._ax = 0; this._ay = 0; this._az = 1.0; // g 단위
   this._gx = 0; this._gy = 0; this._gz = 0;   // °/s
   this._temp = 25;
+  this.i2cAddress = config.address || 0x68;
 }
 MPU6050.prototype = Object.create(ComponentBase.prototype);
 MPU6050.prototype.constructor = MPU6050;
@@ -580,6 +581,7 @@ function BMP280(id, config) {
   this._pressure = config.defaultPressure || 1013.25; // hPa
   this._altitude = 0;
   this._address = config.address || 0x76;
+  this.i2cAddress = this._address;
 }
 BMP280.prototype = Object.create(ComponentBase.prototype);
 BMP280.prototype.constructor = BMP280;

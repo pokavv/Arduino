@@ -16,6 +16,8 @@ function LCD_1602(id, config) {
   this._cursor = { row:0, col:0 };
   this._cells = null;
   this._address = config.address || 0x27;
+  /** Wire.js가 i2cAddress 속성으로 이 컴포넌트를 찾습니다 */
+  this.i2cAddress = this._address;
 }
 LCD_1602.prototype = Object.create(ComponentBase.prototype);
 LCD_1602.prototype.constructor = LCD_1602;
@@ -95,6 +97,7 @@ function LCD_2004(id, config) {
   this._cursor = { row:0, col:0 };
   this._cells = null;
   this._address = config.address || 0x27;
+  this.i2cAddress = this._address;
 }
 LCD_2004.prototype = Object.create(ComponentBase.prototype);
 LCD_2004.prototype.constructor = LCD_2004;
@@ -165,6 +168,7 @@ function OLED_SSD1306(id, config) {
   this._fgColor = '#FFFFFF'; this._bgColor = '#000000';
   this._pixels = new Uint8Array(128*64);
   this._address = config.address || 0x3C;
+  this.i2cAddress = this._address;
 }
 OLED_SSD1306.prototype = Object.create(ComponentBase.prototype);
 OLED_SSD1306.prototype.constructor = OLED_SSD1306;
