@@ -908,7 +908,19 @@ class App {
     // ─────────────────────────────────────────────
 
     _loadTemplate(id) {
-        const tmpl = window.TEMPLATES?.[id];
+        // window.TEMPLATES 직접 조회 (단축 ID, 예: 'gpio-01')
+        let tmpl = window.TEMPLATES?.[id];
+
+        // CircuitTemplates 레지스트리 조회 (완전한 ID 또는 prefix 매칭)
+        if (!tmpl && window.CircuitTemplates) {
+            tmpl = window.CircuitTemplates.get(id);
+            // 완전 매칭 실패 시 prefix 매칭 (예: 'gpio-01' → 'gpio-01-led-blink')
+            if (!tmpl) {
+                const all = window.CircuitTemplates.getAll();
+                tmpl = all.find(t => t.id && t.id.startsWith(id + '-')) || null;
+            }
+        }
+
         if (!tmpl) { this._showError(`템플릿 '${id}'를 찾을 수 없습니다.`); return; }
 
         this._stop();

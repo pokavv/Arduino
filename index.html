@@ -22,36 +22,53 @@
       <!-- 템플릿 선택 -->
       <select id="template-select">
         <option value="">-- 템플릿 선택 --</option>
-        <optgroup label="1. GPIO">
-          <option value="gpio-01">01. LED 깜빡임</option>
-          <option value="gpio-02">02. 내장 LED (Active LOW)</option>
-          <option value="gpio-03">03. 버튼 입력 (PULLUP)</option>
-          <option value="gpio-05">05. 버튼으로 LED 토글</option>
-          <option value="gpio-06">06. 인터럽트 FALLING</option>
-          <option value="gpio-09">09. 버튼 디바운싱</option>
-          <option value="gpio-11">11. 릴레이 제어</option>
+        <optgroup label="GPIO">
+          <option value="gpio-01-led-blink">LED 깜빡임</option>
+          <option value="gpio-02-builtin-led">내장 LED</option>
+          <option value="gpio-03-button-led">버튼 + LED</option>
+          <option value="gpio-04-button-toggle">버튼 토글</option>
+          <option value="gpio-05-multi-led">다중 LED</option>
+          <option value="gpio-06-interrupt">인터럽트</option>
+          <option value="gpio-07-relay">릴레이</option>
+          <option value="gpio-08-button-counter">버튼 카운터</option>
+          <option value="gpio-09-updown-counter">UP/DOWN 카운터</option>
+          <option value="gpio-10-pir-motion">PIR 모션</option>
+          <option value="gpio-11-digital-read">디지털 읽기</option>
         </optgroup>
-        <optgroup label="2. ADC">
-          <option value="adc-01">01. 기본 ADC 읽기</option>
-          <option value="adc-02">02. 전압 변환</option>
-          <option value="adc-05">05. 가변저항</option>
-          <option value="adc-06">06. CDS 조도센서</option>
+        <optgroup label="ADC">
+          <option value="adc-01-potentiometer">가변저항</option>
+          <option value="adc-02-adc-led-brightness">ADC→LED 밝기</option>
+          <option value="adc-03-multi-adc">다중 ADC</option>
+          <option value="adc-04-adc-filter">ADC 필터링</option>
+          <option value="adc-05-voltage-divider">전압 분배기</option>
         </optgroup>
-        <optgroup label="3. PWM">
-          <option value="pwm-01">01. LED 밝기 조절</option>
-          <option value="pwm-02">02. LED 페이드</option>
-          <option value="pwm-03">03. 가변저항 LED 밝기</option>
-          <option value="pwm-04">04. 서보모터</option>
-          <option value="pwm-08">08. 부저 단음</option>
-          <option value="pwm-09">09. 부저 멜로디</option>
+        <optgroup label="PWM">
+          <option value="pwm-01-led-fade">LED 페이드</option>
+          <option value="pwm-02-rgb-led">RGB LED</option>
+          <option value="pwm-03-buzzer-tone">부저 단음</option>
+          <option value="pwm-04-servo">서보모터</option>
+          <option value="pwm-05-dc-motor">DC 모터</option>
+          <option value="pwm-06-melody">멜로디</option>
+          <option value="pwm-07-servo-pot">서보+가변저항</option>
         </optgroup>
-        <optgroup label="4. 타이밍">
-          <option value="timing-01">01. millis 논블로킹</option>
-          <option value="timing-02">02. 다중 타이머</option>
+        <optgroup label="타이밍">
+          <option value="timing-01-millis-blink">millis 깜빡임</option>
+          <option value="timing-02-multi-timer">다중 타이머</option>
+          <option value="timing-03-one-shot">원샷 타이머</option>
+          <option value="timing-04-periodic-read">주기 센서 읽기</option>
+          <option value="timing-05-watchdog">타임아웃 감지</option>
         </optgroup>
-        <optgroup label="5. UART">
-          <option value="uart-01">01. 시리얼 에코</option>
-          <option value="uart-02">02. 명령어 파서</option>
+        <optgroup label="I2C / 디스플레이">
+          <option value="i2c-01-oled-hello">OLED Hello</option>
+          <option value="i2c-02-lcd1602">LCD 1602</option>
+        </optgroup>
+        <optgroup label="센서">
+          <option value="sensor-01-dht11">DHT11 온습도</option>
+          <option value="sensor-02-ultrasonic">초음파 거리</option>
+        </optgroup>
+        <optgroup label="UART (구형)">
+          <option value="uart-01">시리얼 에코</option>
+          <option value="uart-02">명령어 파서</option>
         </optgroup>
       </select>
       <button id="btn-load-template" class="btn btn-secondary">불러오기</button>
