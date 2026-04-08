@@ -717,6 +717,19 @@ class App {
             if (p) p.style.display = 'none';
         });
 
+        // 속성 패널
+        document.getElementById('btn-props-close')?.addEventListener('click', () => {
+            this._hidePropsPanel();
+        });
+
+        // CircuitEditor 컴포넌트 선택 콜백
+        if (this.circuit) {
+            this.circuit.onComponentSelected = (comp) => {
+                if (comp) this._showPropsPanel(comp);
+                else       this._hidePropsPanel();
+            };
+        }
+
         // 기본 코드 불러오기
         document.getElementById('btn-example')?.addEventListener('click', () => this._loadDefaultCode());
 
@@ -1017,6 +1030,250 @@ class App {
     // ─────────────────────────────────────────────
     // 기본 코드
     // ─────────────────────────────────────────────
+
+    // ─────────────────────────────────────────────
+    // 컴포넌트 속성 패널
+    // ─────────────────────────────────────────────
+
+    _hidePropsPanel() {
+        const panel = document.getElementById('component-props-panel');
+        if (panel) panel.style.display = 'none';
+    }
+
+    /**
+     * 컴포넌트를 선택했을 때 속성 패널을 표시합니다.
+     * @param {object} comp - CircuitEditor 컴포넌트 인스턴스
+     */
+    _showPropsPanel(comp) {
+        const panel = document.getElementById('component-props-panel');
+        const title = document.getElementById('props-title');
+        const body  = document.getElementById('props-body');
+        if (!panel || !body) return;
+
+        title.textContent = comp.type + ' — ' + comp.id;
+        body.innerHTML    = '';
+
+        // ── 컴포넌트별 편집 가능 속성 ──────────────────────────────
+        const props = this._getComponentProps(comp);
+        props.forEach(p => {
+            const row   = document.createElement('div');
+            row.className = 'prop-row';
+
+            const lbl  = document.createElement('span');
+            lbl.className   = 'prop-label';
+            lbl.textContent = p.label;
+
+            const ctrl = document.createElement('div');
+            ctrl.className  = 'prop-control';
+
+            if (p.type === 'range') {
+                const slider = document.createElement('input');
+                slider.type  = 'range';
+                slider.min   = p.min;
+                slider.max   = p.max;
+                slider.step  = p.step || 1;
+                slider.value = p.value;
+
+                const display = document.createElement('span');
+                display.className   = 'prop-value-display';
+                display.textContent = p.value + (p.unit || '');
+
+                slider.addEventListener('input', () => {
+                    const v = parseFloat(slider.value);
+                    display.textContent = v + (p.unit || '');
+                    if (typeof p.onChange === 'function') p.onChange(v);
+                });
+
+                ctrl.appendChild(slider);
+                row.appendChild(lbl);
+                row.appendChild(ctrl);
+                row.appendChild(display);
+
+            } else if (p.type === 'select') {
+                const sel = document.createElement('select');
+                p.options.forEach(opt => {
+                    const o    = document.createElement('option');
+                    o.value    = opt.value;
+                    o.textContent = opt.label;
+                    if (opt.value === p.value) o.selected = true;
+                    sel.appendChild(o);
+                });
+                sel.addEventListener('change', () => {
+                    if (typeof p.onChange === 'function') p.onChange(sel.value);
+                });
+                ctrl.appendChild(sel);
+                row.appendChild(lbl);
+                row.appendChild(ctrl);
+
+            } else if (p.type === 'number') {
+                const inp = document.createElement('input');
+                inp.type  = 'number';
+                inp.min   = p.min;
+                inp.max   = p.max;
+                inp.value = p.value;
+                inp.addEventListener('change', () => {
+                    const v = parseFloat(inp.value);
+                    if (typeof p.onChange === 'function') p.onChange(v);
+                });
+                ctrl.appendChild(inp);
+                row.appendChild(lbl);
+                row.appendChild(ctrl);
+            }
+
+            body.appendChild(row);
+        });
+
+        // ── 연결 정보 ──────────────────────────────────────────────
+        const conns = comp.connections || {};
+        const connKeys = Object.keys(conns);
+        if (connKeys.length > 0) {
+            const sec   = document.createElement('div');
+            sec.className = 'props-connections';
+            const stitle  = document.createElement('div');
+            stitle.className   = 'props-connections-title';
+            stitle.textContent = '연결된 핀';
+            sec.appendChild(stitle);
+            connKeys.forEach(pinName => {
+                const r  = document.createElement('div');
+                r.className = 'conn-row';
+                r.innerHTML = `<span class="conn-pin">${pinName}</span><span class="conn-gpio">→ ${conns[pinName]}</span>`;
+                sec.appendChild(r);
+            });
+            body.appendChild(sec);
+        } else {
+            const noConn = document.createElement('div');
+            noConn.style.color   = 'var(--text-dim)';
+            noConn.style.fontSize = '11px';
+            noConn.style.marginTop = '6px';
+            noConn.textContent = '연결된 핀 없음';
+            body.appendChild(noConn);
+        }
+
+        panel.style.display = 'block';
+    }
+
+    /**
+     * 컴포넌트 타입별 편집 가능한 속성 목록을 반환합니다.
+     * @param {object} comp
+     * @returns {Array<object>}
+     */
+    _getComponentProps(comp) {
+        const props = [];
+        const type  = comp.type;
+
+        // ── 센서 슬라이더 ──────────────────────────────────────────
+        if (type === 'DHT11' || type === 'DHT22') {
+            props.push({
+                label: '온도', type: 'range',
+                min: -40, max: 80, step: 0.5,
+                value: comp._temperature ?? 25,
+                unit: '°C',
+                onChange: v => { comp._temperature = v; },
+            });
+            props.push({
+                label: '습도', type: 'range',
+                min: 0, max: 100, step: 1,
+                value: comp._humidity ?? 60,
+                unit: '%',
+                onChange: v => { comp._humidity = v; },
+            });
+        } else if (type === 'Ultrasonic_HCSR04') {
+            props.push({
+                label: '거리', type: 'range',
+                min: 2, max: 400, step: 1,
+                value: comp._distance ?? 30,
+                unit: 'cm',
+                onChange: v => { comp._distance = v; },
+            });
+        } else if (type === 'Potentiometer') {
+            props.push({
+                label: '값', type: 'range',
+                min: 0, max: 1023, step: 1,
+                value: comp._adcValue ?? 512,
+                onChange: v => { comp._adcValue = v; if (typeof comp.setValue === 'function') comp.setValue(v); },
+            });
+        } else if (type === 'DS18B20' || type === 'LM35' || type === 'Thermistor_NTC') {
+            props.push({
+                label: '온도', type: 'range',
+                min: -55, max: 125, step: 0.5,
+                value: comp._temperature ?? 25,
+                unit: '°C',
+                onChange: v => { comp._temperature = v; },
+            });
+        } else if (type === 'PhotoResistor_CDS') {
+            props.push({
+                label: '조도', type: 'range',
+                min: 0, max: 1023, step: 1,
+                value: comp._adcValue ?? 512,
+                unit: ' ADC',
+                onChange: v => { comp._adcValue = v; },
+            });
+        } else if (type === 'MQ2') {
+            props.push({
+                label: '가스', type: 'range',
+                min: 0, max: 1023, step: 1,
+                value: comp._adcValue ?? 100,
+                unit: ' ADC',
+                onChange: v => { comp._adcValue = v; },
+            });
+        } else if (type === 'Soil_Moisture') {
+            props.push({
+                label: '습도', type: 'range',
+                min: 0, max: 1023, step: 1,
+                value: comp._adcValue ?? 400,
+                unit: ' ADC',
+                onChange: v => { comp._adcValue = v; },
+            });
+        } else if (type === 'PIR_HC_SR501') {
+            props.push({
+                label: '감지', type: 'select',
+                value: comp._detected ? '1' : '0',
+                options: [{ label: '없음', value: '0' }, { label: '감지', value: '1' }],
+                onChange: v => { comp._detected = (v === '1'); },
+            });
+        } else if (type === 'MPU6050' || type === 'BMP280') {
+            props.push({
+                label: '온도', type: 'range',
+                min: -40, max: 85, step: 0.5,
+                value: comp._temperature ?? 25,
+                unit: '°C',
+                onChange: v => { comp._temperature = v; },
+            });
+        } else if (type === 'LED') {
+            props.push({
+                label: '색상', type: 'select',
+                value: comp._color || 'red',
+                options: [
+                    { label: '빨강', value: 'red' },
+                    { label: '초록', value: 'green' },
+                    { label: '파랑', value: 'blue' },
+                    { label: '노랑', value: 'yellow' },
+                    { label: '주황', value: 'orange' },
+                    { label: '흰색', value: 'white' },
+                ],
+                onChange: v => { comp._color = v; if (typeof comp.setColor === 'function') comp.setColor(v); },
+            });
+        } else if (type === 'Resistor') {
+            props.push({
+                label: '저항값', type: 'select',
+                value: String(comp._ohms || 220),
+                options: [
+                    { label: '100Ω',  value: '100' },
+                    { label: '220Ω',  value: '220' },
+                    { label: '330Ω',  value: '330' },
+                    { label: '470Ω',  value: '470' },
+                    { label: '1kΩ',   value: '1000' },
+                    { label: '4.7kΩ', value: '4700' },
+                    { label: '10kΩ',  value: '10000' },
+                    { label: '47kΩ',  value: '47000' },
+                    { label: '100kΩ', value: '100000' },
+                ],
+                onChange: v => { comp._ohms = parseInt(v); },
+            });
+        }
+
+        return props;
+    }
 
     _loadDefaultCode() {
         const boardDef  = this._getSelectedBoard();

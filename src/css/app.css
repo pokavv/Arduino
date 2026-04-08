@@ -201,6 +201,7 @@ select {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;  /* 속성 패널 absolute 기준점 */
 }
 
 #circuit-toolbar {
@@ -219,6 +220,101 @@ select {
   color: var(--text-dim);
   margin-left: 8px;
 }
+
+/* ===== 컴포넌트 속성 패널 ===== */
+#component-props-panel {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 220px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  z-index: 100;
+  font-size: 12px;
+}
+.props-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: var(--bg-active);
+  border-radius: 6px 6px 0 0;
+  font-weight: 600;
+  color: var(--text-bright);
+}
+.props-header button {
+  background: none;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 2px;
+}
+.props-header button:hover { color: var(--text-bright); }
+#props-body {
+  padding: 8px 10px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.prop-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  gap: 6px;
+}
+.prop-label {
+  color: var(--text-dim);
+  flex: 0 0 80px;
+  font-size: 11px;
+}
+.prop-control {
+  flex: 1;
+}
+.prop-control input[type="number"],
+.prop-control input[type="text"],
+.prop-control select {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 3px 6px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+.prop-control input[type="range"] {
+  width: 100%;
+  cursor: pointer;
+}
+.prop-value-display {
+  color: var(--accent-green);
+  font-size: 11px;
+  min-width: 30px;
+  text-align: right;
+}
+.props-connections {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+.props-connections-title {
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.conn-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  margin-bottom: 2px;
+}
+.conn-pin  { color: var(--accent-yellow); }
+.conn-gpio { color: var(--accent-green); }
 
 #circuit-canvas-wrapper {
   flex: 1;

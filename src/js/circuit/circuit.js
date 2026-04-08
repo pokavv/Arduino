@@ -109,6 +109,9 @@ function CircuitEditor(svgElement, options) {
   this._boardY   = 0;
   this._boardDef = null;
 
+  // 콜백 — 컴포넌트 선택/해제 시 외부에서 속성 패널 업데이트 가능
+  this.onComponentSelected = null;   // function(comp) 또는 null(해제)
+
   this._init();
 }
 
@@ -409,6 +412,9 @@ CircuitEditor.prototype._deselect = function() {
     if (comp) comp.deselect();
   }
   this._selected = null;
+  if (typeof this.onComponentSelected === 'function') {
+    this.onComponentSelected(null);
+  }
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -649,6 +655,9 @@ CircuitEditor.prototype.enableDrag = function(comp) {
     };
     comp.select();
     self._selected = { type: 'component', id: comp.id };
+    if (typeof self.onComponentSelected === 'function') {
+      self.onComponentSelected(comp);
+    }
   });
 };
 
