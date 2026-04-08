@@ -1,9 +1,68 @@
 import { circuitStore, type PlacedComponent, type PlacedWire } from '../stores/circuit-store.js';
-import { getSpec } from '../../../elements/src/specs/component-specs.js';
+
+const API_BASE = '/api';
+
+/** 서버에서 가져온 컴포넌트 정의 캐시 */
+const _defCache = new Map<string, ComponentDefRemote>();
+
+interface PinDefRemote {
+  name: string;
+  label: string;
+  description: string;
+  type: string;
+  required: boolean;
+}
+
+interface PropDefRemote {
+  key: string;
+  label: string;
+  type: string;
+  default: unknown;
+  options?: string[];
+  min?: number;
+  max?: number;
+  step?: number;
+  unit?: string;
+}
+
+interface ComponentDefRemote {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  element: string;
+  props: PropDefRemote[];
+  pins: PinDefRemote[];
+  electrical: {
+    vccMin?: number;
+    vccMax?: number;
+    currentMa?: number;
+    maxCurrentMa?: number;
+    forwardVoltage?: Record<string, number>;
+    logic?: string;
+    pinMaxCurrentMa?: number;
+  };
+  validation: Array<{ rule: string; message: string; severity: string; pin?: string }>;
+  notes: string[];
+}
+
+async function fetchDef(type: string): Promise<ComponentDefRemote | null> {
+  if (_defCache.has(type)) return _defCache.get(type)!;
+  try {
+    const r = await fetch(`${API_BASE}/components/${type}`);
+    if (!r.ok) return null;
+    const def = await r.json() as ComponentDefRemote;
+    _defCache.set(type, def);
+    return def;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * 속성 패널
  * 선택된 컴포넌트 또는 와이어의 전기적 사양과 속성을 표시합니다.
+ * 컴포넌트 정의는 /api/components/:id 에서 가져옵니다.
  */
 export class PropertyPanel {
   private _el: HTMLElement;
@@ -36,9 +95,24 @@ export class PropertyPanel {
     `;
   }
 
-  private _renderComponent(comp: PlacedComponent) {
-    const spec = getSpec(comp.type);
-    const typeLabel = spec?.name ?? comp.type;
+  private async _renderComponent(comp: PlacedComponent) {
+    // 즉시 기본 뷰 표시 (서버 응답 대기 중)
+    this._el.innerHTML = this._buildComponentBasicHtml(comp, null);
+    this._bindComponentEvents(comp, null);
+
+    // 서버에서 상세 정의 가져오기
+    const def = await fetchDef(comp.type);
+    if (circuitStore.selectedComponent?.id !== comp.id) return; // 이미 선택 해제됨
+
+    this._el.innerHTML = this._buildComponentBasicHtml(comp, def);
+    this._bindComponentEvents(comp, def);
+  }
+
+  private _buildComponentBasicHtml(
+    comp: PlacedComponent,
+    def: ComponentDefRemote | null,
+  ): string {
+    const typeLabel = def?.name ?? comp.type;
     const typeIcon = COMP_ICONS[comp.type] ?? '📦';
 
     let html = `
@@ -52,163 +126,127 @@ export class PropertyPanel {
       </div>
     `;
 
-    // 위치 정보
+    // 위치
     html += `
       <div class="prop-section">
         <div class="prop-section-title">위치</div>
         <div class="prop-row">
-          <span class="prop-label">X</span>
-          <span class="prop-value">${Math.round(comp.x)}px</span>
+          <span class="prop-label">X</span><span class="prop-value">${Math.round(comp.x)}px</span>
         </div>
         <div class="prop-row">
-          <span class="prop-label">Y</span>
-          <span class="prop-value">${Math.round(comp.y)}px</span>
+          <span class="prop-label">Y</span><span class="prop-value">${Math.round(comp.y)}px</span>
         </div>
       </div>
     `;
 
-    // 편집 가능한 속성
-    if (comp.type === 'led' || comp.type === 'rgb-led') {
-      html += `
-        <div class="prop-section">
-          <div class="prop-section-title">속성</div>
-          <div class="prop-row">
-            <span class="prop-label">색상</span>
-            <select class="prop-select" data-action="set-prop" data-key="color">
-              ${['red','green','blue','yellow','white','orange','purple'].map(c =>
-                `<option value="${c}" ${comp.props.color === c ? 'selected' : ''}>${c}</option>`
-              ).join('')}
-            </select>
-          </div>
-        </div>
-      `;
+    if (!def) {
+      html += `<div class="prop-note" style="color:#555">📡 서버에서 사양 로드 중...</div>`;
+      return html;
     }
 
-    if (comp.type === 'resistor') {
-      html += `
-        <div class="prop-section">
-          <div class="prop-section-title">속성</div>
-          <div class="prop-row">
-            <span class="prop-label">저항값</span>
-            <input class="prop-input" type="number" min="1" max="10000000"
-              data-action="set-prop" data-key="ohms"
-              value="${comp.props.ohms ?? 220}">
-            <span class="prop-unit">Ω</span>
-          </div>
-        </div>
-      `;
-    }
-
-    if (comp.type === 'dht') {
-      html += `
-        <div class="prop-section">
-          <div class="prop-section-title">센서 값 (시뮬레이션)</div>
-          <div class="prop-row">
-            <span class="prop-label">온도</span>
-            <input class="prop-input" type="number" step="0.1" min="-40" max="80"
-              data-action="set-prop" data-key="temperature"
-              value="${comp.props.temperature ?? 25}">
-            <span class="prop-unit">°C</span>
-          </div>
-          <div class="prop-row">
-            <span class="prop-label">습도</span>
-            <input class="prop-input" type="number" step="1" min="0" max="100"
-              data-action="set-prop" data-key="humidity"
-              value="${comp.props.humidity ?? 60}">
-            <span class="prop-unit">%</span>
-          </div>
-        </div>
-      `;
-    }
-
-    if (comp.type === 'ultrasonic') {
-      html += `
-        <div class="prop-section">
-          <div class="prop-section-title">센서 값 (시뮬레이션)</div>
-          <div class="prop-row">
-            <span class="prop-label">거리</span>
-            <input class="prop-input" type="number" min="2" max="400"
-              data-action="set-prop" data-key="distanceCm"
-              value="${comp.props.distanceCm ?? 20}">
-            <span class="prop-unit">cm</span>
-          </div>
-        </div>
-      `;
-    }
-
-    // 전기적 사양
-    if (spec) {
-      html += `<div class="prop-section"><div class="prop-section-title">전기적 사양</div>`;
-
-      if (spec.operatingVoltageMin !== undefined) {
-        html += `
-          <div class="prop-row">
-            <span class="prop-label">동작 전압</span>
-            <span class="prop-value">${spec.operatingVoltageMin}~${spec.operatingVoltageMax}V</span>
-          </div>
-        `;
-      }
-      if (spec.currentMa !== undefined) {
-        html += `
-          <div class="prop-row">
-            <span class="prop-label">동작 전류</span>
-            <span class="prop-value">${spec.currentMa}mA${spec.maxCurrentMa ? ` (최대 ${spec.maxCurrentMa}mA)` : ''}</span>
-          </div>
-        `;
-      }
-      if (spec.forwardVoltage && comp.props.color) {
-        const vf = spec.forwardVoltage[comp.props.color as string];
-        if (vf) {
+    // 서버 정의 기반 편집 가능 props
+    const editableProps = def.props.filter(p => p.type !== 'boolean' || true);
+    if (editableProps.length > 0) {
+      html += `<div class="prop-section"><div class="prop-section-title">속성</div>`;
+      for (const p of editableProps) {
+        const currentVal = comp.props[p.key] ?? p.default;
+        if (p.type === 'select') {
           html += `
             <div class="prop-row">
-              <span class="prop-label">순방향 전압 Vf</span>
-              <span class="prop-value spec-highlight">${vf}V (${comp.props.color})</span>
+              <span class="prop-label">${p.label}</span>
+              <select class="prop-select" data-action="set-prop" data-key="${p.key}">
+                ${(p.options ?? []).map(opt =>
+                  `<option value="${opt}" ${String(currentVal) === String(opt) ? 'selected' : ''}>${opt}</option>`
+                ).join('')}
+              </select>
             </div>
           `;
-          if (spec.recommendedResistorOhms) {
-            // 5V 시스템 기준 권장 저항값 계산
-            const r5v = Math.round((5 - vf) / 0.02);
-            const r33v = Math.round((3.3 - vf) / 0.02);
-            html += `
-              <div class="prop-row">
-                <span class="prop-label">권장 저항</span>
-                <span class="prop-value spec-highlight">
-                  5V: ${r5v}Ω / 3.3V: ${r33v}Ω
-                </span>
-              </div>
-            `;
-          }
+        } else if (p.type === 'number') {
+          html += `
+            <div class="prop-row">
+              <span class="prop-label">${p.label}</span>
+              <input class="prop-input" type="number"
+                ${p.min !== undefined ? `min="${p.min}"` : ''}
+                ${p.max !== undefined ? `max="${p.max}"` : ''}
+                ${p.step !== undefined ? `step="${p.step}"` : ''}
+                data-action="set-prop" data-key="${p.key}"
+                value="${currentVal}">
+              ${p.unit ? `<span class="prop-unit">${p.unit}</span>` : ''}
+            </div>
+          `;
+        } else if (p.type === 'boolean') {
+          html += `
+            <div class="prop-row">
+              <span class="prop-label">${p.label}</span>
+              <input type="checkbox" data-action="set-prop" data-key="${p.key}"
+                ${currentVal ? 'checked' : ''}>
+            </div>
+          `;
         }
       }
       html += `</div>`;
-
-      // 핀 설명
-      if (spec.pins) {
-        html += `<div class="prop-section"><div class="prop-section-title">핀 정보</div>`;
-        for (const [pinName, pinInfo] of Object.entries(spec.pins)) {
-          const pinTypeClass = `pin-type-${pinInfo.type}`;
-          html += `
-            <div class="prop-pin-row">
-              <span class="prop-pin-name ${pinTypeClass}">${pinName}</span>
-              <span class="prop-pin-desc">${pinInfo.description}</span>
-            </div>
-          `;
-        }
-        html += `</div>`;
-      }
-
-      // 주의사항
-      if (spec.notes?.length) {
-        html += `<div class="prop-section"><div class="prop-section-title">📌 주의사항</div>`;
-        for (const note of spec.notes) {
-          html += `<div class="prop-note">• ${note}</div>`;
-        }
-        html += `</div>`;
-      }
     }
 
-    this._el.innerHTML = html;
-    this._bindComponentEvents(comp);
+    // 전기적 사양
+    const e = def.electrical;
+    html += `<div class="prop-section"><div class="prop-section-title">전기적 사양</div>`;
+    if (e.vccMin !== undefined) {
+      html += `<div class="prop-row"><span class="prop-label">동작 전압</span>
+        <span class="prop-value">${e.vccMin}~${e.vccMax}V</span></div>`;
+    }
+    if (e.currentMa !== undefined) {
+      html += `<div class="prop-row"><span class="prop-label">동작 전류</span>
+        <span class="prop-value">${e.currentMa}mA${e.maxCurrentMa ? ` (최대 ${e.maxCurrentMa}mA)` : ''}</span></div>`;
+    }
+    if (e.logic) {
+      html += `<div class="prop-row"><span class="prop-label">로직 레벨</span>
+        <span class="prop-value spec-highlight">${e.logic}</span></div>`;
+    }
+    if (e.pinMaxCurrentMa) {
+      html += `<div class="prop-row"><span class="prop-label">핀당 최대</span>
+        <span class="prop-value">${e.pinMaxCurrentMa}mA</span></div>`;
+    }
+    // LED 순방향 전압 + 권장 저항 계산
+    if (e.forwardVoltage && comp.props.color) {
+      const vf = e.forwardVoltage[comp.props.color as string];
+      if (vf) {
+        const r5v  = Math.round((5 - vf) / 0.010);
+        const r33v = Math.round((3.3 - vf) / 0.010);
+        html += `
+          <div class="prop-row"><span class="prop-label">Vf (${comp.props.color})</span>
+            <span class="prop-value spec-highlight">${vf}V</span></div>
+          <div class="prop-row"><span class="prop-label">권장 저항</span>
+            <span class="prop-value spec-highlight">5V:${r5v}Ω / 3.3V:${r33v}Ω</span></div>
+        `;
+      }
+    }
+    html += `</div>`;
+
+    // 핀 정보
+    if (def.pins.length > 0) {
+      html += `<div class="prop-section"><div class="prop-section-title">핀 정보</div>`;
+      for (const pin of def.pins) {
+        const typeClass = `pin-type-${pin.type}`;
+        html += `
+          <div class="prop-pin-row">
+            <span class="prop-pin-name ${typeClass}">${pin.label ?? pin.name}</span>
+            <span class="prop-pin-desc">${pin.description}</span>
+          </div>
+        `;
+      }
+      html += `</div>`;
+    }
+
+    // 주의사항
+    if (def.notes.length > 0) {
+      html += `<div class="prop-section"><div class="prop-section-title">📌 주의사항</div>`;
+      for (const note of def.notes) {
+        html += `<div class="prop-note">• ${note}</div>`;
+      }
+      html += `</div>`;
+    }
+
+    return html;
   }
 
   private _renderWire(wire: PlacedWire) {
@@ -228,16 +266,14 @@ export class PropertyPanel {
         <div class="prop-section-title">연결 정보</div>
         <div class="prop-row">
           <span class="prop-label">시작</span>
-          <span class="prop-value">${fromComp?.type ?? '?'} / <b>${wire.fromPin}</b></span>
+          <span class="prop-value">${fromComp?.type ?? '?'} · <b>${wire.fromPin}</b></span>
         </div>
         <div class="prop-row">
           <span class="prop-label">끝</span>
-          <span class="prop-value">${toComp?.type ?? '?'} / <b>${wire.toPin}</b></span>
+          <span class="prop-value">${toComp?.type ?? '?'} · <b>${wire.toPin}</b></span>
         </div>
       </div>
-      <div class="prop-note" style="margin-top:8px">
-        Delete 키로 삭제할 수 있습니다
-      </div>
+      <div class="prop-note" style="margin-top:8px">Delete 키 또는 🗑 버튼으로 삭제</div>
     `;
 
     this._el.querySelector('[data-action="delete-wire"]')?.addEventListener('click', () => {
@@ -245,7 +281,7 @@ export class PropertyPanel {
     });
   }
 
-  private _bindComponentEvents(comp: PlacedComponent) {
+  private _bindComponentEvents(comp: PlacedComponent, _def: ComponentDefRemote | null) {
     this._el.querySelector('[data-action="delete-comp"]')?.addEventListener('click', () => {
       circuitStore.removeComponent(comp.id);
     });
@@ -253,8 +289,14 @@ export class PropertyPanel {
     this._el.querySelectorAll('[data-action="set-prop"]').forEach(el => {
       const key = (el as HTMLElement).dataset.key!;
       el.addEventListener('change', () => {
-        const raw = (el as HTMLInputElement | HTMLSelectElement).value;
-        const val = el.getAttribute('type') === 'number' ? parseFloat(raw) : raw;
+        let val: unknown;
+        if ((el as HTMLInputElement).type === 'checkbox') {
+          val = (el as HTMLInputElement).checked;
+        } else if ((el as HTMLInputElement).type === 'number') {
+          val = parseFloat((el as HTMLInputElement).value);
+        } else {
+          val = (el as HTMLInputElement | HTMLSelectElement).value;
+        }
         circuitStore.updateComponent(comp.id, {
           props: { ...comp.props, [key]: val },
         });
@@ -263,7 +305,6 @@ export class PropertyPanel {
   }
 }
 
-// 컴포넌트 타입별 아이콘
 const COMP_ICONS: Record<string, string> = {
   led:           '💡',
   'rgb-led':     '🌈',

@@ -286,13 +286,23 @@ export class CircuitCanvas {
     return { x: comp.x + local.x, y: comp.y + local.y };
   }
 
-  /** 와이어 색상 결정 */
+  /** 와이어 색상 결정 (핀 이름 기반) */
   private _wireColor(wire: PlacedWire): string {
     if (wire.color) return wire.color;
-    const pin = wire.fromPin + wire.toPin;
-    if (/GND/i.test(pin)) return '#555';
-    if (/VCC|5V/i.test(pin)) return '#e44';
-    if (/3V3|3\.3/i.test(pin)) return '#f84';
+    const pinName = wire.fromPin;
+    if (/^GND/i.test(pinName))          return '#444';
+    if (/^VCC$|^5V$|^VIN$/i.test(pinName)) return '#e44';
+    if (/^3V3$|^3\.3/i.test(pinName))   return '#f84';
+    if (/^SDA$/i.test(pinName))          return '#4f4';
+    if (/^SCL$/i.test(pinName))          return '#4ff';
+    if (/^SIGNAL$|^PWM/i.test(pinName))  return '#ff0';
+    if (/^WIPER$|^A\d/i.test(pinName))   return '#a4f';
+    if (/MOSI/i.test(pinName))           return '#f4f';
+    if (/MISO/i.test(pinName))           return '#f4a';
+    if (/^SCK$|^SCLK/i.test(pinName))   return '#ff8';
+    if (/^TX$/i.test(pinName))           return '#fa8';
+    if (/^RX$/i.test(pinName))           return '#f84';
+    if (/^DATA$|^DIN$/i.test(pinName))   return '#8af';
     return '#4af';
   }
 
@@ -428,7 +438,7 @@ export class CircuitCanvas {
     }
   }
 
-  private _handlePinClick(compId: string, pinName: string, ax: number, ay: number) {
+  private async _handlePinClick(compId: string, pinName: string, ax: number, ay: number) {
     if (!this._wireDrawing) {
       // 와이어 드로잉 시작
       this._wireDrawing = { fromCompId: compId, fromPin: pinName, fromX: ax, fromY: ay };
@@ -443,18 +453,34 @@ export class CircuitCanvas {
         this._renderPinPoints();
         return;
       }
-      // 와이어 완성
+      // 서버에서 핀 타입 호환성 검사 (비동기, 실패해도 연결 허용)
+      const from = this._wireDrawing;
+      const wireColor = await this._resolveWireColor(from.fromPin);
+
       const wire: PlacedWire = {
         id: `wire-${Date.now()}`,
-        fromCompId: this._wireDrawing.fromCompId,
-        fromPin:    this._wireDrawing.fromPin,
+        fromCompId: from.fromCompId,
+        fromPin:    from.fromPin,
         toCompId:   compId,
         toPin:      pinName,
+        color:      wireColor,
       };
       circuitStore.addWire(wire);
       this._wireDrawing = null;
       this._renderDrawingWire(null);
       this._container.style.cursor = 'default';
+    }
+  }
+
+  /** 서버 API로 핀 이름에 맞는 전선 색상 결정 */
+  private async _resolveWireColor(pinName: string): Promise<string | undefined> {
+    try {
+      const r = await fetch(`/api/components/wires/auto?pin=${encodeURIComponent(pinName)}`);
+      if (!r.ok) return undefined;
+      const wire = await r.json() as { color: string };
+      return wire.color;
+    } catch {
+      return undefined;
     }
   }
 

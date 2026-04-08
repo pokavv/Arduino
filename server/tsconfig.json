@@ -5,7 +5,9 @@
     "rootDir": "./src",
     "lib": ["ES2022"],
     "module": "NodeNext",
-    "moduleResolution": "NodeNext"
+    "moduleResolution": "NodeNext",
+    "declaration": false,
+    "declarationMap": false
   },
   "include": ["src"]
 }
