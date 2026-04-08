@@ -74,9 +74,6 @@ class Transpiler {
             code = this._restoreComments(code, comments);
             code = this._restoreStrings(code, strings);
 
-            // 10단계: 런타임 헤더 추가
-            code = this._buildPreamble() + '\n' + code;
-
             return code;
         } catch (err) {
             const msg = `/* [트랜스파일러 오류] ${err.message} */\n`;
@@ -203,8 +200,19 @@ class Transpiler {
                 if (/\(/.test(name)) {
                     result.push(`/* ${trimmed} — 함수형 매크로는 수동 변환 필요 */`);
                 } else {
-                    const jsVal = this._convertDefineValue(value);
-                    result.push(`const ${name} = ${jsVal};`);
+                    // Arduino 내장 상수는 시뮬레이터가 주입하므로 재정의 금지
+                    const _RESERVED = new Set([
+                        'OUTPUT','INPUT','INPUT_PULLUP','INPUT_PULLDOWN',
+                        'HIGH','LOW','true','false','RISING','FALLING','CHANGE',
+                        'LED_BUILTIN','BUILTIN_LED','PI','TWO_PI','HALF_PI',
+                        'ADC_0db','ADC_2_5db','ADC_6db','ADC_11db',
+                    ]);
+                    if (_RESERVED.has(name)) {
+                        result.push(`/* ${trimmed} — 내장 상수 재정의 무시 */`);
+                    } else {
+                        const jsVal = this._convertDefineValue(value);
+                        result.push(`let ${name} = ${jsVal};`);
+                    }
                 }
                 continue;
             }
@@ -645,7 +653,7 @@ class Transpiler {
         // ── analogWrite (ESP32에서 사용 불가) ─────────────
         code = code.replace(
             /\banalogWrite\s*\(([^,)]+),\s*([^)]+)\)/g,
-            '/* analogWrite 미지원: ledcWrite() 사용 */ _runtime.ledcWrite(0, $2)'
+            (m, pin, duty) => `ledcWrite(0, ${duty}) /* analogWrite → ledcWrite */`
         );
 
         // ── pgm_read 계열 (PROGMEM 접근) ─────────────────

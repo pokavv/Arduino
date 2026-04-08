@@ -94,8 +94,14 @@ class SimulatorEngine {
     if (!userFns.setup) throw new Error('setup() 함수가 없습니다.');
     if (!userFns.loop)  throw new Error('loop() 함수가 없습니다.');
 
-    // 6. 실행
+    // 6. 버튼 컴포넌트 → runtime 인터럽트 자동 연결
+    this._wireButtonInterrupts();
+
+    // 7. 실행
     this._running = true;
+    this.scheduler.on('error', (e) => {
+      this.onError('[런타임 오류] ' + (e?.message || String(e)));
+    });
     this.scheduler.start();
     this._runAsync(userFns.setup, userFns.loop);
   }
@@ -112,6 +118,26 @@ class SimulatorEngine {
       this._running = false;
       this.onStop();
     }
+  }
+
+  /** 버튼 컴포넌트 → runtime.setDigitalValue 인터럽트 자동 연결 */
+  _wireButtonInterrupts() {
+    const r = this.runtime;
+    const comps = this.circuit?.getAllComponents?.() || [];
+    comps.forEach(comp => {
+      if (comp.type !== 'Button') return;
+      // PIN1 또는 PIN2 중 GPIO에 연결된 핀 찾기
+      ['PIN1', 'PIN2'].forEach(pinName => {
+        const boardPin = comp.connections?.[pinName]; // e.g. 'G9'
+        if (!boardPin || !boardPin.startsWith('G')) return;
+        const gpioNum = parseInt(boardPin.slice(1), 10);
+        if (isNaN(gpioNum)) return;
+        comp.onPressCallback((pressed) => {
+          // INPUT_PULLUP 기준: 눌림=LOW(0), 뗌=HIGH(1)
+          r.setDigitalValue(gpioNum, pressed ? 0 : 1);
+        });
+      });
+    });
   }
 
   stop() {
@@ -164,7 +190,8 @@ class SimulatorEngine {
       OUTPUT: 1, INPUT: 0, INPUT_PULLUP: 2, INPUT_PULLDOWN: 3,
       HIGH: 1, LOW: 0,
       RISING: 1, FALLING: 2, CHANGE: 3,
-      LED_BUILTIN: 8,
+      LED_BUILTIN: 8, BUILTIN_LED: 8,
+      ADC_0db: 0, ADC_2_5db: 1, ADC_6db: 2, ADC_11db: 3,
       true: true, false: false,
       PI: Math.PI, TWO_PI: Math.PI * 2, HALF_PI: Math.PI / 2,
       // GPIO
@@ -189,10 +216,11 @@ class SimulatorEngine {
       delay:             (ms) => s.delay(ms),
       delayMicroseconds: (us) => s.delay(us / 1000),
       // 인터럽트
-      attachInterrupt: bind(r.attachInterrupt),
-      detachInterrupt: bind(r.detachInterrupt),
-      noInterrupts:    () => {},
-      interrupts:      () => {},
+      attachInterrupt:      bind(r.attachInterrupt),
+      detachInterrupt:      bind(r.detachInterrupt),
+      digitalPinToInterrupt: (pin) => pin,  // ESP32: 핀번호 = 인터럽트번호
+      noInterrupts:          () => {},
+      interrupts:            () => {},
       // 수학
       map:        bind(r.map),
       constrain:  bind(r.constrain),
@@ -209,19 +237,29 @@ class SimulatorEngine {
       sin: Math.sin, cos: Math.cos, tan: Math.tan,
       asin: Math.asin, acos: Math.acos, atan: Math.atan, atan2: Math.atan2,
       log: Math.log, exp: Math.exp,
-      // 타입 변환
-      String:     (x) => String(x),
+      // 타입 변환 (String은 내장 전역 사용 - String.fromCharCode 보존)
       parseInt:   (s, base) => parseInt(s, base || 10),
       parseFloat: (s) => parseFloat(s),
       isnan:      (x) => isNaN(x),
+      isNaN:      (x) => isNaN(x),
       // Serial
       Serial: r._serialObj,
       _Serial: r._serialObj,
-      // 기타
-      IRAM_ATTR: undefined,   // 무시
-      PROGMEM:   undefined,
-      F:         (s) => s,
-      pgm_read_word: (x) => x,
+      // ESP32/Arduino 무시 키워드 (undefined = 에러 방지)
+      IRAM_ATTR:   undefined,
+      DRAM_ATTR:   undefined,
+      PROGMEM:     undefined,
+      F:           (s) => s,
+      pgm_read_word:  (x) => x,
+      pgm_read_byte:  (x) => x,
+      // 추가 유틸
+      bitRead:   (val, bit) => (val >> bit) & 1,
+      bitSet:    (val, bit) => val | (1 << bit),
+      bitClear:  (val, bit) => val & ~(1 << bit),
+      bitWrite:  (val, bit, v) => v ? (val | (1 << bit)) : (val & ~(1 << bit)),
+      bit:       (b) => (1 << b),
+      lowByte:   (x) => x & 0xFF,
+      highByte:  (x) => (x >> 8) & 0xFF,
     };
   }
 }
@@ -459,10 +497,16 @@ class App {
   /* ── 시리얼 ── */
   _serialLog(text, type = 'received') {
     const out = document.getElementById('serial-output');
-    const span = document.createElement('span');
-    span.className = `line ${type}`;
-    span.textContent = text + '\n';
-    out.appendChild(span);
+    // text가 이미 \n을 포함할 수 있으므로 줄 단위로 분리
+    const lines = text.split('\n');
+    lines.forEach((line, i) => {
+      if (i === lines.length - 1 && line === '') return; // 마지막 빈 줄 건너뜀
+      const span = document.createElement('span');
+      span.className = `line ${type}`;
+      span.textContent = line;
+      out.appendChild(span);
+      out.appendChild(document.createElement('br'));
+    });
     if (out.scrollTop + out.clientHeight >= out.scrollHeight - 50) out.scrollTop = out.scrollHeight;
     while (out.children.length > 2000) out.removeChild(out.firstChild);
   }
