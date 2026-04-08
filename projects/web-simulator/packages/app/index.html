@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arduino Web Simulator</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; overflow: hidden; height: 100%; background: #0a0a0e; color: #ccc; font-family: system-ui, sans-serif; }
+
+    #app {
+      display: grid;
+      grid-template-rows: 44px 1fr;
+      grid-template-columns: 180px 1fr 320px;
+      grid-template-areas:
+        "toolbar toolbar toolbar"
+        "palette canvas right";
+      height: 100vh;
+    }
+
+    /* 툴바 */
+    #toolbar {
+      grid-area: toolbar;
+      background: #141418;
+      border-bottom: 1px solid #282830;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      gap: 8px;
+    }
+    .toolbar-logo { font-weight: 700; font-size: 15px; color: #4a9eff; margin-right: 8px; }
+    .toolbar-sep { width: 1px; height: 24px; background: #333; margin: 0 4px; }
+    select.toolbar-select {
+      background: #1e1e26; border: 1px solid #333; border-radius: 4px;
+      color: #ccc; padding: 3px 6px; font-size: 12px; cursor: pointer;
+    }
+    .toolbar-btn {
+      background: #1e1e26; border: 1px solid #333; border-radius: 4px;
+      color: #aaa; padding: 3px 8px; font-size: 12px; cursor: pointer; white-space: nowrap;
+    }
+    .toolbar-btn:hover { background: #2a2a36; color: #eee; }
+    #btn-run { background: #1a4a1a; border-color: #2a7a2a; color: #4af44a; font-weight: 600; padding: 3px 14px; }
+    #btn-run.running { background: #4a1a1a; border-color: #8a2a2a; color: #f44a4a; }
+    #btn-run.error   { background: #4a2a0a; border-color: #8a5a0a; color: #fa8; }
+    #status-indicator { width: 8px; height: 8px; border-radius: 50%; background: #444; margin-left: auto; }
+    #status-indicator.running { background: #4af44a; box-shadow: 0 0 6px #4af44a; }
+    #status-indicator.error   { background: #fa4;   box-shadow: 0 0 6px #fa4; }
+
+    /* 팔레트 */
+    #palette {
+      grid-area: palette;
+      background: #121216; border-right: 1px solid #222;
+      overflow-y: auto; padding: 8px 4px;
+    }
+    .palette-title { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 8px 2px; }
+    .palette-item {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 8px; border-radius: 4px; cursor: grab;
+      font-size: 11px; color: #aaa; transition: background 0.1s;
+    }
+    .palette-item:hover { background: #1e1e26; color: #eee; }
+    .palette-item:active { cursor: grabbing; }
+    .palette-icon { font-size: 14px; min-width: 18px; }
+    .palette-label { flex: 1; }
+    .palette-edit-btn {
+      background: transparent; border: none; cursor: pointer;
+      font-size: 11px; opacity: 0; transition: opacity 0.1s; padding: 0 2px;
+    }
+    .palette-item:hover .palette-edit-btn { opacity: 0.7; }
+    .palette-edit-btn:hover { opacity: 1 !important; }
+    .palette-add-btn {
+      width: calc(100% - 8px); margin: 4px; padding: 5px;
+      background: #1a2a1a; border: 1px dashed #2a4a2a; border-radius: 4px;
+      color: #4f4; font-size: 11px; cursor: pointer; text-align: center;
+    }
+    .palette-add-btn:hover { background: #1a3a1a; }
+
+    /* 캔버스 */
+    #canvas {
+      grid-area: canvas;
+      position: relative; overflow: hidden;
+      background: #0f0f12;
+      background-image: radial-gradient(circle, #2a2a35 1px, transparent 1px);
+      background-size: 20px 20px;
+      cursor: default;
+    }
+    #canvas-hint {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      text-align: center; color: #333; pointer-events: none;
+      font-size: 13px; line-height: 1.8;
+    }
+    #canvas-hint .hint-icon { font-size: 32px; display: block; margin-bottom: 8px; }
+
+    /* 오른쪽 패널 */
+    #right-panel {
+      grid-area: right; background: #121216; border-left: 1px solid #222;
+      display: grid; grid-template-rows: 1fr 180px 260px; overflow: hidden;
+    }
+    #editor { min-height: 0; overflow: hidden; }
+    #editor-placeholder {
+      display: flex; align-items: center; justify-content: center;
+      height: 100%; color: #444; font-size: 12px;
+    }
+
+    /* 시리얼 패널 */
+    #serial-panel { border-top: 1px solid #222; display: flex; flex-direction: column; }
+    .serial-header {
+      display: flex; align-items: center; padding: 4px 8px;
+      background: #0e0e14; border-bottom: 1px solid #222;
+      font-size: 11px; color: #666; gap: 6px;
+    }
+    .serial-header span { font-weight: 600; color: #888; }
+    #serial-output {
+      flex: 1; overflow-y: auto; padding: 6px 10px;
+      font-family: 'Fira Code', 'Consolas', monospace; font-size: 11px;
+      color: #4af44a; background: #0a0a0e; white-space: pre-wrap; word-break: break-all;
+    }
+
+    /* 속성 패널 */
+    #property-panel {
+      border-top: 1px solid #222;
+      overflow-y: auto;
+      background: #0e0e14;
+      font-size: 11px;
+    }
+    .prop-empty {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; height: 100%; color: #333;
+      font-size: 11px; text-align: center; line-height: 1.6;
+    }
+    .prop-empty-icon { font-size: 22px; margin-bottom: 6px; }
+    .prop-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px; background: #141418; border-bottom: 1px solid #222;
+    }
+    .prop-icon { font-size: 18px; }
+    .prop-title { font-size: 12px; font-weight: 700; color: #ddd; }
+    .prop-id { font-size: 9px; color: #555; font-family: monospace; }
+    .prop-delete {
+      margin-left: auto; background: transparent; border: none;
+      cursor: pointer; font-size: 14px; opacity: 0.5;
+    }
+    .prop-delete:hover { opacity: 1; }
+    .prop-section { padding: 6px 10px; border-bottom: 1px solid #1a1a22; }
+    .prop-section-title {
+      font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;
+      color: #555; margin-bottom: 4px; font-weight: 600;
+    }
+    .prop-row {
+      display: flex; align-items: center; gap: 6px;
+      padding: 2px 0; font-size: 10px;
+    }
+    .prop-label { color: #666; min-width: 60px; flex-shrink: 0; }
+    .prop-value { color: #aaa; flex: 1; }
+    .spec-highlight { color: #4af44a; font-weight: 600; }
+    .prop-input {
+      background: #1a1a26; border: 1px solid #333; border-radius: 3px;
+      color: #ccc; padding: 2px 6px; font-size: 10px; width: 70px;
+    }
+    .prop-unit { color: #555; font-size: 10px; }
+    .prop-select {
+      background: #1a1a26; border: 1px solid #333; border-radius: 3px;
+      color: #ccc; padding: 2px 4px; font-size: 10px; flex: 1;
+    }
+    .prop-pin-row {
+      display: flex; align-items: flex-start; gap: 6px;
+      padding: 2px 0; font-size: 10px;
+    }
+    .prop-pin-name {
+      font-family: monospace; font-size: 9px; min-width: 54px;
+      padding: 1px 4px; border-radius: 3px; text-align: center;
+      flex-shrink: 0;
+    }
+    .pin-type-power    { background: #4a1a1a; color: #f88; border: 1px solid #8a2a2a; }
+    .pin-type-ground   { background: #1a2a1a; color: #8a8; border: 1px solid #2a4a2a; }
+    .pin-type-input    { background: #1a1a4a; color: #88f; border: 1px solid #2a2a8a; }
+    .pin-type-output   { background: #1a3a4a; color: #8cf; border: 1px solid #2a6a7a; }
+    .pin-type-signal   { background: #2a2a1a; color: #cc8; border: 1px solid #4a4a2a; }
+    .pin-type-bidirectional { background: #2a1a3a; color: #a8f; border: 1px solid #4a2a7a; }
+    .prop-pin-desc { color: #666; font-size: 9px; line-height: 1.4; }
+    .prop-note { color: #666; font-size: 9px; padding: 2px 10px; line-height: 1.5; }
+
+    /* 유효성 검사 결과 */
+    #validation-bar {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: #0a0a10; border-top: 1px solid #222;
+      z-index: 10; font-size: 10px;
+    }
+    .validation-item {
+      display: flex; align-items: center; gap: 6px; padding: 4px 10px;
+      cursor: pointer; transition: background 0.1s;
+    }
+    .validation-item:hover { background: #141418; }
+    .validation-item.error { color: #f66; }
+    .validation-item.warning { color: #fa4; }
+    .validation-item.info { color: #4af; }
+    .validation-icon { font-size: 11px; flex-shrink: 0; }
+
+    /* 와이어 컨텍스트 메뉴 */
+    #wire-ctx-menu {
+      position: fixed; z-index: 9999;
+      background: #1e1e2a; border: 1px solid #333; border-radius: 6px;
+      padding: 4px 0; min-width: 160px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.6);
+      font-size: 12px; color: #ccc; user-select: none;
+    }
+    #wire-ctx-menu .ctx-title {
+      padding: 5px 12px 3px; font-size: 10px;
+      color: #555; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    #wire-ctx-menu .ctx-item {
+      padding: 6px 12px; cursor: pointer;
+      display: flex; align-items: center; gap: 8px;
+    }
+    #wire-ctx-menu .ctx-item:hover { background: #2a2a3e; color: #eee; }
+    #wire-ctx-menu .ctx-item.active { color: #4af; font-weight: 600; }
+    #wire-ctx-menu .ctx-sep { height: 1px; background: #2a2a3a; margin: 3px 0; }
+    #wire-ctx-menu .ctx-item.danger:hover { background: #3a1a1a; color: #f66; }
+
+    /* 핀 속성 패널 */
+    .pin-info-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 6px; border-radius: 3px; font-size: 10px;
+      font-family: monospace; font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+
+    <!-- 툴바 -->
+    <div id="toolbar">
+      <span class="toolbar-logo">⚡ Arduino Sim</span>
+      <div class="toolbar-sep"></div>
+      <select id="board-select" class="toolbar-select" title="보드 선택">
+        <option value="arduino-uno">Arduino Uno R3</option>
+        <option value="esp32-c3-supermini">ESP32-C3 Super Mini</option>
+        <option value="arduino-nano">Arduino Nano</option>
+        <option value="esp32-devkit">ESP32 DevKit</option>
+      </select>
+      <select id="template-select" class="toolbar-select" title="예제 불러오기">
+        <option value="">예제 불러오기...</option>
+      </select>
+      <div class="toolbar-sep"></div>
+      <button id="btn-run" class="toolbar-btn">▶ 실행</button>
+      <div class="toolbar-sep"></div>
+      <button id="btn-undo"   class="toolbar-btn" title="실행 취소 (Ctrl+Z)">↩</button>
+      <button id="btn-redo"   class="toolbar-btn" title="다시 실행 (Ctrl+Y)">↪</button>
+      <div class="toolbar-sep"></div>
+      <button id="btn-save"   class="toolbar-btn" title="회로 저장">💾</button>
+      <button id="btn-load"   class="toolbar-btn" title="회로 불러오기">📂</button>
+      <input  id="file-input" type="file" accept=".json" style="display:none">
+      <div class="toolbar-sep"></div>
+      <button id="btn-zoom-in"  class="toolbar-btn" title="확대 (+)">+</button>
+      <button id="btn-zoom-out" class="toolbar-btn" title="축소 (-)">−</button>
+      <button id="btn-fit"      class="toolbar-btn" title="전체 보기">⊡</button>
+      <div id="status-indicator" title="정지"></div>
+    </div>
+
+    <!-- 부품 팔레트 -->
+    <div id="palette">
+      <div class="palette-title">부품 라이브러리</div>
+      <!-- JS로 채워짐 -->
+    </div>
+
+    <!-- 회로 캔버스 -->
+    <div id="canvas">
+      <div id="canvas-hint">
+        <span class="hint-icon">🔌</span>
+        부품을 왼쪽에서 드래그하거나<br>더블클릭하여 추가하세요<br>
+        <small>휠: 줌 / Alt+드래그: 이동</small>
+      </div>
+    </div>
+
+    <!-- 코드 에디터 + 시리얼 모니터 + 속성 패널 -->
+    <div id="right-panel">
+      <div id="editor">
+        <div id="editor-placeholder">에디터 로딩 중...</div>
+      </div>
+      <div id="serial-panel">
+        <div class="serial-header">
+          <span>시리얼 모니터</span>
+          <button id="btn-clear-serial" class="toolbar-btn"
+            style="margin-left:auto;padding:1px 6px;font-size:10px">지우기</button>
+        </div>
+        <div id="serial-output"></div>
+      </div>
+      <div id="property-panel"></div>
+    </div>
+
+  </div>
+  <script type="module" src="/src/app.ts"></script>
+</body>
+</html>
