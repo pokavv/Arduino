@@ -3,6 +3,7 @@ import { ArduinoTranspiler } from '../runtime/transpiler.js';
 import { SimScheduler } from '../runtime/scheduler.js';
 import { GpioController } from '../runtime/gpio.js';
 import { buildPreamble } from '../runtime/preamble.js';
+import { INPUT_PIN_REGISTRY } from '../runtime/input-pin-registry.js';
 
 function post(msg: WorkerToMain) {
   (self as unknown as Worker).postMessage(msg);
@@ -10,18 +11,30 @@ function post(msg: WorkerToMain) {
 
 let scheduler: SimScheduler | null = null;
 let gpio: GpioController | null = null;
-let _loopTimeout: ReturnType<typeof setTimeout> | null = null;
+let _running = false;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-let _ctx: Record<string, any> = {};
+const _ctx: Record<string, any> = {};
+
+// 시리얼 입력 버퍼 — SERIAL_INPUT 메시지로 채워짐
+const _serialInputBuffer: number[] = [];
+
+// INIT에서 받은 회로/코드 보관
+let _pendingCircuit: CircuitSnapshot | null = null;
+let _pendingCode: string | null = null;
 
 function stopSimulation() {
-  if (_loopTimeout) { clearTimeout(_loopTimeout); _loopTimeout = null; }
+  _running = false;
   scheduler?.stop();
+  scheduler = null;
+  gpio = null;
   post({ type: 'STOPPED' });
 }
 
 async function runSimulation(circuit: CircuitSnapshot, code: string) {
+  if (_running) stopSimulation();
+  _running = true;
+
   try {
     const transpiler = new ArduinoTranspiler();
     const jsCode = transpiler.transpile(code);
@@ -29,30 +42,21 @@ async function runSimulation(circuit: CircuitSnapshot, code: string) {
     scheduler = new SimScheduler();
     gpio = new GpioController(post);
 
-    // 컴포넌트에서 입력 콜백 등록
+    // 컴포넌트 입력 콜백 등록 — INPUT_PIN_REGISTRY 기반 일반화
     for (const comp of circuit.components) {
-      if (comp.type === 'button') {
-        for (const [pin, target] of Object.entries(comp.connections)) {
-          if (pin === 'PIN1A' && typeof target === 'number') {
-            gpio.registerInputCallback(target, () => {
-              // 버튼 상태는 메인에서 SENSOR_UPDATE로 전달됨
-              return _ctx[`__btn_${comp.id}`] ?? 0;
-            });
-          }
-        }
-      }
-      if (comp.type === 'potentiometer') {
-        for (const [pin, target] of Object.entries(comp.connections)) {
-          if (pin === 'WIPER' && typeof target === 'number') {
-            gpio.registerInputCallback(target, () => {
-              return _ctx[`__pot_${comp.id}`] ?? 512;
-            });
-          }
+      const handlers = INPUT_PIN_REGISTRY[comp.type];
+      if (!handlers?.length) continue;
+      for (const [pin, target] of Object.entries(comp.connections)) {
+        const handler = handlers.find(h => h.pin === pin);
+        if (handler && typeof target === 'number') {
+          const ctxKey = `${handler.ctxKey}_${comp.id}`;
+          const defaultValue = handler.defaultValue;
+          gpio.registerInputCallback(target, () => (_ctx[ctxKey] ?? defaultValue) as number);
         }
       }
     }
 
-    const preamble = buildPreamble(gpio, scheduler, post, circuit.boardType);
+    const preamble = buildPreamble(gpio, scheduler, post, circuit.boardType, _serialInputBuffer);
 
     const fullCode = `
 ${preamble}
@@ -61,52 +65,53 @@ ${preamble}
 ${jsCode}
 // ─────────────────────────────────────────────────────────
 
-// 실행 엔트리
 await setup();
 while (true) {
   await loop();
-  await __delay(1); // yield
+  await __delay(1);
 }
 `;
 
     scheduler.start();
 
-    // AsyncFunction으로 실행
     const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
-    const fn = new AsyncFunction('gpio', 'scheduler', 'postFn', fullCode);
-    await fn(gpio, scheduler, post);
+    const fn = new AsyncFunction('gpio', 'scheduler', 'postFn', '_ctx', fullCode);
+    await fn(gpio, scheduler, post, _ctx);
 
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') {
-      // 정상 종료
-      return;
+      return; // 정상 종료
     }
     post({
       type: 'RUNTIME_ERROR',
       message: err instanceof Error ? err.message : String(err),
     });
+  } finally {
+    _running = false;
   }
 }
 
+// ─── 단일 메시지 리스너 ───────────────────────────────────────────
 (self as unknown as Worker).addEventListener('message', async (e: MessageEvent<MainToWorker>) => {
   const msg = e.data;
 
   switch (msg.type) {
     case 'INIT':
+      _pendingCircuit = msg.circuit;
+      _pendingCode    = msg.code;
+      _serialInputBuffer.length = 0; // 버퍼 초기화
+      Object.keys(_ctx).forEach(k => delete _ctx[k]); // 컨텍스트 초기화
       post({ type: 'READY' });
       break;
 
     case 'START':
-      break;
-
-    case 'INIT':
-      // 이미 처리됨
+      if (_pendingCircuit && _pendingCode) {
+        // await 없이 실행 — 비동기로 시뮬레이션 시작
+        runSimulation(_pendingCircuit, _pendingCode).catch(() => {});
+      }
       break;
 
     case 'STOP':
-      stopSimulation();
-      break;
-
     case 'RESET':
       stopSimulation();
       break;
@@ -115,19 +120,25 @@ while (true) {
       gpio?.injectPinValue(msg.pin, msg.value);
       break;
 
-    case 'SENSOR_UPDATE':
+    case 'SENSOR_UPDATE': {
+      const comp = _pendingCircuit?.components.find(c => c.id === msg.componentId);
+      if (comp && msg.data.value !== undefined) {
+        // 레지스트리의 모든 핸들러 ctxKey에 값 저장
+        const handlers = INPUT_PIN_REGISTRY[comp.type] ?? [];
+        for (const h of handlers) {
+          _ctx[`${h.ctxKey}_${comp.id}`] = msg.data.value;
+        }
+      }
+      // 범용 센서 데이터도 저장 (preamble에서 직접 참조할 수 있도록)
       _ctx[`__sensor_${msg.componentId}`] = msg.data;
-      if (msg.data.value !== undefined) {
-        _ctx[`__btn_${msg.componentId}`] = msg.data.value;
-        _ctx[`__pot_${msg.componentId}`] = msg.data.value;
+      break;
+    }
+
+    case 'SERIAL_INPUT':
+      // 문자열을 바이트 배열로 변환해서 버퍼에 추가
+      for (const ch of msg.text) {
+        _serialInputBuffer.push(ch.charCodeAt(0));
       }
       break;
-  }
-});
-
-// INIT+START를 합친 메시지 처리
-(self as unknown as Worker).addEventListener('message', async (e: MessageEvent<MainToWorker>) => {
-  if (e.data.type === 'INIT' && 'code' in e.data) {
-    await runSimulation(e.data.circuit, e.data.code);
   }
 });

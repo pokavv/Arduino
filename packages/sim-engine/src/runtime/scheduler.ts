@@ -57,6 +57,7 @@ export class SimScheduler {
   }
 
   delayUs(us: number): Promise<void> {
-    return this.delay(us / 1000);
+    // 브라우저 setTimeout 최소 정밀도는 ~1ms이므로 1ms 미만은 1ms로 처리
+    return this.delay(Math.max(1, us / 1000));
   }
 }

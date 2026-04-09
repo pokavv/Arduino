@@ -20,14 +20,15 @@ export type MainToWorker =
   | { type: 'STOP' }
   | { type: 'RESET' }
   | { type: 'PIN_EVENT'; pin: number; value: number }
-  | { type: 'SENSOR_UPDATE'; componentId: string; data: Record<string, number> };
+  | { type: 'SENSOR_UPDATE'; componentId: string; data: Record<string, number> }
+  | { type: 'SERIAL_INPUT'; text: string };
 
 // ─── Worker → Main 메시지 ─────────────────────────────────────
 
 export type WorkerToMain =
   | { type: 'READY' }
   | { type: 'PIN_STATE'; pin: number; value: number }
-  | { type: 'COMPONENT_UPDATE'; id: string; pin: string; value: number }
+  | { type: 'COMPONENT_UPDATE'; id: string; pin: string; value: number | string }
   | { type: 'SERIAL_OUTPUT'; text: string }
   | { type: 'COMPILE_ERROR'; message: string; line?: number }
   | { type: 'RUNTIME_ERROR'; message: string }

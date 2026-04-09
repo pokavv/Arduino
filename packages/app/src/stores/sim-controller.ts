@@ -6,51 +6,66 @@ import { circuitStore } from './circuit-store.js';
  */
 export class SimController {
   private _worker: Worker | null = null;
+  private _starting = false;
+  private _terminateTimer: ReturnType<typeof setTimeout> | null = null;
   private _onPinState: ((pin: number, value: number) => void) | null = null;
-  private _onComponentUpdate: ((id: string, pin: string, value: number) => void) | null = null;
+  private _onComponentUpdate: ((id: string, pin: string, value: number | string) => void) | null = null;
 
   set onPinState(fn: (pin: number, value: number) => void) {
     this._onPinState = fn;
   }
 
-  set onComponentUpdate(fn: (id: string, pin: string, value: number) => void) {
+  set onComponentUpdate(fn: (id: string, pin: string, value: number | string) => void) {
     this._onComponentUpdate = fn;
   }
 
   async start() {
-    this.stop();
-
-    this._worker = new Worker(
-      new URL('../worker/sim-worker-entry.ts', import.meta.url),
-      { type: 'module' }
-    );
-
-    this._worker.addEventListener('message', (e: MessageEvent<WorkerToMain>) => {
-      this._handleMessage(e.data);
-    });
-
-    this._worker.addEventListener('error', (e) => {
-      circuitStore.setSimState('error');
-      circuitStore.appendSerial(`[오류] ${e.message}\n`);
-    });
-
-    // INIT 메시지 전송
-    const snapshot = circuitStore.toSnapshot();
-    this._post({
-      type: 'INIT',
-      circuit: snapshot,
-      code: circuitStore.code,
-    });
-
-    circuitStore.setSimState('running');
+    if (this._starting) return;
+    this._starting = true;
+    try {
+      this.stop();
+  
+      this._worker = new Worker(
+        new URL('../worker/sim-worker-entry.ts', import.meta.url),
+        { type: 'module' }
+      );
+  
+      this._worker.addEventListener('message', (e: MessageEvent<WorkerToMain>) => {
+        this._handleMessage(e.data);
+      });
+  
+      this._worker.addEventListener('error', (e) => {
+        circuitStore.setSimState('error');
+        circuitStore.appendSerial(`[오류] ${e.message}\n`);
+      });
+  
+      // INIT 메시지 전송
+      const snapshot = circuitStore.toSnapshot();
+      this._post({
+        type: 'INIT',
+        circuit: snapshot,
+        code: circuitStore.code,
+      });
+  
+      circuitStore.setSimState('running');
+   
+    } finally {
+      this._starting = false;
+    }
   }
 
   stop() {
+    if (this._terminateTimer) {
+      clearTimeout(this._terminateTimer);
+      this._terminateTimer = null;
+    }
     if (this._worker) {
       this._post({ type: 'STOP' });
-      setTimeout(() => {
-        this._worker?.terminate();
-        this._worker = null;
+      const w = this._worker;
+      this._worker = null;
+      this._terminateTimer = setTimeout(() => {
+        w.terminate();
+        this._terminateTimer = null;
       }, 200);
     }
     circuitStore.setSimState('idle');
@@ -68,6 +83,10 @@ export class SimController {
 
   sendSensorUpdate(componentId: string, data: Record<string, number>) {
     this._post({ type: 'SENSOR_UPDATE', componentId, data });
+  }
+
+  sendSerial(text: string) {
+    this._post({ type: 'SERIAL_INPUT', text });
   }
 
   private _post(msg: MainToWorker) {

@@ -143,7 +143,6 @@ export class ArduinoTranspiler {
     code = code.replace(/\bcos\s*\(/g, 'Math.cos(');
     code = code.replace(/\btan\s*\(/g, 'Math.tan(');
     code = code.replace(/\bPI\b/g, 'Math.PI');
-    code = code.replace(/\brand\s*om\s*\(/g, '__random(');
     code = code.replace(/\brandom\s*\(/g, '__random(');
     code = code.replace(/\brandomSeed\s*\([^)]*\)/g, '');
 
@@ -177,8 +176,8 @@ export class ArduinoTranspiler {
     // .substring() — 동일
     // .indexOf() — 동일
     // .charAt() — 동일
-    // .toInt()
-    code = code.replace(/\.toInt\s*\(\)/g, '.charCodeAt(0)');
+    // .toInt() — Arduino String.toInt()는 정수 파싱, charCodeAt과 다름
+    code = code.replace(/(\w+)\.toInt\s*\(\)/g, 'parseInt($1, 10)');
     // .toFloat()
     code = code.replace(/\.toFloat\s*\(\)/g, '__parseFloat(this)');
     // String concatenation (+ already works in JS)

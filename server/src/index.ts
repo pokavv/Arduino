@@ -7,7 +7,10 @@ import componentsRouter from './routes/components.js';
 const app = express();
 const PORT = process.env.PORT ?? 3001;
 
-app.use(cors());
+app.use(cors({
+  origin: /^http:\/\/localhost(:\d+)?$/,
+  optionsSuccessStatus: 200,
+}));
 app.use(express.json());
 
 // API 라우트

@@ -53,6 +53,25 @@ async function runSimulation(circuit: CircuitSnapshot, code: string) {
       }
     }
 
+    // GPIO 번호 → { id, type } 역방향 맵
+    const _gpioToComp = new Map<number, { id: string; type: string }>();
+    for (const comp of circuit.components) {
+      for (const [, target] of Object.entries(comp.connections)) {
+        if (typeof target === 'number') {
+          _gpioToComp.set(target, { id: comp.id, type: comp.type });
+        }
+      }
+    }
+
+    // I2C 주소 → { id, type } 맵
+    const _i2cDevices = new Map<number, { id: string; type: string }>();
+    for (const comp of circuit.components) {
+      const addr = comp.props.i2cAddress;
+      if (typeof addr === 'number') {
+        _i2cDevices.set(addr, { id: comp.id, type: comp.type });
+      }
+    }
+
     const preamble = buildPreamble(gpio, scheduler, post, circuit.boardType, _serialInputBuffer);
     const fullCode = `
 ${preamble}
@@ -73,8 +92,11 @@ while (true) {
     const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor as {
       new(...args: string[]): (...args: unknown[]) => Promise<void>
     };
-    const fn = new AsyncFunction('gpio', 'scheduler', 'postFn', '_ctx', '_serialInputBuffer', fullCode);
-    await fn(gpio, scheduler, post, _ctx, _serialInputBuffer);
+    const fn = new AsyncFunction(
+      'gpio', 'scheduler', 'postFn', '_ctx', '_serialInputBuffer', '_gpioToComp', '_i2cDevices',
+      fullCode
+    );
+    await fn(gpio, scheduler, post, _ctx, _serialInputBuffer, _gpioToComp, _i2cDevices);
 
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') return;
@@ -115,11 +137,17 @@ self.addEventListener('message', async (e: MessageEvent<MainToWorker>) => {
 
     case 'SENSOR_UPDATE': {
       const comp = _pendingCircuit?.components.find(c => c.id === msg.componentId);
-      if (comp && msg.data.value !== undefined) {
+      if (comp) {
         const handlers = INPUT_PIN_REGISTRY[comp.type] ?? [];
-        for (const h of handlers) {
-          _ctx[`${h.ctxKey}_${comp.id}`] = msg.data.value;
+        if (msg.data.value !== undefined) {
+          for (const h of handlers) {
+            _ctx[`${h.ctxKey}_${comp.id}`] = msg.data.value;
+          }
         }
+        // 타입별 특수 데이터 저장
+        if (msg.data.temperature !== undefined) _ctx[`__dht_temp_${comp.id}`] = msg.data.temperature;
+        if (msg.data.humidity    !== undefined) _ctx[`__dht_hum_${comp.id}`]  = msg.data.humidity;
+        if (msg.data.distanceCm  !== undefined) _ctx[`__ultrasonic_dist_${comp.id}`] = msg.data.distanceCm;
       }
       _ctx[`__sensor_${msg.componentId}`] = msg.data;
       break;
