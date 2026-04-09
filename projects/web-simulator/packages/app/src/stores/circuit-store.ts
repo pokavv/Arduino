@@ -85,6 +85,8 @@ export class CircuitStore {
     this._history.push(snap);
     if (this._history.length > CircuitStore.MAX_HISTORY) {
       this._history.shift();
+      // shift() 로 앞 항목을 제거했으므로 인덱스를 마지막 항목에 맞춤
+      this._historyIndex = this._history.length - 1;
     } else {
       this._historyIndex++;
     }
@@ -95,10 +97,6 @@ export class CircuitStore {
 
   undo() {
     if (this._historyIndex < 0) return;
-    // 현재 상태를 redo용으로 저장 (처음 undo 시 현재 상태도 스택에 넣음)
-    if (this._historyIndex === this._history.length - 1) {
-      // 마지막 스냅샷이 현재 상태이므로 한 칸 더 뒤로
-    }
     const snap = this._history[this._historyIndex];
     this._historyIndex--;
     this._applySnapshot(snap);
@@ -265,6 +263,7 @@ export class CircuitStore {
   }
 
   clearCircuit() {
+    this._pushHistory();
     this._state = {
       ...this._state,
       components: [],

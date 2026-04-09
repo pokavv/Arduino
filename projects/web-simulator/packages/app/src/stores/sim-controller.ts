@@ -18,39 +18,52 @@ export class SimController {
   }
 
   async start() {
-    this.stop();
-
-    this._worker = new Worker(
-      new URL('../worker/sim-worker-entry.ts', import.meta.url),
-      { type: 'module' }
-    );
-
-    this._worker.addEventListener('message', (e: MessageEvent<WorkerToMain>) => {
-      this._handleMessage(e.data);
-    });
-
-    this._worker.addEventListener('error', (e) => {
-      circuitStore.setSimState('error');
-      circuitStore.appendSerial(`[오류] ${e.message}\n`);
-    });
-
-    // INIT 메시지 전송
-    const snapshot = circuitStore.toSnapshot();
-    this._post({
-      type: 'INIT',
-      circuit: snapshot,
-      code: circuitStore.code,
-    });
-
-    circuitStore.setSimState('running');
+    if (this._starting) return;
+    this._starting = true;
+    try {
+      this.stop();
+  
+      this._worker = new Worker(
+        new URL('../worker/sim-worker-entry.ts', import.meta.url),
+        { type: 'module' }
+      );
+  
+      this._worker.addEventListener('message', (e: MessageEvent<WorkerToMain>) => {
+        this._handleMessage(e.data);
+      });
+  
+      this._worker.addEventListener('error', (e) => {
+        circuitStore.setSimState('error');
+        circuitStore.appendSerial(`[오류] ${e.message}\n`);
+      });
+  
+      // INIT 메시지 전송
+      const snapshot = circuitStore.toSnapshot();
+      this._post({
+        type: 'INIT',
+        circuit: snapshot,
+        code: circuitStore.code,
+      });
+  
+      circuitStore.setSimState('running');
+   
+    } finally {
+      this._starting = false;
+    }
   }
 
   stop() {
+    if (this._terminateTimer) {
+      clearTimeout(this._terminateTimer);
+      this._terminateTimer = null;
+    }
     if (this._worker) {
       this._post({ type: 'STOP' });
-      setTimeout(() => {
-        this._worker?.terminate();
-        this._worker = null;
+      const w = this._worker;
+      this._worker = null;
+      this._terminateTimer = setTimeout(() => {
+        w.terminate();
+        this._terminateTimer = null;
       }, 200);
     }
     circuitStore.setSimState('idle');
