@@ -921,30 +921,37 @@ export class CircuitCanvas {
   fitView() {
     const comps = circuitStore.components;
     if (comps.length === 0) {
-      this._transform = { x: 40, y: 40, scale: 1 };
+      this._transform = { x: 0, y: 0, scale: 1 };
       this._applyTransform();
       return;
     }
-    const PAD = 60;
-    const minX = Math.min(...comps.map(c => c.x)) - PAD;
-    const minY = Math.min(...comps.map(c => c.y)) - PAD;
-    const maxX = Math.max(...comps.map(c => c.x)) + 220 + PAD;
-    const maxY = Math.max(...comps.map(c => c.y)) + 160 + PAD;
-    const bw = maxX - minX;
-    const bh = maxY - minY;
-    const cw = this._container.clientWidth;
-    const ch = this._container.clientHeight;
-    const scale = Math.min(1.5, Math.min(cw / bw, ch / bh) * 0.88);
-    this._transform = {
-      x: (cw - bw * scale) / 2 - minX * scale,
-      y: (ch - bh * scale) / 2 - minY * scale,
-      scale,
-    };
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const c of comps) {
+      const el = this._elements.get(c.id);
+      const w = el ? (el.offsetWidth  || 80) : 80;
+      const h = el ? (el.offsetHeight || 80) : 80;
+      minX = Math.min(minX, c.x);
+      minY = Math.min(minY, c.y);
+      maxX = Math.max(maxX, c.x + w);
+      maxY = Math.max(maxY, c.y + h);
+    }
+    const padding = 40;
+    const contentW = maxX - minX + padding * 2;
+    const contentH = maxY - minY + padding * 2;
+    const containerW = this._container.clientWidth;
+    const containerH = this._container.clientHeight;
+    const scale = Math.min(containerW / contentW, containerH / contentH, 1.5);
+    this._transform.scale = scale;
+    this._transform.x = (containerW - contentW * scale) / 2 - (minX - padding) * scale;
+    this._transform.y = (containerH - contentH * scale) / 2 - (minY - padding) * scale;
     this._applyTransform();
   }
 
   zoomIn()   { this._zoomAt(this._container.clientWidth / 2, this._container.clientHeight / 2, 1.2); }
   zoomOut()  { this._zoomAt(this._container.clientWidth / 2, this._container.clientHeight / 2, 0.8); }
+  /** 현재 줌 레벨 */
+  get scale() { return this._transform.scale; }
+
 
   /** 캔버스 뷰포트 중앙의 캔버스 좌표 */
   get viewCenterX(): number {
