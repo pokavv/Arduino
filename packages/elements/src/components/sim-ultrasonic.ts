@@ -3,14 +3,14 @@ import { customElement, property } from 'lit/decorators.js';
 import { SimElement } from './sim-element.js';
 
 /**
- * <sim-ultrasonic> — HC-SR04 초음파 센서 (102×84px)
+ * <sim-ultrasonic> — HC-SR04 초음파 센서 (102×90px)
  * Pins: VCC, TRIG, ECHO, GND
  */
 @customElement('sim-ultrasonic')
 export class SimUltrasonic extends SimElement {
   static override styles = [
     SimElement.styles,
-    css`:host { width: 102px; height: 84px; }`,
+    css`:host { width: 102px; height: 90px; }`,
   ];
 
   @property({ type: Number }) distanceCm = 20;
@@ -28,13 +28,15 @@ export class SimUltrasonic extends SimElement {
     }
   }
 
-  // getPinPositions: viewBox 좌표 × 1.5 (host 102×84 / viewBox 68×56 = 1.5)
+  // getPinPositions: viewBox(68×60) × 1.5 = host(102×90)
+  // VCC  x=9×1.5=13.5≈14,  TRIG x=25×1.5=37.5≈38
+  // ECHO x=43×1.5=64.5≈65, GND  x=59×1.5=88.5≈89
   override getPinPositions() {
     return new Map([
-      ['VCC',  { x: 14, y: 84 }],
-      ['TRIG', { x: 38, y: 84 }],
-      ['ECHO', { x: 65, y: 84 }],
-      ['GND',  { x: 89, y: 84 }],
+      ['VCC',  { x: 14, y: 90 }],
+      ['TRIG', { x: 38, y: 90 }],
+      ['ECHO', { x: 65, y: 90 }],
+      ['GND',  { x: 89, y: 90 }],
     ]);
   }
 
@@ -65,7 +67,7 @@ export class SimUltrasonic extends SimElement {
 
   override render() {
     return html`
-      <svg width="102" height="84" viewBox="0 0 68 56" xmlns="http://www.w3.org/2000/svg">
+      <svg width="102" height="90" viewBox="0 0 68 60" xmlns="http://www.w3.org/2000/svg">
 
         <!-- 초록 PCB -->
         <rect x="0" y="0" width="68" height="40" rx="4"
@@ -92,21 +94,28 @@ export class SimUltrasonic extends SimElement {
         <text x="51" y="35.5" font-size="5.5" fill="#5fcc5f" font-family="monospace"
           text-anchor="middle">R</text>
 
-        <!-- 핀 4개 -->
-        <rect x="7.5"  y="40" width="3" height="16" rx="0.5" fill="#aaaaaa"/>
-        <rect x="8"    y="40" width="1.5" height="16" fill="white" opacity="0.35"/>
-        <rect x="23.5" y="40" width="3" height="16" rx="0.5" fill="#aaaaaa"/>
-        <rect x="24"   y="40" width="1.5" height="16" fill="white" opacity="0.35"/>
-        <rect x="41.5" y="40" width="3" height="16" rx="0.5" fill="#aaaaaa"/>
-        <rect x="42"   y="40" width="1.5" height="16" fill="white" opacity="0.35"/>
-        <rect x="57.5" y="40" width="3" height="16" rx="0.5" fill="#aaaaaa"/>
-        <rect x="58"   y="40" width="1.5" height="16" fill="white" opacity="0.35"/>
+        <!-- 핀 금속 — VCC=빨강, TRIG=주황, ECHO=파랑, GND=회색 -->
+        <rect x="7.5"  y="40" width="3" height="20" rx="0.5" fill="#cc4433"/>
+        <rect x="8.2"  y="40" width="1.2" height="20" fill="white" opacity="0.25"/>
+        <rect x="23.5" y="40" width="3" height="20" rx="0.5" fill="#cc8800"/>
+        <rect x="24.2" y="40" width="1.2" height="20" fill="white" opacity="0.25"/>
+        <rect x="41.5" y="40" width="3" height="20" rx="0.5" fill="#4477cc"/>
+        <rect x="42.2" y="40" width="1.2" height="20" fill="white" opacity="0.25"/>
+        <rect x="57.5" y="40" width="3" height="20" rx="0.5" fill="#666666"/>
+        <rect x="58.2" y="40" width="1.2" height="20" fill="white" opacity="0.2"/>
 
-        <!-- 핀 라벨 -->
-        <text x="3"  y="39" font-size="4.5" fill="#ff9999" font-family="monospace" font-weight="bold">VCC</text>
-        <text x="18" y="39" font-size="4.5" fill="#ffee88" font-family="monospace" font-weight="bold">TRG</text>
-        <text x="36" y="39" font-size="4.5" fill="#88aaff" font-family="monospace" font-weight="bold">ECH</text>
-        <text x="52" y="39" font-size="4.5" fill="#88ee88" font-family="monospace" font-weight="bold">GND</text>
+        <!-- 핀 라벨 존 (Wokwi 스타일) -->
+        <rect x="0" y="49" width="68" height="11" fill="#0d0d14"/>
+        <line x1="0" y1="49" x2="68" y2="49" stroke="#252535" stroke-width="0.5"/>
+
+        <text x="9"  y="58" font-size="7" fill="#ff8877" font-family="monospace"
+          text-anchor="middle" font-weight="bold">VCC</text>
+        <text x="25" y="58" font-size="7" fill="#ffcc55" font-family="monospace"
+          text-anchor="middle" font-weight="bold">TRG</text>
+        <text x="43" y="58" font-size="7" fill="#88aaff" font-family="monospace"
+          text-anchor="middle" font-weight="bold">ECH</text>
+        <text x="59" y="58" font-size="7" fill="#88ee99" font-family="monospace"
+          text-anchor="middle" font-weight="bold">GND</text>
       </svg>
     `;
   }

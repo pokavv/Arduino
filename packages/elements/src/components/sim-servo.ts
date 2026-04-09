@@ -3,14 +3,14 @@ import { customElement, property } from 'lit/decorators.js';
 import { SimElement } from './sim-element.js';
 
 /**
- * <sim-servo> — SG90 서보 모터 (90×108px)
+ * <sim-servo> — SG90 서보 모터 (90×114px)
  * Pins: VCC(빨간), GND(갈색), SIGNAL(주황)
  */
 @customElement('sim-servo')
 export class SimServo extends SimElement {
   static override styles = [
     SimElement.styles,
-    css`:host { width: 90px; height: 108px; }`,
+    css`:host { width: 90px; height: 114px; }`,
   ];
 
   @property({ type: Number }) angle = 90;
@@ -18,12 +18,13 @@ export class SimServo extends SimElement {
   override get componentType() { return 'servo'; }
   override get pins() { return ['VCC', 'GND', 'SIGNAL']; }
 
-  // getPinPositions: viewBox 좌표 × 1.5 (host 90×108 / viewBox 60×72 = 1.5)
+  // getPinPositions: viewBox(60×76) × 1.5 = host(90×114)
+  // VCC x=14×1.5=21, GND x=26×1.5=39, SIGNAL x=38×1.5=57
   override getPinPositions() {
     return new Map([
-      ['VCC',    { x: 21, y: 108 }],
-      ['GND',    { x: 39, y: 108 }],
-      ['SIGNAL', { x: 57, y: 108 }],
+      ['VCC',    { x: 21, y: 114 }],
+      ['GND',    { x: 39, y: 114 }],
+      ['SIGNAL', { x: 57, y: 114 }],
     ]);
   }
 
@@ -36,12 +37,10 @@ export class SimServo extends SimElement {
     const armAngle = this.angle - 90;
     const rad = (armAngle * Math.PI) / 180;
     const armLen = 17, cx = 30, cy = 34;
-    const ax = cx + armLen * Math.sin(rad);
-    const ay = cy - armLen * Math.cos(rad);
     const shortLen = 9;
 
     return html`
-      <svg width="90" height="108" viewBox="0 0 60 72" xmlns="http://www.w3.org/2000/svg">
+      <svg width="90" height="114" viewBox="0 0 60 76" xmlns="http://www.w3.org/2000/svg">
 
         <!-- 각도 표시 -->
         <text x="30" y="12" font-size="7.5" fill="#88aaff" font-family="monospace"
@@ -92,20 +91,26 @@ export class SimServo extends SimElement {
         })}
 
         <!-- 핀 커넥터 블록 -->
-        <rect x="8" y="51" width="36" height="10" rx="2" fill="#111" stroke="#333" stroke-width="0.8"/>
+        <rect x="8" y="51" width="36" height="9" rx="2" fill="#111" stroke="#333" stroke-width="0.8"/>
 
-        <!-- 핀 다리 (VCC=빨강, GND=갈색, SIGNAL=주황) -->
-        <rect x="12.5" y="61" width="3" height="11" rx="0.5" fill="#cc4422"/>
-        <rect x="13"   y="61" width="1.5" height="11" fill="white" opacity="0.2"/>
-        <rect x="24.5" y="61" width="3" height="11" rx="0.5" fill="#6b3a2a"/>
-        <rect x="25"   y="61" width="1.5" height="11" fill="white" opacity="0.2"/>
-        <rect x="36.5" y="61" width="3" height="11" rx="0.5" fill="#ee8800"/>
-        <rect x="37"   y="61" width="1.5" height="11" fill="white" opacity="0.2"/>
+        <!-- 핀 금속 — VCC=빨강, GND=갈색, SIGNAL=주황 -->
+        <rect x="12.5" y="60" width="3" height="16" rx="0.5" fill="#cc4433"/>
+        <rect x="13.2" y="60" width="1.2" height="16" fill="white" opacity="0.25"/>
+        <rect x="24.5" y="60" width="3" height="16" rx="0.5" fill="#6b3a2a"/>
+        <rect x="25.2" y="60" width="1.2" height="16" fill="white" opacity="0.2"/>
+        <rect x="36.5" y="60" width="3" height="16" rx="0.5" fill="#cc8800"/>
+        <rect x="37.2" y="60" width="1.2" height="16" fill="white" opacity="0.25"/>
 
-        <!-- 핀 라벨 -->
-        <text x="9"  y="59" font-size="5.5" fill="#ff9988" font-family="monospace" font-weight="bold">VCC</text>
-        <text x="21" y="59" font-size="5.5" fill="#bbaaaa" font-family="monospace" font-weight="bold">GND</text>
-        <text x="33" y="59" font-size="5.5" fill="#ffaa44" font-family="monospace" font-weight="bold">SIG</text>
+        <!-- 핀 라벨 존 (Wokwi 스타일) -->
+        <rect x="5" y="66" width="44" height="10" fill="#0d0d14"/>
+        <line x1="5" y1="66" x2="49" y2="66" stroke="#252535" stroke-width="0.5"/>
+
+        <text x="14" y="74" font-size="7" fill="#ff8877" font-family="monospace"
+          text-anchor="middle" font-weight="bold">VCC</text>
+        <text x="26" y="74" font-size="7" fill="#ddbbaa" font-family="monospace"
+          text-anchor="middle" font-weight="bold">GND</text>
+        <text x="38" y="74" font-size="7" fill="#ffcc55" font-family="monospace"
+          text-anchor="middle" font-weight="bold">SIG</text>
       </svg>
     `;
   }

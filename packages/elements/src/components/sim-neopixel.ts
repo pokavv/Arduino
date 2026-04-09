@@ -3,7 +3,7 @@ import { customElement, property } from 'lit/decorators.js';
 import { SimElement } from './sim-element.js';
 
 /**
- * <sim-neopixel> — WS2812B NeoPixel Strip (동적 너비×66px)
+ * <sim-neopixel> — WS2812B NeoPixel Strip (동적 너비×78px)
  * Pins: VCC, GND, DIN
  */
 @customElement('sim-neopixel')
@@ -20,13 +20,13 @@ export class SimNeopixel extends SimElement {
   override get pins() { return ['VCC', 'GND', 'DIN']; }
 
   // getPinPositions: viewBox 기준 × 1.5
-  // viewBox pin y=44, host height=66 (1.5×44)
-  // pin x: 8,22,36 → ×1.5 = 12,33,54
+  // 핀 x: 8, 22, 36 → ×1.5 = 12, 33, 54
+  // dispH = 78, viewBox h = 52
   override getPinPositions() {
     return new Map([
-      ['VCC', { x: 12, y: 66 }],
-      ['GND', { x: 33, y: 66 }],
-      ['DIN', { x: 54, y: 66 }],
+      ['VCC', { x: 12, y: 78 }],
+      ['GND', { x: 33, y: 78 }],
+      ['DIN', { x: 54, y: 78 }],
     ]);
   }
 
@@ -56,10 +56,10 @@ export class SimNeopixel extends SimElement {
     const pixelSize = 22;
     const gap = 4;
     const vbW = this.count * (pixelSize + gap) + gap;
-    const vbH = 44;
+    const vbH = 52;
     // display size: 1.5×
     const dispW = Math.round(vbW * 1.5);
-    const dispH = 66;
+    const dispH = 78;
 
     return html`
       <svg width="${dispW}" height="${dispH}" viewBox="0 0 ${vbW} ${vbH}">
@@ -86,17 +86,23 @@ export class SimNeopixel extends SimElement {
           `;
         })}
 
-        <!-- 핀 라인 -->
-        <line x1="8"  y1="30" x2="8"  y2="44" stroke="#f88" stroke-width="2.5"/>
-        <line x1="22" y1="30" x2="22" y2="44" stroke="#bbb" stroke-width="2.5"/>
-        <line x1="36" y1="30" x2="36" y2="44" stroke="#8f8" stroke-width="2.5"/>
+        <!-- 핀 금속 — VCC=빨강, GND=회색, DIN=파랑 -->
+        <line x1="8"  y1="30" x2="8"  y2="52" stroke="#cc4433" stroke-width="2.5"/>
+        <line x1="8"  y1="30" x2="8"  y2="52" stroke="white" stroke-width="0.8" opacity="0.25"/>
+        <line x1="22" y1="30" x2="22" y2="52" stroke="#666666" stroke-width="2.5"/>
+        <line x1="22" y1="30" x2="22" y2="52" stroke="white" stroke-width="0.8" opacity="0.2"/>
+        <line x1="36" y1="30" x2="36" y2="52" stroke="#4477cc" stroke-width="2.5"/>
+        <line x1="36" y1="30" x2="36" y2="52" stroke="white" stroke-width="0.8" opacity="0.25"/>
 
-        <!-- 핀 라벨 -->
-        <text x="8"  y="43" font-size="6" fill="#f88" font-family="monospace"
+        <!-- 핀 라벨 존 (Wokwi 스타일) -->
+        <rect x="0" y="40" width="${vbW}" height="12" fill="#0d0d14"/>
+        <line x1="0" y1="40" x2="${vbW}" y2="40" stroke="#252535" stroke-width="0.5"/>
+
+        <text x="8"  y="50" font-size="8" fill="#ff8877" font-family="monospace"
           text-anchor="middle" font-weight="bold">V</text>
-        <text x="22" y="43" font-size="6" fill="#bbb" font-family="monospace"
+        <text x="22" y="50" font-size="8" fill="#88ee99" font-family="monospace"
           text-anchor="middle" font-weight="bold">G</text>
-        <text x="36" y="43" font-size="6" fill="#8f8" font-family="monospace"
+        <text x="36" y="50" font-size="8" fill="#88aaff" font-family="monospace"
           text-anchor="middle" font-weight="bold">D</text>
       </svg>
     `;

@@ -39,7 +39,8 @@ export class SimLed extends SimElement {
     }
   }
 
-  // getPinPositions: SVG viewBox 좌표 × 1.5 (host 60×90 / viewBox 40×60 = 1.5)
+  // getPinPositions: viewBox 좌표(40×60) × 1.5 = host 좌표(60×90)
+  // ANODE  x=14 × 1.5 = 21,  CATHODE x=26 × 1.5 = 39
   override getPinPositions() {
     return new Map([
       ['ANODE',   { x: 21, y: 90 }],
@@ -85,19 +86,26 @@ export class SimLed extends SimElement {
         <line x1="8" y1="30" x2="32" y2="30"
           stroke="${this.lit ? '#ffffff33' : '#33333366'}" stroke-width="0.6"/>
 
-        <!-- 캐소드 구분 표시 (평평한 면) -->
+        <!-- 캐소드 구분 표시 (평평한 면 = K) -->
         <line x1="6" y1="24" x2="6" y2="35"
           stroke="${this.lit ? '#aaa' : '#555'}" stroke-width="1.5"/>
 
-        <!-- 핀 다리 — ANODE(+) 왼쪽, CATHODE(-) 오른쪽 -->
-        <line x1="14" y1="36" x2="14" y2="60" stroke="#bbbbbb" stroke-width="2"/>
-        <line x1="26" y1="36" x2="26" y2="60" stroke="#bbbbbb" stroke-width="2"/>
+        <!-- 핀 금속 — 기능 색상: ANODE=빨강(+), CATHODE=회색(-) -->
+        <rect x="12.5" y="36" width="3" height="24" rx="0.5" fill="#cc4433"/>
+        <rect x="13.2" y="36" width="1.2" height="24" fill="white" opacity="0.25"/>
+        <rect x="24.5" y="36" width="3" height="24" rx="0.5" fill="#666666"/>
+        <rect x="25.2" y="36" width="1.2" height="24" fill="white" opacity="0.2"/>
 
-        <!-- 핀 라벨 (몸체 안쪽) -->
-        <text x="11" y="32" font-size="6.5" fill="${this.lit ? '#ffffff99' : '#88888899'}"
-          font-family="monospace" font-weight="bold">+</text>
-        <text x="24.5" y="32" font-size="6" fill="${this.lit ? '#ffffff80' : '#77777780'}"
-          font-family="monospace">−</text>
+        <!-- 핀 라벨 존 (Wokwi 스타일: 어두운 배경 + 대형 고대비 텍스트) -->
+        <rect x="0" y="47" width="40" height="13" fill="#0d0d14"/>
+        <line x1="0" y1="47" x2="40" y2="47" stroke="#252535" stroke-width="0.5"/>
+
+        <!-- ANODE 라벨 (빨간색) -->
+        <text x="14" y="57" font-size="8" fill="#ff8877" font-family="monospace"
+          text-anchor="middle" font-weight="bold">A+</text>
+        <!-- CATHODE 라벨 (파란색) -->
+        <text x="26" y="57" font-size="8" fill="#88aaff" font-family="monospace"
+          text-anchor="middle" font-weight="bold">K−</text>
       </svg>
     `;
   }

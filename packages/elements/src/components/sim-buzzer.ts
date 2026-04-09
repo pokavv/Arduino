@@ -3,14 +3,14 @@ import { customElement, property } from 'lit/decorators.js';
 import { SimElement } from './sim-element.js';
 
 /**
- * <sim-buzzer> — 부저 (66×66px)
+ * <sim-buzzer> — 부저 (66×81px)
  * Pins: VCC(+), GND(-)
  */
 @customElement('sim-buzzer')
 export class SimBuzzer extends SimElement {
   static override styles = [
     SimElement.styles,
-    css`:host { width: 66px; height: 66px; }`,
+    css`:host { width: 66px; height: 81px; }`,
   ];
 
   @property({ type: Boolean, reflect: true }) active = false;
@@ -23,11 +23,12 @@ export class SimBuzzer extends SimElement {
   override get componentType() { return 'buzzer'; }
   override get pins() { return ['VCC', 'GND']; }
 
-  // getPinPositions: viewBox 좌표 × 1.5 (host 66×66 / viewBox 44×44 = 1.5)
+  // getPinPositions: viewBox(44×54) × 1.5 = host(66×81)
+  // VCC  x=14×1.5=21, GND  x=30×1.5=45
   override getPinPositions() {
     return new Map([
-      ['VCC', { x: 21, y: 66 }],
-      ['GND', { x: 45, y: 66 }],
+      ['VCC', { x: 21, y: 81 }],
+      ['GND', { x: 45, y: 81 }],
     ]);
   }
 
@@ -90,7 +91,7 @@ export class SimBuzzer extends SimElement {
     });
 
     return html`
-      <svg width="66" height="66" viewBox="0 0 44 44">
+      <svg width="66" height="81" viewBox="0 0 44 54">
 
         <!-- active glow -->
         ${this.active ? html`
@@ -121,17 +122,20 @@ export class SimBuzzer extends SimElement {
         <ellipse cx="18" cy="14" rx="4" ry="2.5"
           fill="white" opacity="0.12" transform="rotate(-20,18,14)"/>
 
-        <!-- 핀 라벨 (몸체 하단) -->
-        <text x="16" y="38" font-size="5.5" fill="#cc6666" font-family="monospace"
-          text-anchor="middle" font-weight="bold">+</text>
-        <text x="28" y="38" font-size="5.5" fill="#66cc88" font-family="monospace"
-          text-anchor="middle">−</text>
+        <!-- 핀 금속 — VCC=빨간색, GND=회색 -->
+        <rect x="12.5" y="37" width="3" height="17" rx="0.5" fill="#cc4433"/>
+        <rect x="13.2" y="37" width="1.2" height="17" fill="white" opacity="0.25"/>
+        <rect x="28.5" y="37" width="3" height="17" rx="0.5" fill="#666666"/>
+        <rect x="29.2" y="37" width="1.2" height="17" fill="white" opacity="0.2"/>
 
-        <!-- PCB 마운트 핀 -->
-        <rect x="12.5" y="38" width="3" height="6" rx="0.5" fill="#aaaaaa"/>
-        <rect x="13"   y="38" width="1.5" height="6" fill="white" opacity="0.35"/>
-        <rect x="28.5" y="38" width="3" height="6" rx="0.5" fill="#aaaaaa"/>
-        <rect x="29"   y="38" width="1.5" height="6" fill="white" opacity="0.35"/>
+        <!-- 핀 라벨 존 (Wokwi 스타일) -->
+        <rect x="0" y="43" width="44" height="11" fill="#0d0d14"/>
+        <line x1="0" y1="43" x2="44" y2="43" stroke="#252535" stroke-width="0.5"/>
+
+        <text x="14" y="52" font-size="8.5" fill="#ff8877" font-family="monospace"
+          text-anchor="middle" font-weight="bold">VCC</text>
+        <text x="30" y="52" font-size="8.5" fill="#88ee99" font-family="monospace"
+          text-anchor="middle" font-weight="bold">GND</text>
       </svg>
     `;
   }

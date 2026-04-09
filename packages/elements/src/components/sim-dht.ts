@@ -3,14 +3,14 @@ import { customElement, property } from 'lit/decorators.js';
 import { SimElement } from './sim-element.js';
 
 /**
- * <sim-dht> — DHT11 / DHT22 온습도 센서 (66×93px)
+ * <sim-dht> — DHT11 / DHT22 온습도 센서 (66×99px)
  * Pins: VCC, DATA, GND
  */
 @customElement('sim-dht')
 export class SimDht extends SimElement {
   static override styles = [
     SimElement.styles,
-    css`:host { width: 66px; height: 93px; }`,
+    css`:host { width: 66px; height: 99px; }`,
   ];
 
   @property({ type: String }) model: 'DHT11' | 'DHT22' = 'DHT22';
@@ -33,12 +33,13 @@ export class SimDht extends SimElement {
     }
   }
 
-  // getPinPositions: viewBox 좌표 × 1.5 (host 66×93 / viewBox 44×62 = 1.5)
+  // getPinPositions: viewBox(44×66) × 1.5 = host(66×99)
+  // VCC x=10×1.5=15, DATA x=22×1.5=33, GND x=34×1.5=51
   override getPinPositions() {
     return new Map([
-      ['VCC',  { x: 15, y: 93 }],
-      ['DATA', { x: 33, y: 93 }],
-      ['GND',  { x: 51, y: 93 }],
+      ['VCC',  { x: 15, y: 99 }],
+      ['DATA', { x: 33, y: 99 }],
+      ['GND',  { x: 51, y: 99 }],
     ]);
   }
 
@@ -52,7 +53,7 @@ export class SimDht extends SimElement {
     const cellW = gW / 4, cellH = gH / 4;
 
     return html`
-      <svg width="66" height="93" viewBox="0 0 44 62" xmlns="http://www.w3.org/2000/svg">
+      <svg width="66" height="99" viewBox="0 0 44 66" xmlns="http://www.w3.org/2000/svg">
 
         <!-- 몸체 -->
         <rect x="4" y="0" width="36" height="46"
@@ -83,21 +84,27 @@ export class SimDht extends SimElement {
           text-anchor="middle" font-weight="bold" opacity="0.9">${this.model}</text>
 
         <!-- 측정값 -->
-        <text x="22" y="43.5" font-size="4.5" fill="#88ddff" font-family="monospace"
+        <text x="22" y="44" font-size="5" fill="#88ddff" font-family="monospace"
           text-anchor="middle">${this.temperature.toFixed(1)}°  ${this.humidity.toFixed(0)}%</text>
 
-        <!-- 핀 3개 -->
-        <rect x="8.5"  y="46" width="3" height="16" rx="0.5" fill="#aaaaaa"/>
-        <rect x="9"    y="46" width="1.5" height="16" fill="white" opacity="0.35"/>
-        <rect x="20.5" y="46" width="3" height="16" rx="0.5" fill="#aaaaaa"/>
-        <rect x="21"   y="46" width="1.5" height="16" fill="white" opacity="0.35"/>
-        <rect x="32.5" y="46" width="3" height="16" rx="0.5" fill="#aaaaaa"/>
-        <rect x="33"   y="46" width="1.5" height="16" fill="white" opacity="0.35"/>
+        <!-- 핀 금속 — VCC=빨강, DATA=파랑, GND=회색 -->
+        <rect x="8.5"  y="46" width="3" height="20" rx="0.5" fill="#cc4433"/>
+        <rect x="9.2"  y="46" width="1.2" height="20" fill="white" opacity="0.25"/>
+        <rect x="20.5" y="46" width="3" height="20" rx="0.5" fill="#4477cc"/>
+        <rect x="21.2" y="46" width="1.2" height="20" fill="white" opacity="0.25"/>
+        <rect x="32.5" y="46" width="3" height="20" rx="0.5" fill="#666666"/>
+        <rect x="33.2" y="46" width="1.2" height="20" fill="white" opacity="0.2"/>
 
-        <!-- 핀 라벨 (몸체 하단 안쪽) -->
-        <text x="6"  y="44" font-size="5" fill="#ff9999" font-family="monospace" font-weight="bold">V</text>
-        <text x="18" y="44" font-size="5" fill="#88aaff" font-family="monospace" font-weight="bold">D</text>
-        <text x="30" y="44" font-size="5" fill="#88ee88" font-family="monospace" font-weight="bold">G</text>
+        <!-- 핀 라벨 존 (Wokwi 스타일) -->
+        <rect x="0" y="55" width="44" height="11" fill="#0d0d14"/>
+        <line x1="0" y1="55" x2="44" y2="55" stroke="#252535" stroke-width="0.5"/>
+
+        <text x="10" y="64" font-size="8" fill="#ff8877" font-family="monospace"
+          text-anchor="middle" font-weight="bold">VCC</text>
+        <text x="22" y="64" font-size="8" fill="#88aaff" font-family="monospace"
+          text-anchor="middle" font-weight="bold">DAT</text>
+        <text x="34" y="64" font-size="8" fill="#88ee99" font-family="monospace"
+          text-anchor="middle" font-weight="bold">GND</text>
       </svg>
     `;
   }

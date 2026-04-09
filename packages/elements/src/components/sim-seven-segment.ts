@@ -3,7 +3,7 @@ import { customElement, property } from 'lit/decorators.js';
 import { SimElement } from './sim-element.js';
 
 /**
- * 7-세그먼트 path (viewBox 0 0 44 50 기준)
+ * 7-세그먼트 path (viewBox 0 0 44 58 기준)
  *    A
  *  F   B
  *    G
@@ -41,7 +41,7 @@ const DIGIT_SEGS: Record<string, string[]> = {
 
 /**
  * <sim-seven-segment> — 7-세그먼트 디스플레이 (66×88px)
- * Pins: A,B,C,D,E,F,G,DP,COM (8px 간격)
+ * Pins: A,B,C,D,E,F,G,DP,COM (5px 간격)
  */
 @customElement('sim-seven-segment')
 export class SimSevenSegment extends SimElement {
@@ -58,13 +58,11 @@ export class SimSevenSegment extends SimElement {
   override get componentType() { return 'seven-segment'; }
   override get pins() { return ['A','B','C','D','E','F','G','DP','COM']; }
 
-  // getPinPositions: viewBox 좌표 × 1.5 (host 66×88 / viewBox 44×58.67... )
-  // 실제로 viewBox "0 0 44 58" 기준 핀 y=58, host height=88이므로 88/58*58=88
-  // 핀 x: 3 + i*5 (viewBox), host x = (3+i*5)*1.5 = 4.5+i*7.5 ≈ 5+i*8
+  // getPinPositions: viewBox(44×58) × 1.5 = host(66×88)
+  // 핀 x: 3+i*5 in viewBox → ×1.5 ≈ 4.5+i*7.5
   override getPinPositions() {
     const pins = ['A','B','C','D','E','F','G','DP','COM'];
     return new Map(pins.map((p, i) => [p, { x: Math.round(4.5 + i * 7.5), y: 88 }]));
-    // x: 5,12,20,27,35,42,50,57,65 → 66px 범위 내
   }
 
   override setPinState(pin: string, value: number | string) {
@@ -83,7 +81,7 @@ export class SimSevenSegment extends SimElement {
   override render() {
     const on  = this.color;
     const off = '#1a0000';
-    // 핀 x = 3 + i*5 (viewBox 44px 폭, 9핀 × 5px 간격 = 43px)
+    // 핀 x = 3 + i*5 (viewBox 44px 폭, 9핀 × 5px 간격)
     const pinXs = Array.from({ length: 9 }, (_, i) => 3 + i * 5);
 
     return html`
@@ -98,24 +96,30 @@ export class SimSevenSegment extends SimElement {
         ${(Object.entries(SEG_PATHS) as [string, string][]).map(([seg, path]) => svg`
           <path d="${path}"
             stroke="${this.segments[seg] ? on : off}"
-            stroke-width="3.5" stroke-linecap="round" fill="none"
-            filter="${this.segments[seg] ? 'none' : 'none'}"/>
+            stroke-width="3.5" stroke-linecap="round" fill="none"/>
         `)}
 
         <!-- DP (소수점) -->
         <circle cx="31" cy="35" r="2.2"
           fill="${this.segments['DP'] ? on : off}"/>
 
-        <!-- 핀 9개 (5px 간격) -->
+        <!-- 핀 금속 — 신호 핀 (데이터=파란색) -->
         ${pinXs.map((px, i) => svg`
-          <line x1="${px}" y1="48" x2="${px}" y2="58"
-            stroke="#aaaaaa" stroke-width="1.5"/>
+          <rect x="${px - 1.5}" y="48" width="3" height="10" rx="0.5"
+            fill="${i === 8 ? '#cc4433' : '#4477cc'}"/>
+          <rect x="${px - 0.5}" y="48" width="1" height="10"
+            fill="white" opacity="0.25"/>
         `)}
 
-        <!-- 핀 라벨 -->
+        <!-- 핀 라벨 존 (Wokwi 스타일: 어두운 배경 + 고대비 텍스트) -->
+        <rect x="0" y="49" width="44" height="9" fill="#0d0d14"/>
+        <line x1="0" y1="49" x2="44" y2="49" stroke="#252535" stroke-width="0.5"/>
+
+        <!-- 핀 라벨 (A~G, DP, COM) — font-size 5.5로 확대 -->
         ${['A','B','C','D','E','F','G','P','C'].map((label, i) => svg`
-          <text x="${pinXs[i]}" y="57" font-size="3.5" fill="#888"
-            font-family="monospace" text-anchor="middle">${label}</text>
+          <text x="${pinXs[i]}" y="57" font-size="5.5"
+            fill="${i === 8 ? '#ff8877' : '#88aaff'}"
+            font-family="monospace" text-anchor="middle" font-weight="bold">${label}</text>
         `)}
       </svg>
     `;
