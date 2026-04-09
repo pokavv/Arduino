@@ -92,9 +92,9 @@
       --color-input-placeholder:  #3A3E52;
 
       /* 캔버스 */
-      --color-canvas-bg:    #080A0E;
-      --color-canvas-dot:   rgba(40,50,70,0.8);
-      --color-canvas-grid:  rgba(30,36,52,0.7);
+      --color-canvas-bg:    #0C0F18;
+      --color-canvas-dot:   rgba(70,90,140,0.75);
+      --color-canvas-grid:  rgba(50,65,100,0.5);
 
       /* 시리얼 */
       --color-serial-text:  #34D378;
@@ -172,9 +172,9 @@
       --color-input-text:         #1A1D28;
       --color-input-placeholder:  #A0A8BC;
 
-      --color-canvas-bg:    #F5F7FB;
-      --color-canvas-dot:   rgba(160,175,210,0.5);
-      --color-canvas-grid:  rgba(180,195,220,0.4);
+      --color-canvas-bg:    #F0F3FA;
+      --color-canvas-dot:   rgba(140,160,205,0.8);
+      --color-canvas-grid:  rgba(160,180,215,0.5);
 
       --color-serial-text:  #1A7840;
       --color-serial-err:   #C03030;
@@ -670,11 +670,13 @@
       min-width: 100px;
       position: relative;
       overflow: hidden;
-      /* 점선 그리드 */
+      /* 도트 그리드 + 서브 라인 그리드 */
       background-color: var(--color-canvas-bg);
       background-image:
-        radial-gradient(circle, var(--color-canvas-dot) 1px, transparent 1px);
-      background-size: 24px 24px;
+        radial-gradient(circle, var(--color-canvas-dot) 1.2px, transparent 1.2px),
+        linear-gradient(var(--color-canvas-grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--color-canvas-grid) 1px, transparent 1px);
+      background-size: 24px 24px, 120px 120px, 120px 120px;
       cursor: default;
     }
 

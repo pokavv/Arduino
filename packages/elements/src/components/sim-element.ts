@@ -13,14 +13,22 @@ export abstract class SimElement extends LitElement {
       position: absolute;
       user-select: none;
       cursor: grab;
+      /* 어두운 캔버스에서 컴포넌트가 떠 보이도록 그림자 */
+      filter: drop-shadow(0 3px 10px rgba(0,0,0,0.7)) drop-shadow(0 1px 3px rgba(0,0,0,0.5));
+      transition: filter 0.12s;
+    }
+    :host(:hover) {
+      filter: drop-shadow(0 4px 14px rgba(0,0,0,0.8)) drop-shadow(0 0 8px rgba(77,143,255,0.2));
     }
     :host(.selected) {
       outline: 2px solid #4a9eff;
-      outline-offset: 2px;
+      outline-offset: 3px;
+      filter: drop-shadow(0 4px 14px rgba(0,0,0,0.8)) drop-shadow(0 0 12px rgba(77,143,255,0.4));
     }
     :host(.dragging) {
       cursor: grabbing;
-      opacity: 0.8;
+      opacity: 0.85;
+      filter: drop-shadow(0 8px 20px rgba(0,0,0,0.7)) drop-shadow(0 0 16px rgba(77,143,255,0.3));
     }
     svg {
       overflow: visible;

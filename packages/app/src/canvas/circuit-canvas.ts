@@ -573,6 +573,22 @@ export class CircuitCanvas {
     return pinMap;
   }
 
+  // ─── 핀 기능별 색상 ──────────────────────────────────────────────────────
+
+  private _pinFillColor(pinName: string): string {
+    if (/^VCC$|^ANODE$|^RED$|^V\+/i.test(pinName))      return '#ff5555';
+    if (/^GND$/i.test(pinName))                          return '#44dd88';
+    if (/^SIGNAL$|^SIG$|^TRIG$|^PWM/i.test(pinName))   return '#ffaa33';
+    if (/^DATA$|^DIN$|^ECHO$|^SDA$|^SCL$/i.test(pinName)) return '#5599ff';
+    if (/^WIPER$/i.test(pinName))                        return '#cc77ff';
+    if (/^COMMON$/i.test(pinName))                       return '#dddddd';
+    if (/^GREEN$/i.test(pinName))                        return '#44ee77';
+    if (/^BLUE$/i.test(pinName))                         return '#5599ff';
+    if (/^PIN1/i.test(pinName))                          return '#6688ff';
+    if (/^PIN2/i.test(pinName))                          return '#ffaa44';
+    return '#44aaff';
+  }
+
   // ─── 와이어 색상 ──────────────────────────────────────────────────────────
 
   private _wireColor(wire: PlacedWire): string {
@@ -651,15 +667,24 @@ export class CircuitCanvas {
       this._ctxMenu.show(wire.id, e.clientX, e.clientY);
     });
 
-    // 실제 선
+    // 실제 선 — 그림자(underlayer) + 본선
+    const shadow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    shadow.setAttribute('d', d);
+    shadow.setAttribute('stroke', '#000');
+    shadow.setAttribute('stroke-width', isSelected ? '5' : '4');
+    shadow.setAttribute('fill', 'none');
+    shadow.setAttribute('opacity', '0.35');
+    shadow.style.pointerEvents = 'none';
+    this._wiresLayer.appendChild(shadow);
+
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     path.setAttribute('d', d);
-    path.setAttribute('stroke', isSelected ? '#fff' : color);
-    path.setAttribute('stroke-width', isSelected ? '2.5' : '1.8');
+    path.setAttribute('stroke', isSelected ? '#ffffff' : color);
+    path.setAttribute('stroke-width', isSelected ? '3' : '2.5');
     path.setAttribute('fill', 'none');
-    path.setAttribute('opacity', '0.9');
+    path.setAttribute('opacity', '0.95');
     path.style.pointerEvents = 'none';
-    if (isSelected) path.setAttribute('stroke-dasharray', '6 3');
+    if (isSelected) path.setAttribute('stroke-dasharray', '7 3');
 
     this._wiresLayer.appendChild(hit);
     this._wiresLayer.appendChild(path);
@@ -683,10 +708,20 @@ export class CircuitCanvas {
     color: string,
   ) {
     for (const pos of [from, to]) {
+      // 글로우
+      const glow = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      glow.setAttribute('cx', `${pos.x}`); glow.setAttribute('cy', `${pos.y}`);
+      glow.setAttribute('r', '6'); glow.setAttribute('fill', color);
+      glow.setAttribute('opacity', '0.25');
+      glow.style.pointerEvents = 'none';
+      this._endpointLayer.appendChild(glow);
+
+      // 도트
       const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       dot.setAttribute('cx', `${pos.x}`); dot.setAttribute('cy', `${pos.y}`);
-      dot.setAttribute('r', '3'); dot.setAttribute('fill', color);
-      dot.setAttribute('stroke', '#000'); dot.setAttribute('stroke-width', '0.5');
+      dot.setAttribute('r', '4'); dot.setAttribute('fill', color);
+      dot.setAttribute('stroke', '#000'); dot.setAttribute('stroke-width', '1');
+      dot.setAttribute('opacity', '0.95');
       dot.style.pointerEvents = 'none';
       this._endpointLayer.appendChild(dot);
     }
@@ -783,23 +818,70 @@ export class CircuitCanvas {
         g.setAttribute('data-pin',  pinName);
         g.style.cursor = 'crosshair';
 
-        // 히트 영역
+        // 핀 기능별 색상
+        const pinColor = isFrom ? '#ffee00' : isSelPin ? '#cc44ff' : this._pinFillColor(pinName);
+        const baseOpacity = (isFrom || isSelPin) ? '1' : '0.55';
+        const baseR = (isFrom || isSelPin) ? '6' : '5';
+
+        // 히트 영역 (투명, 크게)
         const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         hitArea.setAttribute('cx', `${ax}`); hitArea.setAttribute('cy', `${ay}`);
-        hitArea.setAttribute('r', '8'); hitArea.setAttribute('fill', 'transparent');
+        hitArea.setAttribute('r', '12'); hitArea.setAttribute('fill', 'transparent');
 
-        // 핀 서클
+        // 활성 상태 글로우
+        const glow = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        glow.setAttribute('cx', `${ax}`); glow.setAttribute('cy', `${ay}`);
+        glow.setAttribute('r', '10');
+        glow.setAttribute('fill', pinColor);
+        glow.setAttribute('opacity', (isFrom || isSelPin) ? '0.25' : '0');
+        glow.style.transition = 'opacity 0.1s';
+
+        // 핀 서클 (항상 표시)
         const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         circle.setAttribute('cx', `${ax}`); circle.setAttribute('cy', `${ay}`);
-        circle.setAttribute('r',  isFrom || isSelPin ? '5' : '4');
-        circle.setAttribute('fill', isFrom ? '#ff0' : isSelPin ? '#a0f' : '#4af');
-        circle.setAttribute('opacity', (isFrom || isSelPin) ? '1' : '0');
-        circle.setAttribute('stroke', '#fff'); circle.setAttribute('stroke-width', '1');
-        circle.style.transition = 'opacity 0.12s';
+        circle.setAttribute('r', baseR);
+        circle.setAttribute('fill', pinColor);
+        circle.setAttribute('opacity', baseOpacity);
+        circle.setAttribute('stroke', '#000'); circle.setAttribute('stroke-width', '1.2');
+        circle.style.transition = 'opacity 0.1s';
 
-        g.addEventListener('mouseenter', () => circle.setAttribute('opacity', '0.9'));
+        // 핀 이름 레이블 배경 (hover 시 표시)
+        const labelText = pinName.length > 6 ? pinName.slice(0, 6) : pinName;
+        const labelW = labelText.length * 7 + 8;
+        const labelBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        labelBg.setAttribute('x', `${ax + 8}`); labelBg.setAttribute('y', `${ay - 8}`);
+        labelBg.setAttribute('width', `${labelW}`); labelBg.setAttribute('height', '14');
+        labelBg.setAttribute('rx', '3'); labelBg.setAttribute('fill', '#060810');
+        labelBg.setAttribute('stroke', pinColor); labelBg.setAttribute('stroke-width', '0.8');
+        labelBg.setAttribute('opacity', '0');
+        labelBg.style.transition = 'opacity 0.1s';
+        labelBg.style.pointerEvents = 'none';
+
+        // 핀 이름 레이블 텍스트 (hover 시 표시)
+        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        label.setAttribute('x', `${ax + 12}`); label.setAttribute('y', `${ay + 2.5}`);
+        label.setAttribute('font-size', '8.5'); label.setAttribute('fill', pinColor);
+        label.setAttribute('font-family', 'monospace'); label.setAttribute('font-weight', 'bold');
+        label.setAttribute('opacity', '0');
+        label.style.transition = 'opacity 0.1s';
+        label.style.pointerEvents = 'none';
+        label.textContent = labelText;
+
+        g.addEventListener('mouseenter', () => {
+          circle.setAttribute('opacity', '1');
+          circle.setAttribute('r', '6.5');
+          glow.setAttribute('opacity', '0.3');
+          labelBg.setAttribute('opacity', '1');
+          label.setAttribute('opacity', '1');
+        });
         g.addEventListener('mouseleave', () => {
-          if (!isFrom && !isSelPin) circle.setAttribute('opacity', '0');
+          if (!isFrom && !isSelPin) {
+            circle.setAttribute('opacity', '0.55');
+            circle.setAttribute('r', '5');
+            glow.setAttribute('opacity', '0');
+          }
+          labelBg.setAttribute('opacity', '0');
+          label.setAttribute('opacity', '0');
         });
 
         // 좌클릭 → 와이어 드로잉
@@ -814,7 +896,10 @@ export class CircuitCanvas {
         });
 
         g.appendChild(hitArea);
+        g.appendChild(glow);
+        g.appendChild(labelBg);
         g.appendChild(circle);
+        g.appendChild(label);
         this._pinLayer.appendChild(g);
       }
     }
