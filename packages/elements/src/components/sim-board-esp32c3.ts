@@ -14,11 +14,11 @@ interface BoardPin {
 }
 
 /**
- * ESP32-C3 Super Mini 핀 레이아웃
+ * ESP32-C3 Super Mini 핀 레이아웃 (실물 기준)
  * 실물 기준: 22.5mm × 18mm, 2.54mm 간격
  * SVG: 124×170px (viewBox 동일)
  *
- * 좌측 (위→아래): G0~G7
+ * 좌측 (위→아래): GND, G0, G1, G2, G3, G4, G5, 3V3
  * 우측 (위→아래): 5V, GND, 3V3, G8, G9, G10, G20, G21
  *
  * 실물 버튼 위치:
@@ -26,14 +26,16 @@ interface BoardPin {
  *   RST:              오른쪽 하단
  */
 const C3_PINS: BoardPin[] = [
-  { name:'G0',  x:16, y:38,  side:'left',  gpioNum:0,  type:'analog', isAdc:true  },
-  { name:'G1',  x:16, y:52,  side:'left',  gpioNum:1,  type:'analog', isAdc:true  },
-  { name:'G2',  x:16, y:66,  side:'left',  gpioNum:2,  type:'analog', isAdc:true  },
-  { name:'G3',  x:16, y:80,  side:'left',  gpioNum:3,  type:'analog', isAdc:true  },
-  { name:'G4',  x:16, y:94,  side:'left',  gpioNum:4,  type:'digital' },
-  { name:'G5',  x:16, y:108, side:'left',  gpioNum:5,  type:'digital' },
-  { name:'G6',  x:16, y:122, side:'left',  gpioNum:6,  type:'digital' },
-  { name:'G7',  x:16, y:136, side:'left',  gpioNum:7,  type:'digital' },
+  // 좌측 (위→아래): GND, G0~G5, 3V3 — 실물과 동일
+  { name:'GND', x:16, y:38,  side:'left',  type:'power'   },
+  { name:'G0',  x:16, y:52,  side:'left',  gpioNum:0,  type:'analog', isAdc:true  },
+  { name:'G1',  x:16, y:66,  side:'left',  gpioNum:1,  type:'analog', isAdc:true  },
+  { name:'G2',  x:16, y:80,  side:'left',  gpioNum:2,  type:'analog', isAdc:true  },
+  { name:'G3',  x:16, y:94,  side:'left',  gpioNum:3,  type:'analog', isAdc:true  },
+  { name:'G4',  x:16, y:108, side:'left',  gpioNum:4,  type:'digital' },
+  { name:'G5',  x:16, y:122, side:'left',  gpioNum:5,  type:'digital' },
+  { name:'3V3', x:16, y:136, side:'left',  type:'power'   },
+  // 우측 (위→아래): 5V, GND, 3V3, G8~G10, G20, G21
   { name:'5V',  x:108, y:38,  side:'right', type:'power'   },
   { name:'GND', x:108, y:52,  side:'right', type:'power'   },
   { name:'3V3', x:108, y:66,  side:'right', type:'power'   },

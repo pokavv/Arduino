@@ -30,12 +30,12 @@ export class SimOled extends SimElement {
   override get pins() { return ['VCC', 'GND', 'SDA', 'SCL']; }
 
   override getPinPositions() {
-    // SVG: ['GND','VCC','SCL','SDA'].map((p,i) => x="${18 + i*18}", y1=76, y2=84)
+    // SVG 100×90px: 상단 핀헤더 4핀, x = 14, 28, 42, 56 (GND/VCC/SCL/SDA)
     return new Map([
-      ['GND', { x: 18, y: 80 }],
-      ['VCC', { x: 36, y: 80 }],
-      ['SCL', { x: 54, y: 80 }],
-      ['SDA', { x: 72, y: 80 }],
+      ['GND', { x: 14, y:  0 }],
+      ['VCC', { x: 28, y:  0 }],
+      ['SCL', { x: 42, y:  0 }],
+      ['SDA', { x: 56, y:  0 }],
     ]);
   }
   private _textX = 0;
@@ -191,23 +191,63 @@ export class SimOled extends SimElement {
 
   override render() {
     return html`
-      <svg width="156" height="84" viewBox="0 0 156 84">
-        <!-- PCB -->
-        <rect width="156" height="84" rx="4" fill="#1a1a2a" stroke="#333" stroke-width="1"/>
-        <!-- 화면 프레임 -->
-        <rect x="12" y="8" width="132" height="68" rx="3" fill="#111" stroke="#444" stroke-width="1"/>
-        <!-- Canvas는 foreignObject로 삽입 -->
-        <foreignObject x="14" y="10" width="128" height="64">
+      <svg width="100" height="90" viewBox="0 0 100 90" xmlns="http://www.w3.org/2000/svg">
+
+        <!-- ── 핀헤더 (상단 4핀: GND/VCC/SCL/SDA) ── -->
+        <!-- 핀 플라스틱 블록 -->
+        <rect x="6" y="6" width="58" height="8" rx="1"
+          fill="#0d0d0d" stroke="#222" stroke-width="0.5"/>
+        <!-- 핀 금속 (위로 돌출) -->
+        <rect x="12" y="0" width="2.5" height="7" rx="0.5" fill="#aaa"/>
+        <rect x="26" y="0" width="2.5" height="7" rx="0.5" fill="#aaa"/>
+        <rect x="40" y="0" width="2.5" height="7" rx="0.5" fill="#aaa"/>
+        <rect x="54" y="0" width="2.5" height="7" rx="0.5" fill="#aaa"/>
+        <!-- 핀 라벨 -->
+        <text x="13.5" y="20" font-size="4.5" fill="#88ee99" font-family="monospace"
+          text-anchor="middle">GND</text>
+        <text x="27.5" y="20" font-size="4.5" fill="#ff8877" font-family="monospace"
+          text-anchor="middle">VCC</text>
+        <text x="41.5" y="20" font-size="4.5" fill="#88aaff" font-family="monospace"
+          text-anchor="middle">SCL</text>
+        <text x="55.5" y="20" font-size="4.5" fill="#ffcc55" font-family="monospace"
+          text-anchor="middle">SDA</text>
+
+        <!-- ── PCB 기판 (짙은 남색/검은색) ── -->
+        <rect x="0" y="14" width="100" height="76" rx="3"
+          fill="#0a0a18" stroke="#222244" stroke-width="0.8"/>
+        <!-- PCB 상단 광택 -->
+        <rect x="0" y="14" width="100" height="8" rx="3"
+          fill="white" opacity="0.03"/>
+
+        <!-- 마운팅 홀 -->
+        <circle cx="5"  cy="19" r="2" fill="#060610"/>
+        <circle cx="95" cy="19" r="2" fill="#060610"/>
+        <circle cx="5"  cy="85" r="2" fill="#060610"/>
+        <circle cx="95" cy="85" r="2" fill="#060610"/>
+
+        <!-- ── OLED 디스플레이 패널 (검은 베젤) ── -->
+        <rect x="6" y="22" width="88" height="62" rx="2"
+          fill="#050508" stroke="#1a1a2a" stroke-width="0.8"/>
+        <!-- 디스플레이 활성 영역 프레임 -->
+        <rect x="8" y="24" width="84" height="58" rx="1"
+          fill="#000000" stroke="#0a0a14" stroke-width="0.5"/>
+
+        <!-- Canvas는 foreignObject로 삽입 — 128×64 픽셀 캔버스를 84×58px에 표시 -->
+        <foreignObject x="8" y="24" width="84" height="58">
           <canvas xmlns="http://www.w3.org/1999/xhtml"
             width="256" height="128"
-            style="width:128px;height:64px;image-rendering:pixelated">
+            style="width:84px;height:58px;image-rendering:pixelated;display:block">
           </canvas>
         </foreignObject>
-        <!-- 핀 -->
-        ${['GND','VCC','SCL','SDA'].map((p, i) => html`
-          <line x1="${18 + i * 18}" y1="76" x2="${18 + i * 18}" y2="84" stroke="#aaa" stroke-width="2"/>
-          <text x="${11 + i * 18}" y="83" font-size="5" fill="#888" font-family="monospace">${p}</text>
-        `)}
+
+        <!-- 디스플레이 유리 반사광 -->
+        <rect x="8" y="24" width="84" height="6" rx="1"
+          fill="white" opacity="0.03"/>
+        <line x1="8" y1="25" x2="30" y2="25" stroke="white" opacity="0.04" stroke-width="0.5"/>
+
+        <!-- I2C 주소 라벨 -->
+        <text x="78" y="88" font-size="4" fill="#223355" font-family="monospace"
+          text-anchor="middle">0x3C</text>
       </svg>
     `;
   }
