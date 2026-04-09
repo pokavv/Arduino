@@ -1,5 +1,27 @@
 # 웹 시뮬레이터 기동 가이드
 
+## PowerShell 스크립트 (권장)
+
+로그 자동 저장 + 프로세스 트리 관리가 포함된 스크립트입니다.
+
+```powershell
+# 시작 (logs/ 에 타임스탬프 로그 자동 저장)
+.\sim-start.ps1
+
+# 종료 (다른 터미널에서 실행, 또는 Ctrl+C)
+.\sim-stop.ps1
+```
+
+> **처음 실행 시 실행 정책 오류가 나면:**
+> ```powershell
+> Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+> ```
+
+로그 파일 위치: `projects/web-simulator/logs/sim-yyyy-MM-dd_HH-mm-ss.log`
+
+---
+
+
 ## 사전 요구사항
 
 | 항목 | 버전 |
