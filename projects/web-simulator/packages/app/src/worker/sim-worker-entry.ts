@@ -1,6 +1,6 @@
 // Web Worker 진입점 — Vite worker 번들링을 통해 별도 chunk로 분리됨
 import type { MainToWorker, WorkerToMain, CircuitSnapshot } from '@sim/engine';
-import { ArduinoTranspiler } from '@sim/engine';
+import { ArduinoTranspiler, INPUT_PIN_REGISTRY } from '@sim/engine';
 import { SimScheduler } from '@sim/engine';
 import { GpioController } from '@sim/engine';
 import { buildPreamble } from '@sim/engine';
@@ -39,20 +39,16 @@ async function runSimulation(circuit: CircuitSnapshot, code: string) {
     scheduler = new SimScheduler();
     gpio = new GpioController(post);
 
-    // 컴포넌트 입력 콜백
+    // 컴포넌트 입력 콜백 — INPUT_PIN_REGISTRY 기반 일반화
     for (const comp of circuit.components) {
-      if (comp.type === 'button') {
-        for (const [pin, target] of Object.entries(comp.connections)) {
-          if (pin === 'PIN1A' && typeof target === 'number') {
-            gpio.registerInputCallback(target, () => _ctx[`__btn_${comp.id}`] ?? 0);
-          }
-        }
-      }
-      if (comp.type === 'potentiometer') {
-        for (const [pin, target] of Object.entries(comp.connections)) {
-          if (pin === 'WIPER' && typeof target === 'number') {
-            gpio.registerInputCallback(target, () => _ctx[`__pot_${comp.id}`] ?? 512);
-          }
+      const handlers = INPUT_PIN_REGISTRY[comp.type];
+      if (!handlers?.length) continue;
+      for (const [pin, target] of Object.entries(comp.connections)) {
+        const handler = handlers.find(h => h.pin === pin);
+        if (handler && typeof target === 'number') {
+          const ctxKey = `${handler.ctxKey}_${comp.id}`;
+          const defaultVal = handler.defaultValue;
+          gpio.registerInputCallback(target, () => (_ctx[ctxKey] ?? defaultVal) as number);
         }
       }
     }
@@ -117,13 +113,17 @@ self.addEventListener('message', async (e: MessageEvent<MainToWorker>) => {
       gpio?.injectPinValue(msg.pin, msg.value);
       break;
 
-    case 'SENSOR_UPDATE':
-      _ctx[`__sensor_${msg.componentId}`] = msg.data;
-      if (msg.data.value !== undefined) {
-        _ctx[`__btn_${msg.componentId}`] = msg.data.value;
-        _ctx[`__pot_${msg.componentId}`] = msg.data.value;
+    case 'SENSOR_UPDATE': {
+      const comp = _pendingCircuit?.components.find(c => c.id === msg.componentId);
+      if (comp && msg.data.value !== undefined) {
+        const handlers = INPUT_PIN_REGISTRY[comp.type] ?? [];
+        for (const h of handlers) {
+          _ctx[`${h.ctxKey}_${comp.id}`] = msg.data.value;
+        }
       }
+      _ctx[`__sensor_${msg.componentId}`] = msg.data;
       break;
+    }
 
     case 'SERIAL_INPUT':
       for (const ch of msg.text) {

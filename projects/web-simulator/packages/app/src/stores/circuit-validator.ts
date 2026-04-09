@@ -1,4 +1,5 @@
 import { circuitStore, type PlacedComponent, type PlacedWire } from './circuit-store.js';
+import { fetchCompDef, getCachedCompDef, type CompDef } from './comp-def-cache.js';
 
 export type ValidationSeverity = 'error' | 'warning' | 'info';
 
@@ -11,36 +12,6 @@ export interface ValidationResult {
   detail?: string;
 }
 
-/** 서버 def의 필요한 부분 (PinDef, ValidationEntry) */
-interface ServerPinDef {
-  name: string;
-  type: string;
-  required: boolean;
-  description?: string;
-}
-
-interface ServerValidationEntry {
-  rule: string;
-  message: string;
-  severity: 'error' | 'warning';
-  pin?: string;
-}
-
-interface ServerCompDef {
-  id: string;
-  name: string;
-  electrical: {
-    vccMin?: number;
-    vccMax?: number;
-    currentMa?: number;
-    maxCurrentMa?: number;
-    logic?: '3.3V' | '5V' | 'both';
-  };
-  pins: ServerPinDef[];
-  validation: ServerValidationEntry[];
-  notes: string[];
-}
-
 /**
  * 회로 유효성 검사기
  *
@@ -48,29 +19,12 @@ interface ServerCompDef {
  * - validateAsync() : 서버 def 비동기 로드 후 재검사 (더 정밀)
  */
 export class CircuitValidator {
-  /** 서버에서 가져온 컴포넌트 def 캐시 */
-  private _defCache = new Map<string, ServerCompDef | null>();
-
-  // ─── 서버 def 패치 ────────────────────────────────────────────────
-
-  private async _fetchDef(type: string): Promise<ServerCompDef | null> {
-    if (this._defCache.has(type)) return this._defCache.get(type) ?? null;
-    try {
-      const r = await fetch(`/api/components/${type}`);
-      if (!r.ok) { this._defCache.set(type, null); return null; }
-      const def = await r.json() as ServerCompDef;
-      this._defCache.set(type, def);
-      return def;
-    } catch {
-      this._defCache.set(type, null);
-      return null;
-    }
-  }
+  // ─── 서버 def 패치 (공유 캐시 위임) ──────────────────────────────
 
   /** 회로에 있는 모든 컴포넌트 def를 미리 캐시 */
   async prefetchAll(): Promise<void> {
     const types = [...new Set(circuitStore.components.map(c => c.type))];
-    await Promise.all(types.map(t => this._fetchDef(t)));
+    await Promise.all(types.map(t => fetchCompDef(t)));
   }
 
   // ─── 검사 진입점 ─────────────────────────────────────────────────
@@ -102,7 +56,38 @@ export class CircuitValidator {
   /** 비동기 검사: 서버 def 로드 후 재검사 → 캐시 갱신 → 동기 검사 결과 반환 */
   async validateAsync(): Promise<ValidationResult[]> {
     await this.prefetchAll();
-    return this.validate();
+    const results = this.validate();
+
+    // 전원 필요 컴포넌트 검사 — 서버 def의 electrical.currentMa 기반
+    const comps = circuitStore.components;
+    const wires = circuitStore.wires;
+    for (const comp of comps) {
+      if (comp.type.startsWith('board')) continue;
+      const def = await fetchCompDef(comp.type);
+      if (def && (def.electrical?.currentMa ?? 0) > 5) {
+        const connectedPins = new Set(
+          wires
+            .filter(w => w.fromCompId === comp.id || w.toCompId === comp.id)
+            .map(w => (w.fromCompId === comp.id ? w.fromPin : w.toPin))
+        );
+        const hasVcc = connectedPins.has('VCC');
+        const hasGnd = connectedPins.has('GND');
+        if (!hasVcc || !hasGnd) {
+          const alreadyReported = results.some(r => r.id === `no-power-${comp.id}`);
+          if (!alreadyReported) {
+            results.push({
+              id:       `no-power-${comp.id}`,
+              severity: 'warning',
+              compId:   comp.id,
+              message:  `${def.name}: 전원 연결 없음`,
+              detail:   'VCC와 GND를 모두 연결해 주세요',
+            });
+          }
+        }
+      }
+    }
+
+    return results;
   }
 
   // ─── 컴포넌트별 검사 ─────────────────────────────────────────────
@@ -120,7 +105,7 @@ export class CircuitValidator {
     ));
 
     // ── 서버 def 기반 규칙 적용 (캐시 있을 때만) ──────────────────
-    const def = this._defCache.get(comp.type);
+    const def = getCachedCompDef(comp.type);
     if (def) {
       results.push(...this._checkServerValidation(comp, def, connectedPins, connectedWires, board));
     }
@@ -134,7 +119,7 @@ export class CircuitValidator {
   /** 서버 def의 validation 배열 기반 규칙 적용 */
   private _checkServerValidation(
     comp: PlacedComponent,
-    def: ServerCompDef,
+    def: CompDef,
     connectedPins: Set<string>,
     _wires: PlacedWire[],
     board: PlacedComponent | undefined,
@@ -263,23 +248,6 @@ export class CircuitValidator {
           id: `ultrasonic-echo-voltage-${comp.id}`, severity: 'warning', compId: comp.id,
           message: 'HC-SR04 ECHO는 5V 출력',
           detail: 'ESP32-C3는 3.3V 입력만 허용. ECHO에 전압 분배 회로 필요 (1kΩ + 2kΩ)',
-        });
-      }
-    }
-
-    // 전원 필요 컴포넌트: VCC + GND 미연결
-    const needsPower = ['servo', 'buzzer', 'lcd', 'oled', 'dht', 'ultrasonic', 'neopixel'];
-    if (needsPower.includes(comp.type)) {
-      const hasVcc = connectedPins.has('VCC');
-      const hasGnd = connectedPins.has('GND');
-      if (!hasVcc || !hasGnd) {
-        const name = compName ?? comp.type;
-        results.push({
-          id:       `no-power-${comp.id}`,
-          severity: 'warning',
-          compId:   comp.id,
-          message:  `${name}: 전원 연결 없음`,
-          detail:   'VCC와 GND를 모두 연결해 주세요',
         });
       }
     }

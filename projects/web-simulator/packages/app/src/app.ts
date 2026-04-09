@@ -55,7 +55,7 @@ interface TemplateDetail extends TemplateInfo { components: object[]; code: stri
 
 interface CompSummary {
   id: string; name: string; category: string;
-  description: string; _builtIn: boolean;
+  description: string; icon: string; _builtIn: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -92,9 +92,7 @@ async function loadPalette() {
     const data = await fetch(`${API_BASE}/components`).then(r => r.json()) as { components: CompSummary[] };
     renderPalette(data.components);
   } catch {
-    renderPalette(FALLBACK_PALETTE.map(p => ({
-      id: p.type, name: p.label, category: 'passive', description: '', _builtIn: true,
-    })));
+    paletteList.innerHTML = `<div style="padding:12px 16px;color:var(--color-error);font-size:11px;">서버에 연결할 수 없습니다.<br>pnpm dev로 서버를 시작하세요.</div>`;
   }
 }
 
@@ -132,7 +130,7 @@ function renderPalette(comps: CompSummary[]) {
       item.dataset.compId = comp.id;
       item.dataset.label  = comp.name.toLowerCase();
 
-      const icon = COMP_ICONS[comp.id] ?? '📦';
+      const icon = comp.icon ?? '📦';
       item.innerHTML = `
         <span class="palette-icon">${icon}</span>
         <span class="palette-label">${comp.name}</span>
@@ -188,36 +186,6 @@ function applyPaletteSearch() {
   }
   if (lastCategory) lastCategory.style.display = lastCategoryVisible ? '' : 'none';
 }
-
-const FALLBACK_PALETTE = [
-  { type: 'board-uno',     label: 'Uno 보드' },
-  { type: 'board-esp32c3', label: 'ESP32-C3' },
-  { type: 'led',           label: 'LED' },
-  { type: 'rgb-led',       label: 'RGB LED' },
-  { type: 'button',        label: 'Button' },
-  { type: 'resistor',      label: 'Resistor' },
-  { type: 'buzzer',        label: 'Buzzer' },
-  { type: 'potentiometer', label: 'Pot.' },
-  { type: 'servo',         label: 'Servo' },
-  { type: 'dht',           label: 'DHT22' },
-  { type: 'ultrasonic',    label: 'HC-SR04' },
-  { type: 'lcd',           label: 'LCD' },
-  { type: 'oled',          label: 'OLED' },
-  { type: 'seven-segment', label: '7-Seg' },
-  { type: 'neopixel',      label: 'NeoPixel' },
-];
-
-const COMP_ICONS: Record<string, string> = {
-  led:'💡', 'rgb-led':'🌈', button:'🔘', resistor:'〰️', buzzer:'🔊',
-  potentiometer:'🔄', servo:'⚙️', dht:'🌡️', ultrasonic:'📡', lcd:'🖥️',
-  oled:'📺', 'seven-segment':'7️⃣', neopixel:'✨',
-  'board-uno':'🟢', 'board-esp32c3':'🔵',
-  capacitor:'⚡', diode:'→', 'transistor-npn':'🔺',
-  relay:'🔌', 'dc-motor':'🌀', 'ir-led':'💫', 'ir-receiver':'👁️',
-  'hall-sensor':'🧲', lm35:'🌡️', joystick:'🕹️',
-  '74hc595':'🔢', l298n:'⚙️', 'pir-sensor':'👤',
-  'sound-sensor':'🔈', 'stepper-motor':'⚙️',
-};
 
 loadPalette();
 
@@ -438,17 +406,6 @@ console.log('%c⚡ Arduino Web Simulator 준비 완료', 'color:#4a9eff;font-siz
 
 // ─────────────────────────────────────────────────────────────────
 
-const LOCAL_DEFAULTS: Record<string, Record<string, unknown>> = {
-  'led':           { color: 'red' },
-  'resistor':      { ohms: 220 },
-  'servo':         { angle: 90 },
-  'dht':           { model: 'DHT22', temperature: 25, humidity: 60 },
-  'ultrasonic':    { distanceCm: 20 },
-  'lcd':           { rows: 2, cols: 16, i2cAddress: 0x27 },
-  'oled':          { i2cAddress: 0x3C },
-  'neopixel':      { count: 8 },
-};
-
 async function addComponent(type: string, x: number, y: number) {
   const id = `${type}-${Date.now()}`;
   let serverDefaults: Record<string, unknown> = {};
@@ -462,7 +419,7 @@ async function addComponent(type: string, x: number, y: number) {
 
   circuitStore.addComponent({
     id, type, x, y, rotation: 0,
-    props: { ...(LOCAL_DEFAULTS[type] ?? {}), ...serverDefaults },
+    props: serverDefaults,
     connections: {},
   });
 }

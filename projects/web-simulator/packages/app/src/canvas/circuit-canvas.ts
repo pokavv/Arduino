@@ -1,21 +1,6 @@
 import { circuitStore, type PlacedComponent, type PlacedWire } from '../stores/circuit-store.js';
 import { simController } from '../stores/sim-controller.js';
-
-// ─── 내부 타입 ────────────────────────────────────────────────────────────────
-
-interface ServerCompDef {
-  id: string; name: string; element?: string; svgTemplate?: string;
-  width: number; height: number; defaultProps: Record<string, unknown>;
-  pins: Array<{ name: string; x: number; y: number; type: string; label?: string }>;
-}
-
-const BUILTIN_TAGS: Record<string, string> = {
-  'board-uno':'sim-board-uno','board-esp32c3':'sim-board-esp32c3',
-  'led':'sim-led','rgb-led':'sim-rgb-led','button':'sim-button',
-  'resistor':'sim-resistor','buzzer':'sim-buzzer','potentiometer':'sim-potentiometer',
-  'seven-segment':'sim-seven-segment','lcd':'sim-lcd','oled':'sim-oled',
-  'dht':'sim-dht','ultrasonic':'sim-ultrasonic','servo':'sim-servo','neopixel':'sim-neopixel',
-};
+import { type CompDef, fetchCompDef, getCachedCompDef } from '../stores/comp-def-cache.js';
 
 // ─── 와이어 경로 계산 (module-level) ─────────────────────────────────────────
 
@@ -238,7 +223,6 @@ export class CircuitCanvas {
 
   private _mousePos = { x: 0, y: 0 };
   private _elements = new Map<string, HTMLElement>();
-  private _compDefCache = new Map<string, ServerCompDef | null>();
   private _ctxMenu = new WireContextMenu();
   private _compCtxMenu = new CompContextMenu();
 
@@ -383,20 +367,10 @@ export class CircuitCanvas {
     });
   }
 
-  // ─── 서버 CompDef 캐시 ────────────────────────────────────────────────────
+  // ─── 서버 CompDef 캐시 (공유 캐시 위임) ─────────────────────────────────
 
-  private async _fetchCompDef(type: string): Promise<ServerCompDef | null> {
-    if (this._compDefCache.has(type)) return this._compDefCache.get(type) ?? null;
-    try {
-      const r = await fetch(`/api/components/${type}`);
-      if (!r.ok) { this._compDefCache.set(type, null); return null; }
-      const def = await r.json() as ServerCompDef;
-      this._compDefCache.set(type, def);
-      return def;
-    } catch {
-      this._compDefCache.set(type, null);
-      return null;
-    }
+  private _fetchCompDef(type: string): Promise<CompDef | null> {
+    return fetchCompDef(type);
   }
 
   // ─── 좌표 변환 ────────────────────────────────────────────────────────────
@@ -450,8 +424,8 @@ export class CircuitCanvas {
   }
 
   private _createElement(comp: PlacedComponent) {
-    const cachedDef = this._compDefCache.has(comp.type) ? this._compDefCache.get(comp.type) : undefined;
-    const tag = cachedDef?.element ?? BUILTIN_TAGS[comp.type] ?? 'sim-generic';
+    const cachedDef = getCachedCompDef(comp.type);
+    const tag = cachedDef?.element ?? 'sim-generic';
 
     const el = document.createElement(tag);
     el.style.cssText = `position:absolute;left:${comp.x}px;top:${comp.y}px;cursor:grab;user-select:none;`;
@@ -517,7 +491,7 @@ export class CircuitCanvas {
     this._elements.set(comp.id, el);
   }
 
-  private _applyGenericDef(el: HTMLElement, def: ServerCompDef) {
+  private _applyGenericDef(el: HTMLElement, def: CompDef) {
     const g = el as any;
     g['svgTemplate'] = def.svgTemplate ?? '';
     g['pinDefs']     = def.pins.map(p => ({ name: p.name, x: p.x, y: p.y }));
@@ -542,7 +516,7 @@ export class CircuitCanvas {
       if (local) return { x: base.x + local.x, y: base.y + local.y };
     }
     const comp = circuitStore.components.find(c => c.id === compId);
-    const def = comp ? this._compDefCache.get(comp.type) : undefined;
+    const def = comp ? getCachedCompDef(comp.type) : undefined;
     if (def) {
       const pin = def.pins.find(p => p.name === pinName);
       if (pin) return { x: base.x + pin.x, y: base.y + pin.y };
@@ -556,7 +530,7 @@ export class CircuitCanvas {
     if (el && 'getPinPositions' in el) pinMap = (el as any).getPinPositions();
     if (pinMap.size === 0) {
       const comp = circuitStore.components.find(c => c.id === compId);
-      const def = comp ? this._compDefCache.get(comp.type) : undefined;
+      const def = comp ? getCachedCompDef(comp.type) : undefined;
       if (def) for (const p of def.pins) pinMap.set(p.name, { x: p.x, y: p.y });
     }
     return pinMap;
