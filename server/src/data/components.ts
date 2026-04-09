@@ -23,10 +23,10 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
         options: ['red','green','blue','yellow','white','orange','purple'] },
     ],
     pins: [
-      { name: 'ANODE',   label: '+', x: 21, y: 90, type: 'input',  required: true,
-        description: '양극 (+)', compatibleWith: ['digital','pwm','signal','power'] },
-      { name: 'CATHODE', label: '−', x: 39, y: 90, type: 'ground', required: true,
+      { name: 'CATHODE', label: '−', x: 21, y: 90, type: 'ground', required: true,
         description: '음극 (−)', compatibleWith: ['ground'] },
+      { name: 'ANODE',   label: '+', x: 39, y: 90, type: 'input',  required: true,
+        description: '양극 (+)', compatibleWith: ['digital','pwm','signal','power'] },
     ],
     electrical: {
       vccMin: 1.8, vccMax: 3.5, currentMa: 10, maxCurrentMa: 20,
@@ -216,10 +216,10 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { key: 'humidity',    label: '습도',    type: 'number', default: 60, min: 0,   max: 100, unit: '%' },
     ],
     pins: [
-      { name: 'VCC',  label: 'VCC(1)',  x: 14, y: 120, type: 'power',   required: true,  description: 'VCC (3.3~5V)', compatibleWith: ['power'] },
+      { name: 'VCC',  label: 'VCC(1)',  x: 18, y: 120, type: 'power',   required: true,  description: 'VCC (3.3~5V)', compatibleWith: ['power'] },
       { name: 'DATA', label: 'DATA(2)', x: 32, y: 120, type: 'digital', required: true,  description: '데이터 + 4.7kΩ 풀업 필수', compatibleWith: ['digital','signal'] },
-      { name: 'NC',   label: 'NC(3)',   x: 50, y: 120, type: 'signal',  required: false, description: 'Not Connected (미연결)', compatibleWith: [] },
-      { name: 'GND',  label: 'GND(4)',  x: 68, y: 120, type: 'ground',  required: true,  description: 'GND', compatibleWith: ['ground'] },
+      { name: 'NC',   label: 'NC(3)',   x: 45, y: 120, type: 'signal',  required: false, description: 'Not Connected (미연결)', compatibleWith: [] },
+      { name: 'GND',  label: 'GND(4)',  x: 58, y: 120, type: 'ground',  required: true,  description: 'GND', compatibleWith: ['ground'] },
     ],
     electrical: { vccMin: 3.3, vccMax: 5.5, currentMa: 2.5, maxCurrentMa: 10 },
     validation: [],

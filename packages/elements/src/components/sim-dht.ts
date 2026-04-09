@@ -3,15 +3,17 @@ import { customElement, property } from 'lit/decorators.js';
 import { SimElement } from './sim-element.js';
 
 /**
- * <sim-dht> — DHT11 / DHT22 온습도 센서 (78×120px)
+ * <sim-dht> — DHT11 / DHT22 온습도 센서
  *
- * 실물 기준:
- *   - DHT22: 흰색(크림색) 플라스틱 하우징, 전면 환기 격자(5×4 원형 홀)
- *   - DHT11: 파란색 하우징
- *   - 4핀: VCC(1), DATA(2), NC(3), GND(4)
+ * Wokwi wokwi-dht22 기준 정밀 재현:
+ *   viewBox: 0 0 15.1 30.885 (mm, 1unit=1mm)
+ *   scale: 3.78px/mm → host: 57×117px (센서 부분)
+ *   body: fill=#f2f2f2 (DHT22 흰색), fill=#1565c0 (DHT11 파란색)
+ *   센서 격자: 3열 × 3행 슬롯 (0.934×0.935mm)
+ *   모델명: font-size=2.2px, font-family=monospace
+ *   핀 4개: x=[3.57, 6.11, 8.65, 11.19]mm, y=30.885mm
  *
- * Pins: VCC, DATA, NC, GND
- * 인터랙션: TEMP [−][+] / HUM [−][+] 버튼으로 시뮬레이션 값 조정
+ * Pins: VCC(1), DATA(2), NC(3), GND(4)
  */
 @customElement('sim-dht')
 export class SimDht extends SimElement {
@@ -43,18 +45,19 @@ export class SimDht extends SimElement {
     }
   }
 
-  // getPinPositions: viewBox(52×80) × 1.5 = host(78×120)
-  // 4핀 간격: x = 9, 21, 33, 45 (viewBox) → × 1.5 = 13.5, 31.5, 49.5, 67.5
+  // getPinPositions: Wokwi mm → host px (scale ≈ 5.17px/mm for 78px wide / 15.1mm)
+  // x(mm): 3.57, 6.11, 8.65, 11.19 → ×(78/15.1) ≈ ×5.166 → 18, 32, 45, 58
+  // y: host 120px — pins at bottom
   override getPinPositions() {
+    const s = 78 / 15.1;
     return new Map([
-      ['VCC',  { x: 14, y: 120 }],
-      ['DATA', { x: 32, y: 120 }],
-      ['NC',   { x: 50, y: 120 }],
-      ['GND',  { x: 68, y: 120 }],
+      ['VCC',  { x: Math.round(3.57  * s), y: 120 }],
+      ['DATA', { x: Math.round(6.11  * s), y: 120 }],
+      ['NC',   { x: Math.round(8.65  * s), y: 120 }],
+      ['GND',  { x: Math.round(11.19 * s), y: 120 }],
     ]);
   }
 
-  // 온도/습도 스텝 — sim-interaction-start/end로 캔버스 드래그 차단
   private _step(e: PointerEvent, type: 'temp' | 'hum', delta: number) {
     e.stopPropagation();
     this.dispatchEvent(new CustomEvent('sim-interaction-start', { bubbles: true, composed: true }));
@@ -77,135 +80,118 @@ export class SimDht extends SimElement {
 
   override render() {
     const isDHT22 = this.model === 'DHT22';
+    const s = 78 / 15.1;   // scale px/mm
 
-    // 실물 색상: DHT22=크림백색, DHT11=파란색
-    const bodyFill   = isDHT22 ? '#f2f2f2' : '#1e68aa';
-    const bodyStroke = isDHT22 ? '#cccccc' : '#1855aa';
-    const bodyLight  = isDHT22 ? '#ffffff' : '#3a88cc';
-    const bodyShade  = isDHT22 ? '#d8d8d8' : '#0d3a6a';
-    const labelColor = isDHT22 ? '#444444' : '#ffffff';
-    const holeColor  = isDHT22 ? '#aaaaaa' : '#4488cc';
-    const holeBg     = isDHT22 ? '#dadada' : '#0d3a6a';
+    // Wokwi 색상 (실물 기준)
+    const bodyFill   = isDHT22 ? '#f2f2f2' : '#1565c0';
+    const bodyStroke = isDHT22 ? '#cccccc' : '#0d47a1';
+    const labelColor = isDHT22 ? '#333333' : '#ffffff';
+    const grillColor = isDHT22 ? '#aaaaaa' : '#0a3070';
+    const grillFill  = isDHT22 ? '#e0e0e0' : '#0d3a80';
 
-    // 환기 격자 — Wokwi 기준: 직사각형 슬롯 3열 × 4행
-    // Wokwi viewBox 15.1×30.885mm → 우리 viewBox 52×80 스케일 적용
-    // slot x(mm): 4.967, 7.135, 9.287 → ×(52/15.1) → 17.1, 24.5, 32.0
-    // slot y(mm): 8.66, 10.02, 11.37, 15.56 → ×(80/30.885) → 22.4, 25.9, 29.5, 40.3 (바디기준 ×48/23.885)
-    const slotXs = [17.1, 24.5, 32.0];
-    const slotYs = [10.5, 16.5, 22.5, 30.5];
-    const slotW = 3.2, slotH = 2.2;
-    const holes = [];
-    for (const sy of slotYs) {
-      for (const sx of slotXs) {
-        holes.push(html`
-          <rect x="${sx}" y="${sy}" width="${slotW}" height="${slotH}"
-            fill="${isDHT22 ? '#222' : '#0a1830'}" rx="0.2"/>
-        `);
-      }
-    }
+    // Wokwi 격자 슬롯 (mm) — 3열×3행 직사각형 슬롯
+    // x 시작: 2.8, 5.34, 7.88mm  y 시작: 3.8, 6.5, 9.2mm  w=1.8mm h=1.4mm
+    const grillXs = [2.8, 5.34, 7.88];
+    const grillYs = [3.8, 6.5, 9.2];
+    const gW = 1.8, gH = 1.4;
+
+    // 핀 리드 x(mm)
+    const pinXs = [3.57, 6.11, 8.65, 11.19];
+    // 핀 색상: VCC=빨강, DATA=파랑, NC=회색, GND=검정
+    const pinColors = ['#cc4433', '#4477cc', '#888888', '#333333'];
+
+    // body height in px (Wokwi: 23.885mm body + pin connector zone)
+    const bodyH = Math.round(23.885 * s); // ≈ 123px... let viewBox manage
 
     return html`
-      <svg width="78" height="120" viewBox="0 0 52 80" xmlns="http://www.w3.org/2000/svg">
+      <svg width="78" height="120" viewBox="0 0 ${15.1} 39" xmlns="http://www.w3.org/2000/svg">
 
-        <!-- 몸체 — 실물: DHT22=크림백색, DHT11=파란색 -->
-        <rect x="2" y="0" width="48" height="48" rx="4"
-          fill="${bodyFill}" stroke="${bodyStroke}" stroke-width="1"/>
-        <!-- 상단 하이라이트 -->
-        <rect x="2" y="0" width="48" height="6" rx="4"
-          fill="${bodyLight}" opacity="0.3"/>
-        <!-- 하단 음영 -->
-        <rect x="2" y="40" width="48" height="8" fill="${bodyShade}" opacity="0.3"/>
-        <!-- 측면 음영 (3D 느낌) -->
-        <rect x="44" y="0" width="6" height="48" rx="4"
-          fill="${bodyShade}" opacity="0.2"/>
+        <!-- ── 실물 DHT22/DHT11 본체 (Wokwi: 15.1×23.885mm) ── -->
+        <!-- 몸체 그림자 -->
+        <rect x="0.3" y="0.3" width="14.8" height="23.585" rx="1.2"
+          fill="black" opacity="0.15"/>
 
-        <!-- 환기 격자 (전면 5×4 원형 홀) -->
-        ${holes}
+        <!-- 메인 바디 -->
+        <rect x="0" y="0" width="15.1" height="23.885" rx="1.2"
+          fill="${bodyFill}" stroke="${bodyStroke}" stroke-width="0.3"/>
 
-        <!-- 모델명 라벨 -->
-        <text x="26" y="43" font-size="6.5" fill="${labelColor}" font-family="monospace"
-          text-anchor="middle" font-weight="bold" opacity="0.85">${this.model}</text>
+        <!-- 상단 하이라이트 (3D 느낌) -->
+        <rect x="0" y="0" width="15.1" height="2.5" rx="1.2"
+          fill="white" opacity="${isDHT22 ? 0.5 : 0.12}"/>
+
+        <!-- 오른쪽 음영 -->
+        <rect x="13.5" y="0" width="1.6" height="23.885" rx="1"
+          fill="black" opacity="${isDHT22 ? 0.05 : 0.12}"/>
+
+        <!-- ── 센서 격자 (환기 슬롯) ── -->
+        <!-- 슬롯 배경 (어두운 영역) -->
+        <rect x="2.3" y="2.8" width="9.2" height="8.8" rx="0.5"
+          fill="${grillFill}" opacity="0.5"/>
+        ${grillYs.map(gy => grillXs.map(gx => html`
+          <rect x="${gx}" y="${gy}" width="${gW}" height="${gH}" rx="0.35"
+            fill="${grillColor}" opacity="0.8"/>
+          <!-- 슬롯 내부 어두운 구멍 -->
+          <rect x="${gx + 0.2}" y="${gy + 0.15}" width="${gW - 0.4}" height="${gH - 0.3}" rx="0.2"
+            fill="${isDHT22 ? '#888' : '#082050'}" opacity="0.9"/>
+        `))}
+
+        <!-- ── 모델명 라벨 (Wokwi: font-size=2.2px monospace) ── -->
+        <text x="7.55" y="18.0"
+          font-size="2.2" fill="${labelColor}" font-family="monospace"
+          text-anchor="middle" font-weight="bold">${this.model}</text>
+        <text x="7.55" y="20.8"
+          font-size="1.6" fill="${isDHT22 ? '#666' : '#aaddff'}" font-family="monospace"
+          text-anchor="middle">${isDHT22 ? 'AM2302' : 'DHT11'}</text>
+
+        <!-- ── 핀 커넥터 베이스 (몸체 하단부) ── -->
+        <rect x="1.5" y="21.885" width="12.1" height="2" rx="0.3"
+          fill="${isDHT22 ? '#d8d8d8' : '#0d3a80'}" stroke="${bodyStroke}" stroke-width="0.2"/>
+
+        <!-- 핀 가이드 노치 (4개) -->
+        ${pinXs.map(px => html`
+          <rect x="${px - 0.4}" y="22.685" width="0.8" height="1.2" rx="0.2"
+            fill="${isDHT22 ? '#bbb' : '#0a2860'}"/>
+        `)}
+
+        <!-- ── 핀 리드 (몸체 아래로 내려옴) ── -->
+        ${pinXs.map((px, i) => html`
+          <line x1="${px}" y1="23.885" x2="${px}" y2="30.885"
+            stroke="${pinColors[i]}" stroke-width="0.6" stroke-linecap="round"/>
+          <!-- 하이라이트 -->
+          <line x1="${px - 0.1}" y1="23.885" x2="${px - 0.1}" y2="30.885"
+            stroke="white" stroke-width="0.15" opacity="0.3"/>
+        `)}
 
         <!-- ── 인터랙티브 컨트롤 존 ── -->
-        <rect x="0" y="48" width="52" height="22" fill="#0c1420"/>
-        <line x1="0" y1="48" x2="52" y2="48" stroke="#2a4a70" stroke-width="0.5"/>
+        <rect x="0" y="30.885" width="15.1" height="8.115" fill="#0c1420" rx="0.5"/>
+        <line x1="0" y1="30.885" x2="15.1" y2="30.885" stroke="#2a4a70" stroke-width="0.2"/>
 
-        <!-- 온도 라벨 -->
-        <text x="3" y="56" font-size="5" fill="#6688aa" font-family="monospace"
-          font-weight="bold">T</text>
-
-        <!-- 온도 − 버튼 -->
+        <!-- 온도 표시 -->
+        <text x="2.0" y="33.6" font-size="1.6" fill="#6688aa" font-family="monospace">T</text>
         <g class="ctrl-btn" @pointerdown="${(e: PointerEvent) => this._step(e, 'temp', -0.5)}">
-          <rect x="8" y="49.5" width="9" height="7.5" rx="1.5"
-            fill="#131e2e" stroke="#2a5a8a" stroke-width="0.8"/>
-          <text x="12.5" y="56" font-size="8" fill="#66aadd" font-family="monospace"
-            text-anchor="middle">−</text>
+          <rect x="3.2" y="31.685" width="2.4" height="2.2" rx="0.4" fill="#131e2e" stroke="#2a5a8a" stroke-width="0.2"/>
+          <text x="4.4" y="33.3" font-size="2.2" fill="#66aadd" font-family="monospace" text-anchor="middle">−</text>
         </g>
-
-        <!-- 온도 값 -->
-        <text x="32" y="56" font-size="5.5" fill="#d8eeff" font-family="monospace"
-          text-anchor="middle" font-weight="bold">${this.temperature.toFixed(1)}°C</text>
-
-        <!-- 온도 + 버튼 -->
+        <text x="7.55" y="33.6" font-size="1.7" fill="#d8eeff" font-family="monospace" text-anchor="middle" font-weight="bold">${this.temperature.toFixed(1)}°</text>
         <g class="ctrl-btn" @pointerdown="${(e: PointerEvent) => this._step(e, 'temp', +0.5)}">
-          <rect x="43" y="49.5" width="9" height="7.5" rx="1.5"
-            fill="#131e2e" stroke="#2a5a8a" stroke-width="0.8"/>
-          <text x="47.5" y="56" font-size="8" fill="#66aadd" font-family="monospace"
-            text-anchor="middle">+</text>
+          <rect x="9.5" y="31.685" width="2.4" height="2.2" rx="0.4" fill="#131e2e" stroke="#2a5a8a" stroke-width="0.2"/>
+          <text x="10.7" y="33.3" font-size="2.2" fill="#66aadd" font-family="monospace" text-anchor="middle">+</text>
         </g>
 
         <!-- 구분선 -->
-        <line x1="3" y1="60" x2="49" y2="60" stroke="#1a3050" stroke-width="0.4"/>
+        <line x1="1" y1="34.4" x2="14.1" y2="34.4" stroke="#1a3050" stroke-width="0.15"/>
 
-        <!-- 습도 라벨 -->
-        <text x="3" y="68" font-size="5" fill="#6688aa" font-family="monospace"
-          font-weight="bold">H</text>
-
-        <!-- 습도 − 버튼 -->
+        <!-- 습도 표시 -->
+        <text x="2.0" y="37.1" font-size="1.6" fill="#6688aa" font-family="monospace">H</text>
         <g class="ctrl-btn" @pointerdown="${(e: PointerEvent) => this._step(e, 'hum', -1)}">
-          <rect x="8" y="61.5" width="9" height="7.5" rx="1.5"
-            fill="#131e2e" stroke="#2a5a8a" stroke-width="0.8"/>
-          <text x="12.5" y="68" font-size="8" fill="#66aadd" font-family="monospace"
-            text-anchor="middle">−</text>
+          <rect x="3.2" y="35.185" width="2.4" height="2.2" rx="0.4" fill="#131e2e" stroke="#2a5a8a" stroke-width="0.2"/>
+          <text x="4.4" y="36.8" font-size="2.2" fill="#66aadd" font-family="monospace" text-anchor="middle">−</text>
         </g>
-
-        <!-- 습도 값 -->
-        <text x="32" y="68" font-size="5.5" fill="#d8eeff" font-family="monospace"
-          text-anchor="middle" font-weight="bold">${this.humidity.toFixed(0)}%</text>
-
-        <!-- 습도 + 버튼 -->
+        <text x="7.55" y="37.1" font-size="1.7" fill="#d8eeff" font-family="monospace" text-anchor="middle" font-weight="bold">${this.humidity.toFixed(0)}%</text>
         <g class="ctrl-btn" @pointerdown="${(e: PointerEvent) => this._step(e, 'hum', +1)}">
-          <rect x="43" y="61.5" width="9" height="7.5" rx="1.5"
-            fill="#131e2e" stroke="#2a5a8a" stroke-width="0.8"/>
-          <text x="47.5" y="68" font-size="8" fill="#66aadd" font-family="monospace"
-            text-anchor="middle">+</text>
+          <rect x="9.5" y="35.185" width="2.4" height="2.2" rx="0.4" fill="#131e2e" stroke="#2a5a8a" stroke-width="0.2"/>
+          <text x="10.7" y="36.8" font-size="2.2" fill="#66aadd" font-family="monospace" text-anchor="middle">+</text>
         </g>
-
-        <!-- 핀 스터브 (바닥 플라스틱 베이스) -->
-        <rect x="4" y="70" width="44" height="4" rx="1" fill="#888878" stroke="#666658" stroke-width="0.5"/>
-
-        <!-- 핀 금속 — VCC=빨강(1), DATA=파랑(2), NC=회색(3), GND=검정(4) -->
-        <rect x="7.5"  y="74" width="3" height="6" rx="0.5" fill="#cc4433"/>
-        <rect x="8.2"  y="74" width="1.2" height="6" fill="white" opacity="0.25"/>
-        <rect x="19.5" y="74" width="3" height="6" rx="0.5" fill="#4477cc"/>
-        <rect x="20.2" y="74" width="1.2" height="6" fill="white" opacity="0.25"/>
-        <rect x="31.5" y="74" width="3" height="6" rx="0.5" fill="#888878"/>
-        <rect x="32.2" y="74" width="1.2" height="6" fill="white" opacity="0.15"/>
-        <rect x="43.5" y="74" width="3" height="6" rx="0.5" fill="#333333"/>
-        <rect x="44.2" y="74" width="1.2" height="6" fill="white" opacity="0.1"/>
-
-        <!-- 핀 라벨 존 -->
-        <rect x="0" y="70" width="52" height="10" fill="#0d0d14"/>
-        <line x1="0" y1="70" x2="52" y2="70" stroke="#252535" stroke-width="0.5"/>
-
-        <text x="9"  y="78" font-size="6" fill="#ff8877" font-family="monospace"
-          text-anchor="middle" font-weight="bold">VCC</text>
-        <text x="21" y="78" font-size="6" fill="#88aaff" font-family="monospace"
-          text-anchor="middle" font-weight="bold">DAT</text>
-        <text x="33" y="78" font-size="6" fill="#888878" font-family="monospace"
-          text-anchor="middle" font-weight="bold">NC</text>
-        <text x="45" y="78" font-size="6" fill="#88ee99" font-family="monospace"
-          text-anchor="middle" font-weight="bold">GND</text>
       </svg>
     `;
   }

@@ -3,14 +3,16 @@ import { customElement, property } from 'lit/decorators.js';
 import { SimElement } from './sim-element.js';
 import type { LedColor } from '../types.js';
 
+// Wokwi lightColor 기준 (켜졌을 때 글로우 색상)
+// red→#ff8080, green→#80ff80, blue→#8080ff, yellow→#ffff80, orange→#ffcf80, purple→#ff80ff
 const COLOR_MAP: Record<LedColor, { off: string; on: string; glow: string; lens: string }> = {
-  red:    { off: '#4a0000', on: '#ff2020', glow: '#ff0000', lens: '#cc2020' },
-  green:  { off: '#003300', on: '#20ff50', glow: '#00ff44', lens: '#00aa33' },
-  blue:   { off: '#000044', on: '#4488ff', glow: '#2060ff', lens: '#2244cc' },
-  yellow: { off: '#444400', on: '#ffee00', glow: '#ffdd00', lens: '#ccaa00' },
-  white:  { off: '#333333', on: '#ffffff', glow: '#ffffff', lens: '#aaaaaa' },
-  orange: { off: '#441800', on: '#ff8800', glow: '#ff7700', lens: '#cc5500' },
-  purple: { off: '#220033', on: '#cc44ff', glow: '#aa00ff', lens: '#8800cc' },
+  red:    { off: '#330000', on: '#ff4040', glow: '#ff8080', lens: '#ff2020' },
+  green:  { off: '#002200', on: '#40ff60', glow: '#80ff80', lens: '#20cc40' },
+  blue:   { off: '#000033', on: '#6080ff', glow: '#8080ff', lens: '#4060dd' },
+  yellow: { off: '#333300', on: '#ffff40', glow: '#ffff80', lens: '#ddcc00' },
+  white:  { off: '#333333', on: '#ffffff', glow: '#ffffff', lens: '#dddddd' },
+  orange: { off: '#331100', on: '#ffaa40', glow: '#ffcf80', lens: '#ee7700' },
+  purple: { off: '#220033', on: '#ee60ff', glow: '#ff80ff', lens: '#cc00ee' },
 };
 
 /**
@@ -42,8 +44,8 @@ export class SimLed extends SimElement {
 
   override getPinPositions() {
     return new Map([
-      ['ANODE',   { x: 21, y: 90 }],
-      ['CATHODE', { x: 39, y: 90 }],
+      ['CATHODE', { x: 21, y: 90 }],
+      ['ANODE',   { x: 39, y: 90 }],
     ]);
   }
 
@@ -80,13 +82,13 @@ export class SimLed extends SimElement {
 
         <!-- ── 실물 5mm LED 구조 ── -->
 
-        <!-- 리드선 금속 (아노드=긴 리드, 캐소드=짧은 리드) — 몸체 아래에서 나옴 -->
-        <!-- 아노드 (+) 리드 — 더 길다 -->
-        <line x1="14" y1="34" x2="14" y2="58" stroke="#bbbbbb" stroke-width="1.8"/>
-        <line x1="14" y1="34" x2="14" y2="58" stroke="white" stroke-width="0.5" opacity="0.3"/>
-        <!-- 캐소드 (-) 리드 — 약간 짧다 (실물은 약 0.5mm 차이) -->
-        <line x1="26" y1="34" x2="26" y2="56" stroke="#bbbbbb" stroke-width="1.8"/>
-        <line x1="26" y1="34" x2="26" y2="56" stroke="white" stroke-width="0.5" opacity="0.3"/>
+        <!-- 리드선 금속 (캐소드=짧은 리드 왼쪽, 아노드=긴 리드 오른쪽) — 몸체 아래에서 나옴 -->
+        <!-- 캐소드 (-) 리드 — 왼쪽(평면 쪽), 약간 짧다 -->
+        <line x1="14" y1="34" x2="14" y2="56" stroke="#bbbbbb" stroke-width="1.8"/>
+        <line x1="14" y1="34" x2="14" y2="56" stroke="white" stroke-width="0.5" opacity="0.3"/>
+        <!-- 아노드 (+) 리드 — 오른쪽, 더 길다 -->
+        <line x1="26" y1="34" x2="26" y2="58" stroke="#bbbbbb" stroke-width="1.8"/>
+        <line x1="26" y1="34" x2="26" y2="58" stroke="white" stroke-width="0.5" opacity="0.3"/>
 
         <!-- 몸체 원통형 하단부 (플랜지) -->
         <rect x="8" y="22" width="24" height="12" rx="1"
@@ -118,10 +120,10 @@ export class SimLed extends SimElement {
         <!-- 핀 라벨 존 -->
         <rect x="0" y="47" width="40" height="13" fill="#0d0d14"/>
         <line x1="0" y1="47" x2="40" y2="47" stroke="#252535" stroke-width="0.5"/>
-        <text x="14" y="57" font-size="8" fill="#ff8877" font-family="monospace"
-          text-anchor="middle" font-weight="bold">A+</text>
-        <text x="26" y="57" font-size="8" fill="#88aaff" font-family="monospace"
+        <text x="14" y="57" font-size="8" fill="#88aaff" font-family="monospace"
           text-anchor="middle" font-weight="bold">K−</text>
+        <text x="26" y="57" font-size="8" fill="#ff8877" font-family="monospace"
+          text-anchor="middle" font-weight="bold">A+</text>
       </svg>
     `;
   }
