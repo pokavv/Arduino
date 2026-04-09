@@ -11,7 +11,7 @@ import { SimElement } from './sim-element.js';
 export class SimDht extends SimElement {
   static override styles = [
     SimElement.styles,
-    css`:host { width: 40px; height: 56px; }`,
+    css`:host { width: 44px; height: 60px; }`,
   ];
 
   @property({ type: String }) model: 'DHT11' | 'DHT22' = 'DHT22';
@@ -38,38 +38,87 @@ export class SimDht extends SimElement {
 
   override getPinPositions() {
     return new Map([
-      ['VCC',  { x: 10, y: 56 }],
-      ['DATA', { x: 20, y: 56 }],
-      ['GND',  { x: 30, y: 56 }],
+      ['VCC',  { x: 10, y: 60 }],
+      ['DATA', { x: 22, y: 60 }],
+      ['GND',  { x: 34, y: 60 }],
     ]);
   }
 
   override render() {
     const isDHT22 = this.model === 'DHT22';
+    // DHT22: 상단 라운드, DHT11: 직사각형
+    const topRadius = isDHT22 ? 18 : 4;
+
+    // 격자 패턴: 가로 4줄 × 세로 4줄 (센싱 영역 표현)
+    const gridRows = 4, gridCols = 4;
+    const gridX = 8, gridY = 6, gridW = 28, gridH = 22;
+    const cellW = gridW / gridCols, cellH = gridH / gridRows;
+
     return html`
-      <svg width="40" height="56" viewBox="0 0 40 56">
-        <!-- 몸체 -->
-        <rect x="4" y="0" width="32" height="40" rx="${isDHT22 ? 16 : 4}" fill="#1a3a5a" stroke="#2a5a8a" stroke-width="1"/>
-        <!-- 격자 패턴 -->
-        ${Array.from({ length: 5 }, (_, i) => html`
-          <line x1="8" y1="${6 + i*6}" x2="32" y2="${6 + i*6}" stroke="#2a5a8a" stroke-width="0.5"/>
+      <svg width="44" height="60" viewBox="0 0 44 60">
+        <defs>
+          <!-- 파란 몸체 gradient -->
+          <linearGradient id="dhtBodyGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stop-color="#4488cc"/>
+            <stop offset="40%"  stop-color="#1e5a8a"/>
+            <stop offset="100%" stop-color="#0d3a5a"/>
+          </linearGradient>
+          <!-- 센싱 격자 영역 배경 -->
+          <linearGradient id="dhtGridBg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stop-color="#ddeeff"/>
+            <stop offset="100%" stop-color="#aaccee"/>
+          </linearGradient>
+          <!-- 핀 광택 -->
+          <linearGradient id="dhtPinGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%"   stop-color="#999"/>
+            <stop offset="50%"  stop-color="#eee"/>
+            <stop offset="100%" stop-color="#999"/>
+          </linearGradient>
+        </defs>
+
+        <!-- 파란 몸체 (DHT22: 위쪽 반원형, DHT11: 직사각) -->
+        <rect x="4" y="0" width="36" height="44"
+          rx="${topRadius}" ry="${isDHT22 ? 18 : 4}"
+          fill="url(#dhtBodyGrad)" stroke="#2a6aaa" stroke-width="1"/>
+        <!-- 몸체 상단 하이라이트 -->
+        <rect x="4" y="0" width="36" height="6" rx="${topRadius}"
+          fill="white" opacity="0.14"/>
+
+        <!-- 센싱 격자 영역 (흰/회색 격자) -->
+        <rect x="${gridX}" y="${gridY}" width="${gridW}" height="${gridH}"
+          rx="2" fill="url(#dhtGridBg)" stroke="#6aaddd" stroke-width="0.8"/>
+        <!-- 가로 격자선 -->
+        ${Array.from({ length: gridRows - 1 }, (_, i) => html`
+          <line
+            x1="${gridX}" y1="${gridY + cellH * (i + 1)}"
+            x2="${gridX + gridW}" y2="${gridY + cellH * (i + 1)}"
+            stroke="#88bbdd" stroke-width="0.5"/>
         `)}
-        <!-- 모델 라벨 -->
-        <text x="20" y="24" font-size="7" fill="#88ccff" font-family="monospace"
-          text-anchor="middle">${this.model}</text>
-        <!-- 값 표시 -->
-        <text x="20" y="29" font-size="5.5" fill="#aaddff" font-family="monospace"
-          text-anchor="middle">${this.temperature.toFixed(1)}°C</text>
-        <text x="20" y="37" font-size="5.5" fill="#aaddff" font-family="monospace"
-          text-anchor="middle">${this.humidity.toFixed(1)}%H</text>
+        <!-- 세로 격자선 -->
+        ${Array.from({ length: gridCols - 1 }, (_, i) => html`
+          <line
+            x1="${gridX + cellW * (i + 1)}" y1="${gridY}"
+            x2="${gridX + cellW * (i + 1)}" y2="${gridY + gridH}"
+            stroke="#88bbdd" stroke-width="0.5"/>
+        `)}
+
+        <!-- 모델명 라벨 -->
+        <text x="22" y="36" font-size="7" fill="#eef" font-family="monospace"
+          text-anchor="middle" font-weight="bold">${this.model}</text>
+
+        <!-- 온도/습도 값 표시 -->
+        <text x="22" y="42.5" font-size="5" fill="#88ddff" font-family="monospace"
+          text-anchor="middle">${this.temperature.toFixed(1)}°C  ${this.humidity.toFixed(0)}%</text>
 
         <!-- 핀 3개 -->
-        <line x1="10" y1="40" x2="10" y2="56" stroke="#aaa" stroke-width="2"/>
-        <line x1="20" y1="40" x2="20" y2="56" stroke="#aaa" stroke-width="2"/>
-        <line x1="30" y1="40" x2="30" y2="56" stroke="#aaa" stroke-width="2"/>
-        <text x="5"  y="54" font-size="5" fill="#f88" font-family="monospace">V</text>
-        <text x="16" y="54" font-size="5" fill="#8af" font-family="monospace">D</text>
-        <text x="26" y="54" font-size="5" fill="#8f8" font-family="monospace">G</text>
+        <rect x="8.5"  y="44" width="3" height="16" rx="0.5" fill="url(#dhtPinGrad)"/>
+        <rect x="20.5" y="44" width="3" height="16" rx="0.5" fill="url(#dhtPinGrad)"/>
+        <rect x="32.5" y="44" width="3" height="16" rx="0.5" fill="url(#dhtPinGrad)"/>
+
+        <!-- 핀 라벨 -->
+        <text x="5"  y="58" font-size="4.5" fill="#f88" font-family="monospace">VCC</text>
+        <text x="17" y="58" font-size="4.5" fill="#8af" font-family="monospace">DAT</text>
+        <text x="29" y="58" font-size="4.5" fill="#8f8" font-family="monospace">GND</text>
       </svg>
     `;
   }

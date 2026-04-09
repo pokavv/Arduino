@@ -86,25 +86,94 @@ export class SimBuzzer extends SimElement {
   }
 
   override render() {
-    const ringOpacity = this.active ? 0.8 : 0;
+    // active 상태: 노란 glow 효과
+    const glowColor  = this.active ? '#ffaa00' : 'none';
+    const glowOpacity = this.active ? 0.55 : 0;
+    // 통기구 슬롯 8개 방사형 path 생성
+    const slots = Array.from({ length: 8 }, (_, i) => {
+      const angle  = (i * 45 * Math.PI) / 180;
+      const r1 = 5.5, r2 = 11.5;
+      const cx = 22, cy = 20;
+      const x1 = cx + r1 * Math.cos(angle);
+      const y1 = cy + r1 * Math.sin(angle);
+      const x2 = cx + r2 * Math.cos(angle);
+      const y2 = cy + r2 * Math.sin(angle);
+      return html`<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}"
+        x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}"
+        stroke="${this.active ? '#ffcc44' : '#555'}"
+        stroke-width="${this.active ? 1.6 : 1.2}"
+        stroke-linecap="round"/>`;
+    });
+
     return html`
       <svg width="44" height="44" viewBox="0 0 44 44">
-        <!-- 소리파동 -->
+        <defs>
+          <!-- 원통 몸체 광택 -->
+          <radialGradient id="buzzerBodyGrad" cx="40%" cy="35%" r="60%">
+            <stop offset="0%"   stop-color="#4a4a4a"/>
+            <stop offset="55%"  stop-color="#1e1e1e"/>
+            <stop offset="100%" stop-color="#0a0a0a"/>
+          </radialGradient>
+          <!-- active glow 필터 -->
+          <filter id="buzzerGlow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="2.5" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <!-- 은색 테두리 gradient -->
+          <linearGradient id="buzzerRimGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stop-color="#888"/>
+            <stop offset="50%"  stop-color="#ccc"/>
+            <stop offset="100%" stop-color="#666"/>
+          </linearGradient>
+          <!-- 핀 광택 -->
+          <linearGradient id="buzzerPinGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%"   stop-color="#999"/>
+            <stop offset="50%"  stop-color="#eee"/>
+            <stop offset="100%" stop-color="#999"/>
+          </linearGradient>
+        </defs>
+
+        <!-- active 상태 외곽 glow -->
         ${this.active ? html`
-          <circle cx="22" cy="22" r="18" fill="none" stroke="#ffcc00"
-            stroke-width="1.5" opacity="${ringOpacity * 0.5}"/>
-          <circle cx="22" cy="22" r="22" fill="none" stroke="#ffcc00"
-            stroke-width="1" opacity="${ringOpacity * 0.3}"/>
+          <circle cx="22" cy="20" r="16" fill="${glowColor}"
+            opacity="${glowOpacity}" filter="url(#buzzerGlow)"/>
         ` : ''}
-        <!-- 몸체 -->
-        <circle cx="22" cy="22" r="14" fill="${this.active ? '#333' : '#222'}" stroke="#555" stroke-width="1.5"/>
-        <circle cx="22" cy="22" r="10" fill="#111"/>
-        <circle cx="22" cy="22" r="4" fill="${this.active ? '#ffcc00' : '#333'}"/>
-        <!-- 핀 -->
-        <line x1="14" y1="36" x2="14" y2="44" stroke="#aaa" stroke-width="2"/>
-        <line x1="30" y1="36" x2="30" y2="44" stroke="#aaa" stroke-width="2"/>
-        <text x="9"  y="42" font-size="7" fill="#888" font-family="monospace">+</text>
-        <text x="26" y="42" font-size="7" fill="#888" font-family="monospace">−</text>
+
+        <!-- 은색 외곽 림 -->
+        <circle cx="22" cy="20" r="15.5"
+          fill="none" stroke="url(#buzzerRimGrad)" stroke-width="2.5"/>
+
+        <!-- 검은 원통 몸체 -->
+        <circle cx="22" cy="20" r="14.5" fill="url(#buzzerBodyGrad)"/>
+
+        <!-- 내부 다크 링 (통기구 영역 경계) -->
+        <circle cx="22" cy="20" r="13" fill="none"
+          stroke="#333" stroke-width="0.8"/>
+
+        <!-- 방사형 통기구 슬롯 -->
+        ${slots}
+
+        <!-- 중앙 멤브레인 원 -->
+        <circle cx="22" cy="20" r="4.5"
+          fill="${this.active ? '#cc8800' : '#2a2a2a'}"
+          stroke="${this.active ? '#ffcc00' : '#444'}"
+          stroke-width="0.8"/>
+        <!-- 멤브레인 중심점 -->
+        <circle cx="22" cy="20" r="1.5"
+          fill="${this.active ? '#ffee88' : '#444'}"/>
+
+        <!-- 상단 하이라이트 -->
+        <ellipse cx="18" cy="14" rx="4" ry="2.5"
+          fill="white" opacity="0.12" transform="rotate(-20,18,14)"/>
+
+        <!-- PCB 마운트 핀 2개 -->
+        <rect x="12.5" y="34" width="3" height="10" rx="0.5" fill="url(#buzzerPinGrad)"/>
+        <rect x="28.5" y="34" width="3" height="10" rx="0.5" fill="url(#buzzerPinGrad)"/>
+
+        <!-- 핀 라벨 -->
+        <text x="10" y="43" font-size="6.5" fill="#f88" font-family="monospace"
+          font-weight="bold">+</text>
+        <text x="29.5" y="43" font-size="6.5" fill="#8f8" font-family="monospace">−</text>
       </svg>
     `;
   }
