@@ -49,7 +49,82 @@ function buildWirePath(
   }
 }
 
-// ─── 컨텍스트 메뉴 ────────────────────────────────────────────────────────────
+// ─── 컴포넌트 컨텍스트 메뉴 ──────────────────────────────────────────────────
+
+class CompContextMenu {
+  private _el: HTMLDivElement;
+  private _currentCompId: string | null = null;
+
+  constructor() {
+    this._el = document.createElement('div');
+    this._el.id = 'comp-ctx-menu';
+    this._el.style.display = 'none';
+    document.body.appendChild(this._el);
+
+    document.addEventListener('click', () => this.hide());
+    document.addEventListener('contextmenu', (e) => {
+      if (e.target !== this._el && !this._el.contains(e.target as Node)) this.hide();
+    });
+  }
+
+  show(compId: string, clientX: number, clientY: number) {
+    this._currentCompId = compId;
+    const comp = circuitStore.components.find(c => c.id === compId);
+    if (!comp) return;
+
+    this._el.innerHTML = `
+      <div class="ctx-title">부품 조작</div>
+      <div class="ctx-item" data-action="rotate">↻ 90° 회전</div>
+      <div class="ctx-item" data-action="duplicate">⧉ 복제</div>
+      <div class="ctx-sep"></div>
+      <div class="ctx-item danger" data-action="delete">🗑 삭제</div>
+    `;
+
+    this._el.querySelector('[data-action="rotate"]')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (this._currentCompId) {
+        const cur = circuitStore.components.find(c => c.id === this._currentCompId);
+        if (cur) circuitStore.updateComponent(this._currentCompId, { rotation: ((cur.rotation ?? 0) + 90) % 360 });
+      }
+      this.hide();
+    });
+    this._el.querySelector('[data-action="duplicate"]')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (this._currentCompId) {
+        const cur = circuitStore.components.find(c => c.id === this._currentCompId);
+        if (cur) {
+          circuitStore.addComponent({
+            ...cur,
+            id: `${cur.type}-${Date.now()}`,
+            x: cur.x + 40,
+            y: cur.y + 40,
+            connections: {},
+          });
+        }
+      }
+      this.hide();
+    });
+    this._el.querySelector('[data-action="delete"]')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (this._currentCompId) circuitStore.removeComponent(this._currentCompId);
+      this.hide();
+    });
+
+    this._el.style.display = 'block';
+    const rect = this._el.getBoundingClientRect();
+    const x = Math.min(clientX, window.innerWidth  - rect.width  - 8);
+    const y = Math.min(clientY, window.innerHeight - rect.height - 8);
+    this._el.style.left = `${x}px`;
+    this._el.style.top  = `${y}px`;
+  }
+
+  hide() {
+    this._el.style.display = 'none';
+    this._currentCompId = null;
+  }
+}
+
+// ─── 와이어 컨텍스트 메뉴 ────────────────────────────────────────────────────
 
 class WireContextMenu {
   private _el: HTMLDivElement;
@@ -159,6 +234,7 @@ export class CircuitCanvas {
   private _elements = new Map<string, HTMLElement>();
   private _compDefCache = new Map<string, ServerCompDef | null>();
   private _ctxMenu = new WireContextMenu();
+  private _compCtxMenu = new CompContextMenu();
 
   constructor(container: HTMLElement) {
     this._container = container;
@@ -290,7 +366,6 @@ export class CircuitCanvas {
       if (this._waypointDrag) {
         this._waypointDrag = null;
       }
-      void e;
     });
 
     document.addEventListener('keydown', (e) => {
@@ -390,6 +465,13 @@ export class CircuitCanvas {
       this._renderPinPoints();
     });
 
+    el.addEventListener('contextmenu', (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      circuitStore.selectComponent(comp.id);
+      this._compCtxMenu.show(comp.id, e.clientX, e.clientY);
+    });
+
     el.addEventListener('pointerdown', (e: PointerEvent) => {
       if (e.button !== 0 || this._wireDrawing) return;
       e.stopPropagation();
@@ -407,12 +489,14 @@ export class CircuitCanvas {
 
     if (comp.type === 'button') {
       el.addEventListener('sim-press', () => {
-        const gpioPin = comp.connections['PIN1A'];
+        const connMap = circuitStore.getDerivedConnections().get(comp.id);
+        const gpioPin = connMap?.['PIN1A'];
         if (typeof gpioPin === 'number') simController.sendPinEvent(gpioPin, 1);
         simController.sendSensorUpdate(comp.id, { value: 1 });
       });
       el.addEventListener('sim-release', () => {
-        const gpioPin = comp.connections['PIN1A'];
+        const connMap = circuitStore.getDerivedConnections().get(comp.id);
+        const gpioPin = connMap?.['PIN1A'];
         if (typeof gpioPin === 'number') simController.sendPinEvent(gpioPin, 0);
         simController.sendSensorUpdate(comp.id, { value: 0 });
       });
@@ -834,7 +918,47 @@ export class CircuitCanvas {
 
   // ─── 공개 API ─────────────────────────────────────────────────────────────
 
-  fitView()  { this._transform = { x: 40, y: 40, scale: 1 }; this._applyTransform(); }
+  fitView() {
+    const comps = circuitStore.components;
+    if (comps.length === 0) {
+      this._transform = { x: 40, y: 40, scale: 1 };
+      this._applyTransform();
+      return;
+    }
+    const PAD = 60;
+    const minX = Math.min(...comps.map(c => c.x)) - PAD;
+    const minY = Math.min(...comps.map(c => c.y)) - PAD;
+    const maxX = Math.max(...comps.map(c => c.x)) + 220 + PAD;
+    const maxY = Math.max(...comps.map(c => c.y)) + 160 + PAD;
+    const bw = maxX - minX;
+    const bh = maxY - minY;
+    const cw = this._container.clientWidth;
+    const ch = this._container.clientHeight;
+    const scale = Math.min(1.5, Math.min(cw / bw, ch / bh) * 0.88);
+    this._transform = {
+      x: (cw - bw * scale) / 2 - minX * scale,
+      y: (ch - bh * scale) / 2 - minY * scale,
+      scale,
+    };
+    this._applyTransform();
+  }
+
   zoomIn()   { this._zoomAt(this._container.clientWidth / 2, this._container.clientHeight / 2, 1.2); }
   zoomOut()  { this._zoomAt(this._container.clientWidth / 2, this._container.clientHeight / 2, 0.8); }
+
+  /** 캔버스 뷰포트 중앙의 캔버스 좌표 */
+  get viewCenterX(): number {
+    return (this._container.clientWidth  / 2 - this._transform.x) / this._transform.scale;
+  }
+  get viewCenterY(): number {
+    return (this._container.clientHeight / 2 - this._transform.y) / this._transform.scale;
+  }
+
+  /** 클라이언트 좌표(픽셀) → 캔버스 좌표 */
+  clientToCanvas(cx: number, cy: number): { x: number; y: number } {
+    return {
+      x: (cx - this._transform.x) / this._transform.scale,
+      y: (cy - this._transform.y) / this._transform.scale,
+    };
+  }
 }

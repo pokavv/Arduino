@@ -6,6 +6,8 @@ import { circuitStore } from './circuit-store.js';
  */
 export class SimController {
   private _worker: Worker | null = null;
+  private _starting = false;
+  private _terminateTimer: ReturnType<typeof setTimeout> | null = null;
   private _onPinState: ((pin: number, value: number) => void) | null = null;
   private _onComponentUpdate: ((id: string, pin: string, value: number) => void) | null = null;
 
@@ -81,6 +83,10 @@ export class SimController {
 
   sendSensorUpdate(componentId: string, data: Record<string, number>) {
     this._post({ type: 'SENSOR_UPDATE', componentId, data });
+  }
+
+  sendSerial(text: string) {
+    this._post({ type: 'SERIAL_INPUT', text });
   }
 
   private _post(msg: MainToWorker) {

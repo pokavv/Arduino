@@ -34,7 +34,9 @@ canvasEl.addEventListener('drop', (e) => {
   const type = e.dataTransfer?.getData('component-type');
   if (!type) return;
   const rect = canvasEl.getBoundingClientRect();
-  addComponent(type, e.clientX - rect.left - 30, e.clientY - rect.top - 30);
+  // 마우스 위치를 캔버스 좌표계로 변환
+  const pos = canvas.clientToCanvas(e.clientX - rect.left, e.clientY - rect.top);
+  addComponent(type, pos.x - 30, pos.y - 30);
 });
 
 // ② 코드 에디터 (Monaco CDN 로드 후 비동기로 마운트)
@@ -107,9 +109,11 @@ function renderPalette(comps: CompSummary[]) {
       item.addEventListener('dragstart', (e) => {
         e.dataTransfer?.setData('component-type', comp.id);
       });
-      item.addEventListener('dblclick', () =>
-        addComponent(comp.id, 200 + Math.random() * 80, 150 + Math.random() * 80)
-      );
+      item.addEventListener('dblclick', () => {
+        const cx = canvas.viewCenterX + (Math.random() - 0.5) * 60;
+        const cy = canvas.viewCenterY + (Math.random() - 0.5) * 60;
+        addComponent(comp.id, cx, cy);
+      });
       item.querySelector('.palette-edit-btn')?.addEventListener('click', (e) => {
         e.stopPropagation();
         componentEditor.openEdit(comp.id, () => loadPalette());
@@ -157,6 +161,12 @@ circuitStore.subscribe(() => {
 });
 
 // ⑤ 버튼 이벤트
+document.getElementById('btn-new')!.addEventListener('click', () => {
+  if (!confirm('현재 회로를 지우고 새로 시작할까요?')) return;
+  simController.stop();
+  circuitStore.clearCircuit();
+});
+
 document.getElementById('btn-run')!.addEventListener('click', () => {
   if (circuitStore.simState === 'running') {
     simController.stop();
@@ -167,6 +177,19 @@ document.getElementById('btn-run')!.addEventListener('click', () => {
 });
 
 document.getElementById('btn-clear-serial')!.addEventListener('click', () => circuitStore.clearSerial());
+
+// 시리얼 입력 전송
+const serialInputEl = document.getElementById('serial-input') as HTMLInputElement;
+document.getElementById('btn-serial-send')!.addEventListener('click', () => {
+  const text = serialInputEl.value;
+  if (text) { simController.sendSerial(text + '\n'); serialInputEl.value = ''; }
+});
+serialInputEl.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    const text = serialInputEl.value;
+    if (text) { simController.sendSerial(text + '\n'); serialInputEl.value = ''; }
+  }
+});
 document.getElementById('btn-zoom-in')!.addEventListener('click',  () => canvas.zoomIn());
 document.getElementById('btn-zoom-out')!.addEventListener('click', () => canvas.zoomOut());
 document.getElementById('btn-fit')!.addEventListener('click',      () => canvas.fitView());
@@ -199,6 +222,7 @@ fileInput.addEventListener('change', () => {
       circuitStore.loadFromJson(reader.result as string);
       const hint = document.getElementById('canvas-hint');
       if (hint) hint.style.display = 'none';
+      setTimeout(() => canvas.fitView(), 100);
     } catch {
       alert('파일 형식이 올바르지 않습니다.');
     }
@@ -253,8 +277,9 @@ circuitStore.subscribe(() => {
   }
 });
 
-// ⑥ 기본 예제 로드 (Arduino Uno + Blink)
+// ⑥ 기본 예제 로드 (Arduino Uno + Blink) — 로드 후 fitView
 loadDefaultExample();
+setTimeout(() => canvas.fitView(), 150);
 
 // ⑦ 보드/템플릿 서버 데이터 비동기 로드
 loadServerData();
@@ -417,9 +442,9 @@ async function loadServerData() {
     try {
       const detail = await fetch(`${API_BASE}/templates/${id}`).then(r => r.json()) as TemplateDetail;
       circuitStore.loadTemplate(detail);
-      // 캔버스 힌트 숨기기
       const hint = document.getElementById('canvas-hint');
       if (hint) hint.style.display = 'none';
+      setTimeout(() => canvas.fitView(), 100);
     } catch { /* 서버 없으면 조용히 실패 */ }
     tplSelect.value = '';
   });

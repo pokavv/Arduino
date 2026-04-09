@@ -196,6 +196,26 @@
     .validation-item.info { color: #4af; }
     .validation-icon { font-size: 11px; flex-shrink: 0; }
 
+    /* 컴포넌트 컨텍스트 메뉴 */
+    #comp-ctx-menu {
+      position: fixed; z-index: 9999;
+      background: #1e1e2a; border: 1px solid #333; border-radius: 6px;
+      padding: 4px 0; min-width: 150px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.6);
+      font-size: 12px; color: #ccc; user-select: none;
+    }
+    #comp-ctx-menu .ctx-title {
+      padding: 5px 12px 3px; font-size: 10px;
+      color: #555; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    #comp-ctx-menu .ctx-item {
+      padding: 6px 12px; cursor: pointer;
+      display: flex; align-items: center; gap: 8px;
+    }
+    #comp-ctx-menu .ctx-item:hover { background: #2a2a3e; color: #eee; }
+    #comp-ctx-menu .ctx-sep { height: 1px; background: #2a2a3a; margin: 3px 0; }
+    #comp-ctx-menu .ctx-item.danger:hover { background: #3a1a1a; color: #f66; }
+
     /* 와이어 컨텍스트 메뉴 */
     #wire-ctx-menu {
       position: fixed; z-index: 9999;
@@ -242,6 +262,7 @@
         <option value="">예제 불러오기...</option>
       </select>
       <div class="toolbar-sep"></div>
+      <button id="btn-new"  class="toolbar-btn" title="새 회로">🗋 새로</button>
       <button id="btn-run" class="toolbar-btn">▶ 실행</button>
       <div class="toolbar-sep"></div>
       <button id="btn-undo"   class="toolbar-btn" title="실행 취소 (Ctrl+Z)">↩</button>
@@ -284,6 +305,13 @@
             style="margin-left:auto;padding:1px 6px;font-size:10px">지우기</button>
         </div>
         <div id="serial-output"></div>
+        <div style="display:flex;gap:4px;padding:4px 6px;border-top:1px solid #1a1a22;background:#0e0e14;">
+          <input id="serial-input" type="text" placeholder="시리얼 전송..."
+            style="flex:1;background:#1a1a26;border:1px solid #333;border-radius:3px;
+                   color:#ccc;padding:2px 6px;font-size:11px;font-family:monospace;outline:none;">
+          <button id="btn-serial-send" class="toolbar-btn"
+            style="padding:2px 8px;font-size:11px;white-space:nowrap">전송</button>
+        </div>
       </div>
       <div id="property-panel"></div>
     </div>

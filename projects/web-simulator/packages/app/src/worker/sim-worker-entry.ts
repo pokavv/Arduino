@@ -11,15 +11,27 @@ function post(msg: WorkerToMain) {
 
 let scheduler: SimScheduler | null = null;
 let gpio: GpioController | null = null;
+let _running = false;
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const _ctx: Record<string, any> = {};
+const _serialInputBuffer: number[] = [];
+
+let _pendingCircuit: CircuitSnapshot | null = null;
+let _pendingCode: string | null = null;
 
 function stopSimulation() {
+  _running = false;
   scheduler?.stop();
+  scheduler = null;
+  gpio = null;
   post({ type: 'STOPPED' });
 }
 
 async function runSimulation(circuit: CircuitSnapshot, code: string) {
+  if (_running) stopSimulation();
+  _running = true;
+
   try {
     const transpiler = new ArduinoTranspiler();
     const jsCode = transpiler.transpile(code);
@@ -32,26 +44,27 @@ async function runSimulation(circuit: CircuitSnapshot, code: string) {
       if (comp.type === 'button') {
         for (const [pin, target] of Object.entries(comp.connections)) {
           if (pin === 'PIN1A' && typeof target === 'number') {
-            const cid = comp.id;
-            gpio.registerInputCallback(target, () => _ctx[`__btn_${cid}`] ?? 0);
+            gpio.registerInputCallback(target, () => _ctx[`__btn_${comp.id}`] ?? 0);
           }
         }
       }
       if (comp.type === 'potentiometer') {
         for (const [pin, target] of Object.entries(comp.connections)) {
           if (pin === 'WIPER' && typeof target === 'number') {
-            const cid = comp.id;
-            gpio.registerInputCallback(target, () => _ctx[`__pot_${cid}`] ?? 512);
+            gpio.registerInputCallback(target, () => _ctx[`__pot_${comp.id}`] ?? 512);
           }
         }
       }
     }
 
-    const preamble = buildPreamble(gpio, scheduler, post, circuit.boardType);
+    const preamble = buildPreamble(gpio, scheduler, post, circuit.boardType, _serialInputBuffer);
     const fullCode = `
 ${preamble}
+
+// ─── User Code ────────────────────────────────────────────
 ${jsCode}
-// ─── 실행 엔트리 ───
+// ─────────────────────────────────────────────────────────
+
 await setup();
 while (true) {
   await loop();
@@ -64,8 +77,8 @@ while (true) {
     const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor as {
       new(...args: string[]): (...args: unknown[]) => Promise<void>
     };
-    const fn = new AsyncFunction('gpio', 'scheduler', 'postFn', fullCode);
-    await fn(gpio, scheduler, post);
+    const fn = new AsyncFunction('gpio', 'scheduler', 'postFn', '_ctx', '_serialInputBuffer', fullCode);
+    await fn(gpio, scheduler, post, _ctx, _serialInputBuffer);
 
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') return;
@@ -73,6 +86,8 @@ while (true) {
       type: 'RUNTIME_ERROR',
       message: err instanceof Error ? err.message : String(err),
     });
+  } finally {
+    _running = false;
   }
 }
 
@@ -80,21 +95,40 @@ self.addEventListener('message', async (e: MessageEvent<MainToWorker>) => {
   const msg = e.data;
   switch (msg.type) {
     case 'INIT':
-      await runSimulation(msg.circuit, msg.code);
+      _pendingCircuit = msg.circuit;
+      _pendingCode    = msg.code;
+      _serialInputBuffer.length = 0;
+      Object.keys(_ctx).forEach(k => delete _ctx[k]);
+      post({ type: 'READY' });
       break;
+
+    case 'START':
+      if (_pendingCircuit && _pendingCode) {
+        runSimulation(_pendingCircuit, _pendingCode).catch(() => {});
+      }
+      break;
+
     case 'STOP':
     case 'RESET':
       stopSimulation();
       break;
+
     case 'PIN_EVENT':
       gpio?.injectPinValue(msg.pin, msg.value);
       break;
+
     case 'SENSOR_UPDATE':
+      _ctx[`__sensor_${msg.componentId}`] = msg.data;
       if (msg.data.value !== undefined) {
         _ctx[`__btn_${msg.componentId}`] = msg.data.value;
         _ctx[`__pot_${msg.componentId}`] = msg.data.value;
       }
-      Object.assign(_ctx, {[`__sensor_${msg.componentId}`]: msg.data});
+      break;
+
+    case 'SERIAL_INPUT':
+      for (const ch of msg.text) {
+        _serialInputBuffer.push(ch.charCodeAt(0));
+      }
       break;
   }
 });
