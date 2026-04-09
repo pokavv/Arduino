@@ -24,11 +24,12 @@ export class SimBuzzer extends SimElement {
   override get pins() { return ['VCC', 'GND']; }
 
   // getPinPositions: viewBox(44×54) × 1.5 = host(66×81)
-  // VCC  x=14×1.5=21, GND  x=30×1.5=45
+  // Wokwi: GND(−) 왼쪽, VCC(+) 오른쪽
+  // GND x=14×1.5=21, VCC x=30×1.5=45
   override getPinPositions() {
     return new Map([
-      ['VCC', { x: 21, y: 81 }],
-      ['GND', { x: 45, y: 81 }],
+      ['GND', { x: 21, y: 81 }],
+      ['VCC', { x: 45, y: 81 }],
     ]);
   }
 
@@ -122,24 +123,24 @@ export class SimBuzzer extends SimElement {
         <ellipse cx="18" cy="14" rx="4" ry="2.5"
           fill="white" opacity="0.12" transform="rotate(-20,18,14)"/>
 
-        <!-- 핀 금속 — VCC=빨간색, GND=회색 -->
-        <rect x="12.5" y="37" width="3" height="17" rx="0.5" fill="#cc4433"/>
-        <rect x="13.2" y="37" width="1.2" height="17" fill="white" opacity="0.25"/>
-        <rect x="28.5" y="37" width="3" height="17" rx="0.5" fill="#666666"/>
-        <rect x="29.2" y="37" width="1.2" height="17" fill="white" opacity="0.2"/>
+        <!-- 핀 금속 — GND=회색(왼쪽), VCC=빨간색(오른쪽) — Wokwi 실물 순서 -->
+        <rect x="12.5" y="37" width="3" height="17" rx="0.5" fill="#666666"/>
+        <rect x="13.2" y="37" width="1.2" height="17" fill="white" opacity="0.2"/>
+        <rect x="28.5" y="37" width="3" height="17" rx="0.5" fill="#cc4433"/>
+        <rect x="29.2" y="37" width="1.2" height="17" fill="white" opacity="0.25"/>
 
-        <!-- VCC 극성 표시 "+" (실물: VCC 핀 옆에 흰색 인쇄) -->
-        <text x="14" y="36" font-size="5" fill="white" font-family="monospace"
+        <!-- VCC 극성 표시 "+" (실물: VCC 핀=오른쪽) -->
+        <text x="30" y="36" font-size="5" fill="white" font-family="monospace"
           text-anchor="middle" font-weight="bold">+</text>
 
         <!-- 핀 라벨 존 (Wokwi 스타일) -->
         <rect x="0" y="43" width="44" height="11" fill="#0d0d14"/>
         <line x1="0" y1="43" x2="44" y2="43" stroke="#252535" stroke-width="0.5"/>
 
-        <text x="14" y="52" font-size="8.5" fill="#ff8877" font-family="monospace"
-          text-anchor="middle" font-weight="bold">VCC</text>
-        <text x="30" y="52" font-size="8.5" fill="#88ee99" font-family="monospace"
+        <text x="14" y="52" font-size="8.5" fill="#88ee99" font-family="monospace"
           text-anchor="middle" font-weight="bold">GND</text>
+        <text x="30" y="52" font-size="8.5" fill="#ff8877" font-family="monospace"
+          text-anchor="middle" font-weight="bold">VCC</text>
       </svg>
     `;
   }

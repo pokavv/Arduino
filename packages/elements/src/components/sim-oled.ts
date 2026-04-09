@@ -35,14 +35,15 @@ export class SimOled extends SimElement {
   override get componentType() { return 'oled'; }
   override get pins() { return ['VCC', 'GND', 'SDA', 'SCL']; }
 
-  // host: 90×100px (1:1 SVG)
-  // 핀: PCB 하단 — GND(20,100), VCC(34,100), SCL(48,100), SDA(62,100)
+  // host: 150×116px
+  // Wokwi OLED: 핀이 PCB 상단에 위치 (GND, VCC, SCL, SDA 왼쪽→오른쪽)
+  // 4핀 2.54mm 피치 헤더, 핀 리드 위로 돌출 12px
   override getPinPositions() {
     return new Map([
-      ['GND', { x: 20, y: 100 }],
-      ['VCC', { x: 34, y: 100 }],
-      ['SCL', { x: 48, y: 100 }],
-      ['SDA', { x: 62, y: 100 }],
+      ['GND', { x: 57, y: 0 }],
+      ['VCC', { x: 69, y: 0 }],
+      ['SCL', { x: 81, y: 0 }],
+      ['SDA', { x: 93, y: 0 }],
     ]);
   }
 
@@ -200,88 +201,90 @@ export class SimOled extends SimElement {
   }
 
   override render() {
+    // host 150×116px
+    // PCB는 y=12부터 시작 (핀 리드 12px 공간)
+    // PCB 사이즈: 150×104
+    // OLED 패널: x=3, y=15 → w=144, h=65
+    // 핀 헤더: 상단 y=12 위치에 4핀 블록
     return html`
-      <svg width="90" height="100" viewBox="0 0 90 100" xmlns="http://www.w3.org/2000/svg">
+      <svg width="150" height="116" viewBox="0 0 150 116" xmlns="http://www.w3.org/2000/svg">
 
-        <!-- ── 파란 PCB 본체 ── -->
-        <rect x="0" y="0" width="90" height="88" rx="3"
-          fill="#1a4fa0" stroke="#0d3070" stroke-width="0.8"/>
-        <!-- PCB 상단 미묘한 하이라이트 -->
-        <rect x="0" y="0" width="90" height="6" rx="3"
-          fill="white" opacity="0.04"/>
+        <!-- ── 파란 PCB 본체 (#025CAF) ── -->
+        <rect x="0" y="12" width="150" height="104" rx="3"
+          fill="#025CAF" stroke="#014080" stroke-width="0.8"/>
+        <!-- 상단 하이라이트 -->
+        <rect x="0" y="12" width="150" height="6" rx="3"
+          fill="white" opacity="0.06"/>
 
-        <!-- 마운팅 홀 (4구석) -->
-        <circle cx="4.5"  cy="4.5"  r="2" fill="#0a2a5a" stroke="#0d3070" stroke-width="0.5"/>
-        <circle cx="85.5" cy="4.5"  r="2" fill="#0a2a5a" stroke="#0d3070" stroke-width="0.5"/>
-        <circle cx="4.5"  cy="83.5" r="2" fill="#0a2a5a" stroke="#0d3070" stroke-width="0.5"/>
-        <circle cx="85.5" cy="83.5" r="2" fill="#0a2a5a" stroke="#0d3070" stroke-width="0.5"/>
+        <!-- ── 마운팅 홀 (4구석) ── -->
+        <circle cx="5"   cy="17"  r="2.5" fill="#013a7a" stroke="#014080" stroke-width="0.5"/>
+        <circle cx="145" cy="17"  r="2.5" fill="#013a7a" stroke="#014080" stroke-width="0.5"/>
+        <circle cx="5"   cy="111" r="2.5" fill="#013a7a" stroke="#014080" stroke-width="0.5"/>
+        <circle cx="145" cy="111" r="2.5" fill="#013a7a" stroke="#014080" stroke-width="0.5"/>
 
         <!-- ── OLED 패널 외곽 베젤 ── -->
-        <rect x="3" y="5" width="84" height="62" rx="2"
-          fill="#050508" stroke="#1a1a2e" stroke-width="0.8"/>
+        <rect x="3" y="18" width="144" height="68" rx="2"
+          fill="#050508" stroke="#111122" stroke-width="0.8"/>
 
-        <!-- 디스플레이 노란 영역 배경 (상단 16행) -->
-        <rect x="4" y="6" width="82" height="15" rx="1"
+        <!-- 디스플레이 노란 영역 배경 (상단 16/64 비율) -->
+        <rect x="4" y="19" width="142" height="16" rx="1"
           fill="#1a1200"/>
-
-        <!-- 디스플레이 파란 영역 배경 (하단 48행) -->
-        <rect x="4" y="21" width="82" height="45" rx="1"
+        <!-- 디스플레이 파란 영역 배경 (하단 48/64 비율) -->
+        <rect x="4" y="35" width="142" height="50" rx="1"
           fill="#00050f"/>
 
-        <!-- Canvas — 실제 OLED 콘텐츠 렌더링 (128×64 → 82×60 스케일) -->
-        <foreignObject x="4" y="6" width="82" height="60">
+        <!-- Canvas — 실제 OLED 콘텐츠 렌더링 (128×64 → 142×65 스케일) -->
+        <foreignObject x="4" y="19" width="142" height="65">
           <canvas xmlns="http://www.w3.org/1999/xhtml"
             width="256" height="128"
-            style="width:82px;height:60px;image-rendering:pixelated;display:block">
+            style="width:142px;height:65px;image-rendering:pixelated;display:block">
           </canvas>
         </foreignObject>
 
-        <!-- 디스플레이 유리 반사 (미묘한 광택) -->
-        <rect x="4" y="6" width="82" height="5" rx="1"
+        <!-- 디스플레이 유리 반사 -->
+        <rect x="4" y="19" width="142" height="5" rx="1"
           fill="white" opacity="0.04"/>
-        <line x1="6" y1="7" x2="25" y2="7" stroke="white" opacity="0.06" stroke-width="0.5"/>
 
-        <!-- ── PCB 하단 SMD 부품 영역 (장식) ── -->
-        <!-- FPC 리본 소켓 (상단, 패널 연결) -->
-        <rect x="8" y="67" width="74" height="3" rx="1"
-          fill="#0d2a50" stroke="#1a3a70" stroke-width="0.4"/>
+        <!-- ── SMD 부품 영역 (장식) ── -->
+        <!-- FPC 리본 소켓 -->
+        <rect x="10" y="87" width="130" height="4" rx="1"
+          fill="#013065" stroke="#014080" stroke-width="0.4"/>
 
-        <!-- SMD 디커플링 커패시터 (갈색 사각형) -->
-        <rect x="14" y="72" width="4" height="2.5" rx="0.3" fill="#8a6a30"/>
-        <rect x="20" y="72" width="4" height="2.5" rx="0.3" fill="#8a6a30"/>
-        <!-- SMD 저항 (회색) -->
-        <rect x="30" y="72" width="5" height="2.5" rx="0.3" fill="#555"/>
-        <rect x="37" y="72" width="5" height="2.5" rx="0.3" fill="#555"/>
-        <!-- 점퍼 (작은 회색 사각형) -->
-        <rect x="48" y="72" width="3" height="2.5" rx="0.3" fill="#444"/>
-
+        <!-- SMD 커패시터 -->
+        <rect x="16"  y="93" width="7" height="4" rx="0.5" fill="#8a6a30"/>
+        <rect x="26"  y="93" width="7" height="4" rx="0.5" fill="#8a6a30"/>
+        <!-- SMD 저항 -->
+        <rect x="40"  y="93" width="9" height="4" rx="0.5" fill="#555"/>
+        <rect x="52"  y="93" width="9" height="4" rx="0.5" fill="#555"/>
+        <!-- I2C 점퍼/주소 선택 패드 -->
+        <rect x="68"  y="93" width="5" height="4" rx="0.5" fill="#444"/>
         <!-- I2C 주소 실크스크린 -->
-        <text x="65" y="75" font-size="3.5" fill="#9bb5e0" font-family="monospace"
+        <text x="110" y="97" font-size="5" fill="#7aaae0" font-family="monospace"
           text-anchor="middle">0x3C</text>
 
-        <!-- ── 핀 헤더 (하단) ── -->
+        <!-- ── 핀 헤더 블록 (상단, y=12 위) ── -->
         <!-- 플라스틱 블록 -->
-        <rect x="11" y="79" width="60" height="7" rx="1"
+        <rect x="51" y="13" width="48" height="7" rx="1"
           fill="#0d0d0d" stroke="#222" stroke-width="0.5"/>
-        <!-- 핀 라벨 (실크스크린) — 블록 위 -->
-        <text x="20" y="78.5" font-size="3.5" fill="#9bb5e0" font-family="monospace"
+        <!-- 핀 라벨 (PCB 위, 블록 아래쪽) -->
+        <text x="57"  y="23.5" font-size="4" fill="#9bb5e0" font-family="monospace"
           text-anchor="middle">GND</text>
-        <text x="34" y="78.5" font-size="3.5" fill="#ff8877" font-family="monospace"
+        <text x="69"  y="23.5" font-size="4" fill="#ff8877" font-family="monospace"
           text-anchor="middle">VCC</text>
-        <text x="48" y="78.5" font-size="3.5" fill="#aaccff" font-family="monospace"
+        <text x="81"  y="23.5" font-size="4" fill="#aaccff" font-family="monospace"
           text-anchor="middle">SCL</text>
-        <text x="62" y="78.5" font-size="3.5" fill="#ffcc55" font-family="monospace"
+        <text x="93"  y="23.5" font-size="4" fill="#ffcc55" font-family="monospace"
           text-anchor="middle">SDA</text>
 
-        <!-- 핀 금속 (하단으로 돌출) -->
-        <rect x="18.5" y="84" width="2.5" height="16" rx="0.5" fill="#aaa"/>
-        <rect x="19"   y="84" width="1"   height="16" fill="white" opacity="0.3"/>
-        <rect x="32.5" y="84" width="2.5" height="16" rx="0.5" fill="#aaa"/>
-        <rect x="33"   y="84" width="1"   height="16" fill="white" opacity="0.3"/>
-        <rect x="46.5" y="84" width="2.5" height="16" rx="0.5" fill="#aaa"/>
-        <rect x="47"   y="84" width="1"   height="16" fill="white" opacity="0.3"/>
-        <rect x="60.5" y="84" width="2.5" height="16" rx="0.5" fill="#aaa"/>
-        <rect x="61"   y="84" width="1"   height="16" fill="white" opacity="0.3"/>
+        <!-- 핀 금속 (위로 돌출, y=0~13) -->
+        <rect x="55.5"  y="0" width="2.5" height="14" rx="0.5" fill="#aaa"/>
+        <rect x="56"    y="0" width="1"   height="14" fill="white" opacity="0.3"/>
+        <rect x="67.5"  y="0" width="2.5" height="14" rx="0.5" fill="#aaa"/>
+        <rect x="68"    y="0" width="1"   height="14" fill="white" opacity="0.3"/>
+        <rect x="79.5"  y="0" width="2.5" height="14" rx="0.5" fill="#aaa"/>
+        <rect x="80"    y="0" width="1"   height="14" fill="white" opacity="0.3"/>
+        <rect x="91.5"  y="0" width="2.5" height="14" rx="0.5" fill="#aaa"/>
+        <rect x="92"    y="0" width="1"   height="14" fill="white" opacity="0.3"/>
       </svg>
     `;
   }

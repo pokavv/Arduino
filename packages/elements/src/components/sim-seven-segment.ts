@@ -3,21 +3,24 @@ import { customElement, property } from 'lit/decorators.js';
 import { SimElement } from './sim-element.js';
 
 /**
- * 7-세그먼트 path (viewBox 0 0 44 58 기준)
+ * 7-세그먼트 polygon (viewBox 0 0 44 58 기준)
+ * Wokwi 로컬 좌표 (10×18) → viewBox 스케일:
+ *   x_scale=3.6, x_offset=4, y_scale=2.333, y_offset=3
+ *
  *    A
  *  F   B
  *    G
  *  E   C
  *    D   DP
  */
-const SEG_PATHS: Record<string, string> = {
-  A: 'M7,4 H25',
-  B: 'M26,5 V18',
-  C: 'M26,21 V34',
-  D: 'M7,35 H25',
-  E: 'M6,21 V34',
-  F: 'M6,5  V18',
-  G: 'M7,19.5 H25',
+const SEG_POLYS: Record<string, string> = {
+  A: '11.2,3 32.8,3 36.4,5.3 32.8,7.7 11.2,7.7 7.6,5.3',
+  B: '40,7.7 40,21.7 36.4,24 32.8,21.7 32.8,7.7 36.4,5.3',
+  C: '40,26.3 40,40.3 36.4,42.7 32.8,40.3 32.8,26.3 36.4,24',
+  D: '32.8,45 11.2,45 7.6,42.7 11.2,40.3 32.8,40.3 36.4,42.7',
+  E: '4,40.3 4,26.3 7.6,24 11.2,26.3 11.2,40.3 7.6,42.7',
+  F: '4,21.7 4,7.7 7.6,5.3 11.2,7.7 11.2,21.7 7.6,24',
+  G: '11.2,21.7 32.8,21.7 36.4,24 32.8,26.3 11.2,26.3 7.6,24',
 };
 
 const DIGIT_SEGS: Record<string, string[]> = {
@@ -80,7 +83,7 @@ export class SimSevenSegment extends SimElement {
 
   override render() {
     const on  = this.color;
-    const off = '#1a0000';
+    const off = '#444';
     // 핀 x = 3 + i*5 (viewBox 44px 폭, 9핀 × 5px 간격)
     const pinXs = Array.from({ length: 9 }, (_, i) => 3 + i * 5);
 
@@ -92,15 +95,14 @@ export class SimSevenSegment extends SimElement {
         <!-- 세그먼트 창 영역 -->
         <rect x="4" y="3" width="36" height="43" rx="1" fill="#0a0000"/>
 
-        <!-- 세그먼트 7개 -->
-        ${(Object.entries(SEG_PATHS) as [string, string][]).map(([seg, path]) => svg`
-          <path d="${path}"
-            stroke="${this.segments[seg] ? on : off}"
-            stroke-width="3.5" stroke-linecap="round" fill="none"/>
+        <!-- 세그먼트 7개 (Wokwi polygon 방식) -->
+        ${(Object.entries(SEG_POLYS) as [string, string][]).map(([seg, pts]) => svg`
+          <polygon points="${pts}"
+            fill="${this.segments[seg] ? on : off}"/>
         `)}
 
-        <!-- DP (소수점) -->
-        <circle cx="31" cy="35" r="2.2"
+        <!-- DP (소수점) cx=30.64, cy=40.33 (로컬 7.4,16 → 스케일) -->
+        <circle cx="30.64" cy="40.33" r="2.2"
           fill="${this.segments['DP'] ? on : off}"/>
 
         <!-- 핀 금속 — 신호 핀 (데이터=파란색) -->

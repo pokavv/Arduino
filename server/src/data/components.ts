@@ -260,7 +260,7 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
     description: 'I2C 인터페이스 LCD 16×2.',
     icon: '🖥️',
     element: 'sim-lcd',
-    width: 90, height: 58,
+    width: 234, height: 58,
     defaultProps: { rows: 2, cols: 16, i2cAddress: 0x27 },
     props: [
       { key: 'rows',       label: '행',       type: 'select', default: 2,    options: ['2','4'] },
@@ -268,10 +268,12 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { key: 'i2cAddress', label: 'I2C 주소', type: 'select', default: 0x27, options: ['0x27','0x3F'] },
     ],
     pins: [
-      { name: 'GND', label: 'GND', x: 14, y: 58, type: 'ground',   required: true, description: 'GND', compatibleWith: ['ground'] },
-      { name: 'VCC', label: 'VCC', x: 32, y: 58, type: 'power',    required: true, description: '5V', compatibleWith: ['power'] },
-      { name: 'SDA', label: 'SDA', x: 50, y: 58, type: 'i2c_sda',  required: true, description: 'I2C SDA', compatibleWith: ['i2c_sda','digital'] },
-      { name: 'SCL', label: 'SCL', x: 68, y: 58, type: 'i2c_scl',  required: true, description: 'I2C SCL', compatibleWith: ['i2c_scl','digital'] },
+      // Wokwi I2C 백팩: 핀이 왼쪽 측면에서 나옴
+      // 1602 기준(totalH=58): y0=13, step=10
+      { name: 'GND', label: 'GND', x: 0, y: 13, type: 'ground',   required: true, description: 'GND', compatibleWith: ['ground'] },
+      { name: 'VCC', label: 'VCC', x: 0, y: 23, type: 'power',    required: true, description: '5V', compatibleWith: ['power'] },
+      { name: 'SDA', label: 'SDA', x: 0, y: 33, type: 'i2c_sda',  required: true, description: 'I2C SDA', compatibleWith: ['i2c_sda','digital'] },
+      { name: 'SCL', label: 'SCL', x: 0, y: 43, type: 'i2c_scl',  required: true, description: 'I2C SCL', compatibleWith: ['i2c_scl','digital'] },
     ],
     electrical: { vccMin: 5.0, vccMax: 5.0, currentMa: 40, logic: '5V' },
     validation: [],
@@ -287,16 +289,16 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
     description: 'SSD1306 I2C OLED 128×64.',
     icon: '📺',
     element: 'sim-oled',
-    width: 90, height: 100,
+    width: 150, height: 116,
     defaultProps: { i2cAddress: 0x3C },
     props: [
       { key: 'i2cAddress', label: 'I2C 주소', type: 'select', default: 0x3C, options: ['0x3C','0x3D'] },
     ],
     pins: [
-      { name: 'GND', label: 'GND', x: 20, y: 100, type: 'ground',  required: true, description: 'GND', compatibleWith: ['ground'] },
-      { name: 'VCC', label: 'VCC', x: 34, y: 100, type: 'power',   required: true, description: '3.3V 또는 5V', compatibleWith: ['power'] },
-      { name: 'SCL', label: 'SCL', x: 48, y: 100, type: 'i2c_scl', required: true, description: 'I2C SCL', compatibleWith: ['i2c_scl','digital'] },
-      { name: 'SDA', label: 'SDA', x: 62, y: 100, type: 'i2c_sda', required: true, description: 'I2C SDA', compatibleWith: ['i2c_sda','digital'] },
+      { name: 'GND', label: 'GND', x: 57, y: 0, type: 'ground',  required: true, description: 'GND', compatibleWith: ['ground'] },
+      { name: 'VCC', label: 'VCC', x: 69, y: 0, type: 'power',   required: true, description: '3.3V 또는 5V', compatibleWith: ['power'] },
+      { name: 'SCL', label: 'SCL', x: 81, y: 0, type: 'i2c_scl', required: true, description: 'I2C SCL', compatibleWith: ['i2c_scl','digital'] },
+      { name: 'SDA', label: 'SDA', x: 93, y: 0, type: 'i2c_sda', required: true, description: 'I2C SDA', compatibleWith: ['i2c_sda','digital'] },
     ],
     electrical: { vccMin: 3.3, vccMax: 5.0, currentMa: 20, logic: 'both' },
     validation: [],
