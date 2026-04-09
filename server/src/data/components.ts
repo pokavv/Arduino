@@ -457,40 +457,35 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { name: 'MINUS', label: '−', x: 28, y: 60, type: 'ground', required: true, description: '음극 (−)', compatibleWith: ['ground'] },
     ],
     svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="60" viewBox="0 0 40 60">
-  <defs>
-    <linearGradient id="capBody" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#1a2a3a"/>
-      <stop offset="30%" stop-color="#243648"/>
-      <stop offset="100%" stop-color="#1a2a3a"/>
-    </linearGradient>
-    <linearGradient id="capTop" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#9aa8b0"/>
-      <stop offset="50%" stop-color="#c8d4d8"/>
-      <stop offset="100%" stop-color="#9aa8b0"/>
-    </linearGradient>
-  </defs>
+  <!-- 몸체 shadow -->
+  <rect x="6" y="11" width="30" height="41" rx="5" fill="#0d1926"/>
   <!-- 몸체 (알루미늄 원통형) -->
-  <rect x="5" y="12" width="30" height="40" rx="5" ry="5" fill="url(#capBody)" stroke="#2a4050" stroke-width="1.2"/>
+  <rect x="5" y="10" width="30" height="42" rx="5" fill="#1e3248" stroke="#2a4050" stroke-width="1.2"/>
+  <!-- 몸체 우측 어두운 면 -->
+  <rect x="28" y="10" width="7" height="42" rx="4" fill="#0d1926" opacity="0.5"/>
   <!-- 왼쪽 흰색 스트라이프 (음극 마커) -->
-  <rect x="5" y="12" width="7" height="40" rx="5" ry="2" fill="#c8d8e0" opacity="0.85"/>
+  <rect x="5" y="10" width="8" height="42" rx="4" fill="#c8d8e0" opacity="0.9"/>
   <!-- 마이너스 기호들 -->
-  <text x="8.5" y="26" font-family="sans-serif" font-size="6" fill="#334455" text-anchor="middle">−</text>
-  <text x="8.5" y="36" font-family="sans-serif" font-size="6" fill="#334455" text-anchor="middle">−</text>
-  <text x="8.5" y="46" font-family="sans-serif" font-size="6" fill="#334455" text-anchor="middle">−</text>
+  <text x="9" y="26" font-family="sans-serif" font-size="6" fill="#2a3848" text-anchor="middle" font-weight="bold">−</text>
+  <text x="9" y="36" font-family="sans-serif" font-size="6" fill="#2a3848" text-anchor="middle" font-weight="bold">−</text>
+  <text x="9" y="46" font-family="sans-serif" font-size="6" fill="#2a3848" text-anchor="middle" font-weight="bold">−</text>
   <!-- 용량 텍스트 -->
-  <text x="22" y="33" font-family="monospace" font-size="5.5" fill="#8ab4cc" text-anchor="middle">100µF</text>
-  <text x="22" y="43" font-family="monospace" font-size="4.5" fill="#6a8a9a" text-anchor="middle">25V</text>
+  <text x="23" y="31" font-family="monospace" font-size="5" fill="#8ab4cc" text-anchor="middle">100µF</text>
+  <text x="23" y="40" font-family="monospace" font-size="4.5" fill="#6a8a9a" text-anchor="middle">25V</text>
   <!-- 상단 캡 (알루미늄) -->
-  <rect x="5" y="8" width="30" height="7" rx="3" fill="url(#capTop)" stroke="#8899a8" stroke-width="0.8"/>
+  <rect x="5" y="6" width="30" height="7" rx="3" fill="#8898a8" stroke="#8899a8" stroke-width="0.8"/>
+  <!-- 캡 하이라이트 -->
+  <rect x="8" y="7" width="20" height="3" rx="2" fill="#c8d4d8" opacity="0.5"/>
   <!-- X자 벤트 라인 -->
-  <line x1="14" y1="9.5" x2="26" y2="14" stroke="#7a8a94" stroke-width="0.8"/>
-  <line x1="26" y1="9.5" x2="14" y2="14" stroke="#7a8a94" stroke-width="0.8"/>
-  <!-- 리드선 + (길다) -->
-  <line x1="12" y1="52" x2="12" y2="60" stroke="#c0c8d0" stroke-width="1.5"/>
-  <!-- 리드선 - (짧다) -->
-  <line x1="28" y1="52" x2="28" y2="60" stroke="#c0c8d0" stroke-width="1.5"/>
+  <line x1="14" y1="7.5" x2="26" y2="12" stroke="#6a7a88" stroke-width="0.8"/>
+  <line x1="26" y1="7.5" x2="14" y2="12" stroke="#6a7a88" stroke-width="0.8"/>
+  <!-- 리드선 + (긴 쪽) -->
+  <line x1="12" y1="52" x2="12" y2="60" stroke="#c0c8d0" stroke-width="1.8"/>
+  <!-- 리드선 - (짧은 쪽) -->
+  <line x1="28" y1="54" x2="28" y2="60" stroke="#c0c8d0" stroke-width="1.8"/>
   <!-- 핀 표시 -->
-  <text x="12" y="58" font-family="monospace" font-size="4" fill="#e8e8e8" text-anchor="middle" dominant-baseline="middle">+</text>
+  <text x="12" y="59" font-family="monospace" font-size="5" fill="#e8a040" text-anchor="middle">+</text>
+  <text x="28" y="59" font-family="monospace" font-size="5" fill="#80b0d0" text-anchor="middle">−</text>
 </svg>`,
     electrical: { vccMin: 0, vccMax: 25 },
     validation: [{ rule: 'polarity_sensitive', message: '극성 주의 — 반대 연결 시 파손', severity: 'error' }],
@@ -516,17 +511,10 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { name: 'CATHODE', label: 'K', x: 28, y: 60, type: 'output', required: true, description: '캐소드 (−) — 띠 표시', compatibleWith: ['power','ground','signal'] },
     ],
     svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="60" viewBox="0 0 40 60">
-  <defs>
-    <linearGradient id="diodeBody" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#2a2a2a"/>
-      <stop offset="50%" stop-color="#111111"/>
-      <stop offset="100%" stop-color="#1e1e1e"/>
-    </linearGradient>
-  </defs>
   <!-- 리드선 왼쪽 (애노드) -->
   <line x1="0" y1="30" x2="8" y2="30" stroke="#b0b8c0" stroke-width="1.5"/>
   <!-- 몸체 (검은 원통형) -->
-  <rect x="8" y="20" width="24" height="20" rx="3" fill="url(#diodeBody)" stroke="#444444" stroke-width="1"/>
+  <rect x="8" y="20" width="24" height="20" rx="3" fill="#1a1a1a" stroke="#444444" stroke-width="1"/>
   <!-- 왼쪽 끝 타원 (몸체 입체감) -->
   <ellipse cx="8" cy="30" rx="2" ry="10" fill="#333333" stroke="#555" stroke-width="0.5"/>
   <!-- 오른쪽 캐소드 흰색 링 -->
@@ -570,18 +558,13 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { name: 'EMITTER',  label: 'E', x: 40, y: 70, type: 'ground', required: true, description: '이미터 — GND 연결',     compatibleWith: ['ground'] },
     ],
     svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="50" height="70" viewBox="0 0 50 70">
-  <defs>
-    <linearGradient id="to92Body" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#222222"/>
-      <stop offset="40%" stop-color="#3a3a3a"/>
-      <stop offset="100%" stop-color="#1a1a1a"/>
-    </linearGradient>
-  </defs>
   <!-- TO-92 D자형 몸체: 반원(위) + 평면(아래) -->
   <!-- 상단 반원 -->
-  <path d="M10,42 A15,22 0 0,1 40,42 Z" fill="url(#to92Body)" stroke="#444" stroke-width="1"/>
+  <path d="M10,42 A15,22 0 0,1 40,42 Z" fill="#2a2a2a" stroke="#444" stroke-width="1"/>
   <!-- 하단 평면 직사각형 -->
-  <rect x="10" y="28" width="30" height="14" fill="url(#to92Body)" stroke="#444" stroke-width="1"/>
+  <rect x="10" y="28" width="30" height="14" fill="#2a2a2a" stroke="#444" stroke-width="1"/>
+  <!-- 상단 반원 하이라이트 -->
+  <path d="M15,36 A10,14 0 0,1 35,36 Z" fill="#404040" opacity="0.5"/>
   <!-- 평면 아래쪽 선 -->
   <line x1="10" y1="42" x2="40" y2="42" stroke="#555" stroke-width="0.8"/>
   <!-- 모델명 -->
@@ -698,25 +681,18 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { name: 'MINUS', label: '−', x: 28, y: 60, type: 'ground', required: true, description: '음극 (−)', compatibleWith: ['ground','output'] },
     ],
     svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="60" viewBox="0 0 40 60">
-  <defs>
-    <linearGradient id="motorBody" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#484848"/>
-      <stop offset="30%" stop-color="#888888"/>
-      <stop offset="70%" stop-color="#707070"/>
-      <stop offset="100%" stop-color="#484848"/>
-    </linearGradient>
-    <linearGradient id="motorCap" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#606060"/>
-      <stop offset="50%" stop-color="#aaaaaa"/>
-      <stop offset="100%" stop-color="#606060"/>
-    </linearGradient>
-  </defs>
+  <!-- 모터 원통형 몸체 shadow -->
+  <rect x="4" y="11" width="30" height="34" rx="4" fill="#303030"/>
   <!-- 모터 원통형 몸체 (측면) -->
-  <rect x="3" y="10" width="30" height="34" rx="4" fill="url(#motorBody)" stroke="#444" stroke-width="1"/>
+  <rect x="3" y="10" width="30" height="34" rx="4" fill="#686868" stroke="#444" stroke-width="1"/>
+  <!-- 몸체 중앙 하이라이트 -->
+  <rect x="5" y="12" width="28" height="10" rx="3" fill="#909090" opacity="0.4"/>
   <!-- 모터 좌측 엔드캡 -->
-  <ellipse cx="3" cy="27" rx="3" ry="17" fill="url(#motorCap)" stroke="#555" stroke-width="0.8"/>
+  <ellipse cx="3" cy="27" rx="3" ry="17" fill="#888888" stroke="#555" stroke-width="0.8"/>
+  <!-- 좌측 캡 하이라이트 -->
+  <ellipse cx="2" cy="23" rx="1.5" ry="6" fill="#aaaaaa" opacity="0.5"/>
   <!-- 모터 우측 엔드캡 -->
-  <ellipse cx="33" cy="27" rx="3" ry="17" fill="url(#motorCap)" stroke="#555" stroke-width="0.8"/>
+  <ellipse cx="33" cy="27" rx="3" ry="17" fill="#888888" stroke="#555" stroke-width="0.8"/>
   <!-- 샤프트 (오른쪽 돌출) -->
   <rect x="33" y="24" width="7" height="6" rx="1" fill="#c0c0c0" stroke="#999" stroke-width="0.8"/>
   <!-- 모터 내부 코어 -->
@@ -754,19 +730,18 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { name: 'CATHODE', label: '−', x: 26, y: 60, type: 'ground', required: true, description: '음극 (−)', compatibleWith: ['ground'] },
     ],
     svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="60" viewBox="0 0 40 60">
-  <defs>
-    <radialGradient id="irLedDome" cx="40%" cy="35%" r="60%">
-      <stop offset="0%" stop-color="#dde8f0"/>
-      <stop offset="60%" stop-color="#8090a8"/>
-      <stop offset="100%" stop-color="#404858"/>
-    </radialGradient>
-  </defs>
   <!-- 실린더 몸체 -->
   <rect x="12" y="26" width="16" height="16" fill="#606878" stroke="#404858" stroke-width="0.8"/>
   <!-- 플랫 사이드 (극성 구분) - 오른쪽이 평평한 면 (캐소드) -->
   <rect x="25" y="26" width="3" height="16" fill="#404858"/>
+  <!-- 돔형 상단 shadow -->
+  <ellipse cx="21" cy="27" rx="8" ry="8" fill="#303848"/>
   <!-- 돔형 상단 -->
-  <ellipse cx="20" cy="26" rx="8" ry="8" fill="url(#irLedDome)" stroke="#505868" stroke-width="0.8"/>
+  <ellipse cx="20" cy="26" rx="8" ry="8" fill="#606878" stroke="#505868" stroke-width="0.8"/>
+  <!-- 돔 내부 어두운 중심 (IR 렌즈 느낌) -->
+  <ellipse cx="20" cy="26" rx="5" ry="5" fill="#404858"/>
+  <!-- 돔 반사광 -->
+  <ellipse cx="17" cy="23" rx="3" ry="2" fill="#c8d8e8" opacity="0.35"/>
   <!-- 렌즈 하이라이트 -->
   <ellipse cx="17" cy="23" rx="3" ry="2.5" fill="white" opacity="0.3"/>
   <!-- IR 방출 파선 (위쪽) -->
@@ -805,18 +780,16 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { name: 'GND', label: 'GND', x: 40, y: 70, type: 'ground',  required: true, description: 'GND',                     compatibleWith: ['ground'] },
     ],
     svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="50" height="70" viewBox="0 0 50 70">
-  <defs>
-    <radialGradient id="irRxLens" cx="45%" cy="40%" r="55%">
-      <stop offset="0%" stop-color="#2a1a0a"/>
-      <stop offset="70%" stop-color="#0a0808"/>
-      <stop offset="100%" stop-color="#000000"/>
-    </radialGradient>
-  </defs>
   <!-- 몸체 직사각형 (검은) -->
   <rect x="7" y="16" width="36" height="40" rx="2" fill="#111111" stroke="#333333" stroke-width="1"/>
   <!-- 앞면 둥근 감지 렌즈 (볼록한 전면) -->
   <rect x="7" y="16" width="36" height="18" rx="2" fill="#0a0808" stroke="#2a2020" stroke-width="0.8"/>
-  <ellipse cx="25" cy="25" rx="13" ry="8" fill="url(#irRxLens)" stroke="#1a1010" stroke-width="0.6"/>
+  <!-- IR 수신 렌즈 (어두운 돔) shadow -->
+  <ellipse cx="26" cy="26" rx="13" ry="8" fill="#000000"/>
+  <!-- IR 수신 렌즈 -->
+  <ellipse cx="25" cy="25" rx="13" ry="8" fill="#120808" stroke="#1a1010" stroke-width="0.6"/>
+  <!-- 렌즈 미세 반사광 -->
+  <ellipse cx="21" cy="23" rx="4" ry="2.5" fill="#2a1818" opacity="0.6"/>
   <!-- 렌즈 반사광 -->
   <ellipse cx="21" cy="22" rx="4" ry="3" fill="#1a0808" opacity="0.7"/>
   <ellipse cx="19" cy="21" rx="1.5" ry="1" fill="#333322" opacity="0.5"/>
@@ -856,16 +829,11 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { name: 'OUT', label: 'OUT', x: 40, y: 70, type: 'output',  required: true, description: '오픈 컬렉터 출력 (풀업 필요)', compatibleWith: ['digital','signal'] },
     ],
     svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="50" height="70" viewBox="0 0 50 70">
-  <defs>
-    <linearGradient id="hallBody" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#222222"/>
-      <stop offset="40%" stop-color="#3a3a3a"/>
-      <stop offset="100%" stop-color="#1a1a1a"/>
-    </linearGradient>
-  </defs>
   <!-- TO-92 D자형 몸체 -->
-  <path d="M10,48 A20,22 0 0,1 40,48 Z" fill="url(#hallBody)" stroke="#444" stroke-width="1"/>
-  <rect x="10" y="34" width="30" height="14" fill="url(#hallBody)" stroke="#444" stroke-width="1"/>
+  <path d="M10,48 A20,22 0 0,1 40,48 Z" fill="#2a2a2a" stroke="#444" stroke-width="1"/>
+  <rect x="10" y="34" width="30" height="14" fill="#2a2a2a" stroke="#444" stroke-width="1"/>
+  <!-- 상단 하이라이트 -->
+  <path d="M15,42 A13,14 0 0,1 35,42 Z" fill="#404040" opacity="0.5"/>
   <line x1="10" y1="48" x2="40" y2="48" stroke="#555" stroke-width="0.8"/>
   <!-- 1번 핀 dot -->
   <circle cx="12" cy="46" r="1.5" fill="#aabbcc"/>
@@ -916,16 +884,11 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { name: 'GND', label: 'GND', x: 40, y: 70, type: 'ground', required: true, description: 'GND',                    compatibleWith: ['ground'] },
     ],
     svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="50" height="70" viewBox="0 0 50 70">
-  <defs>
-    <linearGradient id="lm35Body" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#222222"/>
-      <stop offset="40%" stop-color="#3a3a3a"/>
-      <stop offset="100%" stop-color="#1a1a1a"/>
-    </linearGradient>
-  </defs>
   <!-- TO-92 D자형 몸체 -->
-  <path d="M10,48 A20,22 0 0,1 40,48 Z" fill="url(#lm35Body)" stroke="#444" stroke-width="1"/>
-  <rect x="10" y="34" width="30" height="14" fill="url(#lm35Body)" stroke="#444" stroke-width="1"/>
+  <path d="M10,48 A20,22 0 0,1 40,48 Z" fill="#2a2a2a" stroke="#444" stroke-width="1"/>
+  <rect x="10" y="34" width="30" height="14" fill="#2a2a2a" stroke="#444" stroke-width="1"/>
+  <!-- 상단 하이라이트 -->
+  <path d="M15,42 A13,14 0 0,1 35,42 Z" fill="#404040" opacity="0.5"/>
   <line x1="10" y1="48" x2="40" y2="48" stroke="#555" stroke-width="0.8"/>
   <!-- 1번 핀 dot -->
   <circle cx="12" cy="46" r="1.5" fill="#aabbcc"/>
@@ -984,16 +947,6 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { name: 'SW',  label: 'SW',  x: 56, y: 80, type: 'digital', required: false, description: '버튼 (Active LOW)', compatibleWith: ['digital','signal'] },
     ],
     svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="60" height="80" viewBox="0 0 60 80">
-  <defs>
-    <radialGradient id="joyStick" cx="40%" cy="35%" r="60%">
-      <stop offset="0%" stop-color="#555566"/>
-      <stop offset="100%" stop-color="#222233"/>
-    </radialGradient>
-    <radialGradient id="joyTop" cx="35%" cy="30%" r="65%">
-      <stop offset="0%" stop-color="#6a6a7a"/>
-      <stop offset="100%" stop-color="#333340"/>
-    </radialGradient>
-  </defs>
   <!-- PCB 기판 (짙은 검은) -->
   <rect x="2" y="6" width="56" height="62" rx="4" fill="#1a1a2a" stroke="#2a2a3a" stroke-width="1.2"/>
   <!-- PCB 구멍들 (모서리) -->
@@ -1003,10 +956,16 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
   <circle cx="52" cy="62" r="2" fill="#0a0a18" stroke="#333" stroke-width="0.5"/>
   <!-- 조이스틱 베이스 원형 -->
   <circle cx="30" cy="34" r="20" fill="#2a2a3a" stroke="#3a3a4a" stroke-width="1"/>
+  <!-- 조이스틱 기둥 shadow -->
+  <rect x="27" y="25" width="8" height="14" rx="3" fill="#111122"/>
   <!-- 조이스틱 기둥 -->
-  <rect x="26" y="24" width="8" height="14" rx="3" fill="url(#joyStick)" stroke="#404050" stroke-width="0.8"/>
+  <rect x="26" y="24" width="8" height="14" rx="3" fill="#333344" stroke="#404050" stroke-width="0.8"/>
+  <!-- 탑 shadow -->
+  <circle cx="31" cy="23" r="9" fill="#111122"/>
   <!-- 조이스틱 탑 (원형 손잡이) -->
-  <circle cx="30" cy="22" r="9" fill="url(#joyTop)" stroke="#505060" stroke-width="1"/>
+  <circle cx="30" cy="22" r="9" fill="#444455" stroke="#505060" stroke-width="1"/>
+  <!-- 탑 하이라이트 -->
+  <circle cx="27" cy="19" r="4" fill="#6a6a7a" opacity="0.4"/>
   <!-- 탑 하이라이트 -->
   <ellipse cx="27" cy="19" rx="4" ry="3" fill="#6a6a7a" opacity="0.5"/>
   <!-- 방향 표시 (십자형 점선) -->
@@ -1117,19 +1076,10 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { name: 'GND', label: 'GND', x: 68, y: 8,   type: 'ground', required: true,  description: 'GND',               compatibleWith: ['ground'] },
     ],
     svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="100" viewBox="0 0 80 100">
-  <defs>
-    <linearGradient id="l298nPcb" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#cc2222"/>
-      <stop offset="100%" stop-color="#881111"/>
-    </linearGradient>
-    <linearGradient id="l298nIc" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#222222"/>
-      <stop offset="50%" stop-color="#3a3a3a"/>
-      <stop offset="100%" stop-color="#222222"/>
-    </linearGradient>
-  </defs>
+  <!-- 빨간 PCB 기판 shadow -->
+  <rect x="2" y="5" width="78" height="86" rx="3" fill="#550808"/>
   <!-- 빨간 PCB 기판 -->
-  <rect x="1" y="4" width="78" height="86" rx="3" fill="url(#l298nPcb)" stroke="#661111" stroke-width="1.2"/>
+  <rect x="1" y="4" width="78" height="86" rx="3" fill="#991111" stroke="#661111" stroke-width="1.2"/>
   <!-- 히트싱크 핀들 (상단) -->
   <rect x="18" y="4" width="4" height="8" rx="1" fill="#888888" stroke="#666" stroke-width="0.5"/>
   <rect x="24" y="4" width="4" height="8" rx="1" fill="#888888" stroke="#666" stroke-width="0.5"/>
@@ -1140,8 +1090,12 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
   <rect x="54" y="4" width="4" height="8" rx="1" fill="#888888" stroke="#666" stroke-width="0.5"/>
   <!-- 히트싱크 베이스 -->
   <rect x="15" y="10" width="46" height="6" fill="#999999" stroke="#777" stroke-width="0.8"/>
+  <!-- 중앙 L298N IC 칩 shadow -->
+  <rect x="21" y="23" width="40" height="46" rx="2" fill="#111111"/>
   <!-- 중앙 L298N IC 칩 -->
-  <rect x="20" y="22" width="40" height="46" rx="2" fill="url(#l298nIc)" stroke="#444" stroke-width="1.2"/>
+  <rect x="20" y="22" width="40" height="46" rx="2" fill="#2a2a2a" stroke="#444" stroke-width="1.2"/>
+  <!-- IC 칩 하이라이트 -->
+  <rect x="22" y="24" width="36" height="8" rx="1" fill="#3a3a3a" opacity="0.6"/>
   <!-- IC 상단 노치 -->
   <path d="M35,22 A5,5 0 0,1 45,22" fill="#333" stroke="#555" stroke-width="0.8"/>
   <!-- L298N 텍스트 -->
@@ -1205,21 +1159,18 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { name: 'GND', label: 'GND', x: 40, y: 70, type: 'ground',  required: true, description: 'GND',                 compatibleWith: ['ground'] },
     ],
     svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="50" height="70" viewBox="0 0 50 70">
-  <defs>
-    <radialGradient id="pirDome" cx="50%" cy="45%" r="55%">
-      <stop offset="0%" stop-color="#f0eedd"/>
-      <stop offset="70%" stop-color="#d4c8a0"/>
-      <stop offset="100%" stop-color="#b0a070"/>
-    </radialGradient>
-    <linearGradient id="pirPcb" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#2a5a2a"/>
-      <stop offset="100%" stop-color="#164016"/>
-    </linearGradient>
-  </defs>
+  <!-- 초록 PCB 기판 shadow -->
+  <rect x="4" y="31" width="44" height="30" rx="3" fill="#0a2a0a"/>
   <!-- 초록 PCB 기판 -->
-  <rect x="3" y="30" width="44" height="30" rx="3" fill="url(#pirPcb)" stroke="#1a4a1a" stroke-width="1"/>
+  <rect x="3" y="30" width="44" height="30" rx="3" fill="#1e4a1e" stroke="#1a4a1a" stroke-width="1"/>
+  <!-- 돔 shadow -->
+  <ellipse cx="26" cy="31" rx="22" ry="22" fill="#a09050"/>
   <!-- 흰색/크림색 돔형 프레넬 렌즈 반구 -->
-  <ellipse cx="25" cy="30" rx="22" ry="22" fill="url(#pirDome)" stroke="#c8b888" stroke-width="1"/>
+  <ellipse cx="25" cy="30" rx="22" ry="22" fill="#d4c890" stroke="#c8b888" stroke-width="1"/>
+  <!-- 돔 중앙 밝은 부분 -->
+  <ellipse cx="25" cy="30" rx="12" ry="12" fill="#e8dca8" opacity="0.6"/>
+  <!-- 돔 하이라이트 -->
+  <ellipse cx="20" cy="24" rx="6" ry="4" fill="#f8f0d0" opacity="0.4"/>
   <!-- 프레넬 렌즈 격자 패턴 -->
   <line x1="25" y1="8" x2="25" y2="52" stroke="#c0aa70" stroke-width="0.6" opacity="0.6"/>
   <line x1="3" y1="30" x2="47" y2="30" stroke="#c0aa70" stroke-width="0.6" opacity="0.6"/>
@@ -1263,20 +1214,18 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { name: 'DOUT', label: 'DOUT', x: 40, y: 70, type: 'output',  required: false, description: '디지털 출력 (임계 초과 시 HIGH)', compatibleWith: ['digital','signal'] },
     ],
     svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="50" height="70" viewBox="0 0 50 70">
-  <defs>
-    <linearGradient id="soundPcb" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#2a5a2a"/>
-      <stop offset="100%" stop-color="#164016"/>
-    </linearGradient>
-    <radialGradient id="micBody" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#444444"/>
-      <stop offset="100%" stop-color="#111111"/>
-    </radialGradient>
-  </defs>
+  <!-- 초록 PCB 기판 shadow -->
+  <rect x="4" y="9" width="44" height="52" rx="3" fill="#0a2a0a"/>
   <!-- 초록 PCB 기판 -->
-  <rect x="3" y="8" width="44" height="52" rx="3" fill="url(#soundPcb)" stroke="#1a4a1a" stroke-width="1"/>
+  <rect x="3" y="8" width="44" height="52" rx="3" fill="#1e4a1e" stroke="#1a4a1a" stroke-width="1"/>
+  <!-- 마이크 원형 shadow -->
+  <circle cx="19" cy="33" r="14" fill="#0a0a0a"/>
   <!-- 마이크 원형 (왼쪽 배치) -->
-  <circle cx="18" cy="32" r="14" fill="url(#micBody)" stroke="#333333" stroke-width="1.2"/>
+  <circle cx="18" cy="32" r="14" fill="#222222" stroke="#333333" stroke-width="1.2"/>
+  <!-- 마이크 내부 밝은 부분 -->
+  <circle cx="18" cy="32" r="10" fill="#2e2e2e"/>
+  <!-- 마이크 중심 -->
+  <circle cx="18" cy="32" r="5" fill="#181818"/>
   <!-- 마이크 금속 외관 링 -->
   <circle cx="18" cy="32" r="14" fill="none" stroke="#555555" stroke-width="1.5"/>
   <circle cx="18" cy="32" r="11" fill="none" stroke="#3a3a3a" stroke-width="0.8"/>
@@ -1332,27 +1281,24 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { name: 'VCC', label: 'VCC', x: 56, y: 80, type: 'power', required: true, description: '전원 5V',       compatibleWith: ['power'] },
     ],
     svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="60" height="80" viewBox="0 0 60 80">
-  <defs>
-    <radialGradient id="stepperFace" cx="45%" cy="40%" r="60%">
-      <stop offset="0%" stop-color="#4466aa"/>
-      <stop offset="60%" stop-color="#1a3a7a"/>
-      <stop offset="100%" stop-color="#0a1a4a"/>
-    </radialGradient>
-    <radialGradient id="stepperShaft" cx="40%" cy="35%" r="60%">
-      <stop offset="0%" stop-color="#aaaaaa"/>
-      <stop offset="100%" stop-color="#666666"/>
-    </radialGradient>
-  </defs>
+  <!-- 파란 원형 모터 본체 shadow -->
+  <circle cx="31" cy="35" r="28" fill="#060e28"/>
   <!-- 파란 원형 모터 본체 (정면) -->
-  <circle cx="30" cy="34" r="28" fill="url(#stepperFace)" stroke="#1a3060" stroke-width="1.5"/>
+  <circle cx="30" cy="34" r="28" fill="#1a3a7a" stroke="#1a3060" stroke-width="1.5"/>
+  <!-- 본체 상단 하이라이트 -->
+  <ellipse cx="22" cy="22" rx="14" ry="9" fill="#4466aa" opacity="0.4"/>
   <!-- 외부 테두리 링 (알루미늄) -->
   <circle cx="30" cy="34" r="28" fill="none" stroke="#3a5a9a" stroke-width="2"/>
   <!-- 내부 기어박스 원 -->
   <circle cx="30" cy="34" r="18" fill="#142a5a" stroke="#2a4a7a" stroke-width="1"/>
   <!-- 기어 이빨 패턴 -->
   <circle cx="30" cy="34" r="18" fill="none" stroke="#3a5a8a" stroke-width="0.5" stroke-dasharray="3,2"/>
+  <!-- 중앙 샤프트 shadow -->
+  <circle cx="31" cy="35" r="8" fill="#444444"/>
   <!-- 중앙 샤프트/기어 -->
-  <circle cx="30" cy="34" r="8" fill="url(#stepperShaft)" stroke="#888888" stroke-width="1"/>
+  <circle cx="30" cy="34" r="8" fill="#888888" stroke="#888888" stroke-width="1"/>
+  <!-- 샤프트 하이라이트 -->
+  <circle cx="27" cy="31" r="3" fill="#bbbbbb" opacity="0.5"/>
   <!-- 샤프트 십자 슬롯 -->
   <line x1="30" y1="27" x2="30" y2="41" stroke="#555" stroke-width="1.5"/>
   <line x1="23" y1="34" x2="37" y2="34" stroke="#555" stroke-width="1.5"/>
