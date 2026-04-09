@@ -1,4 +1,5 @@
 import { circuitStore, type PlacedComponent, type PlacedWire } from '../stores/circuit-store.js';
+import { getCachedCompDef } from '../stores/comp-def-cache.js';
 
 const API_BASE = '/api';
 
@@ -116,7 +117,7 @@ export class PropertyPanel {
     def: ComponentDefRemote | null,
   ): string {
     const typeLabel = def?.name ?? comp.type;
-    const typeIcon = COMP_ICONS[comp.type] ?? '📦';
+    const typeIcon = getCachedCompDef(comp.type)?.icon ?? '📦';
 
     let html = `
       <div class="prop-header">
@@ -276,7 +277,7 @@ export class PropertyPanel {
     def: ComponentDefRemote | null,
   ): string {
     const compLabel  = def?.name ?? comp.type;
-    const compIcon   = COMP_ICONS[comp.type] ?? '📦';
+    const compIcon   = getCachedCompDef(comp.type)?.icon ?? '📦';
     const pinDef     = def?.pins.find(p => p.name === pinName);
     const typeClass  = pinDef ? `pin-type-${pinDef.type}` : 'pin-type-signal';
     const typeLabel  = pinDef?.type ?? '—';
@@ -476,20 +477,3 @@ export class PropertyPanel {
   }
 }
 
-const COMP_ICONS: Record<string, string> = {
-  led:           '💡',
-  'rgb-led':     '🌈',
-  button:        '🔘',
-  resistor:      '〰️',
-  buzzer:        '🔊',
-  potentiometer: '🔄',
-  servo:         '⚙️',
-  dht:           '🌡️',
-  ultrasonic:    '📡',
-  lcd:           '🖥️',
-  oled:          '📺',
-  'seven-segment':'7️⃣',
-  neopixel:      '✨',
-  'board-uno':   '🟢',
-  'board-esp32c3':'🔵',
-};

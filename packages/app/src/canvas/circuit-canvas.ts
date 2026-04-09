@@ -1,21 +1,6 @@
 import { circuitStore, type PlacedComponent, type PlacedWire } from '../stores/circuit-store.js';
 import { simController } from '../stores/sim-controller.js';
-
-// ─── 내부 타입 ────────────────────────────────────────────────────────────────
-
-interface ServerCompDef {
-  id: string; name: string; element?: string; svgTemplate?: string;
-  width: number; height: number; defaultProps: Record<string, unknown>;
-  pins: Array<{ name: string; x: number; y: number; type: string; label?: string }>;
-}
-
-const BUILTIN_TAGS: Record<string, string> = {
-  'board-uno':'sim-board-uno','board-esp32c3':'sim-board-esp32c3',
-  'led':'sim-led','rgb-led':'sim-rgb-led','button':'sim-button',
-  'resistor':'sim-resistor','buzzer':'sim-buzzer','potentiometer':'sim-potentiometer',
-  'seven-segment':'sim-seven-segment','lcd':'sim-lcd','oled':'sim-oled',
-  'dht':'sim-dht','ultrasonic':'sim-ultrasonic','servo':'sim-servo','neopixel':'sim-neopixel',
-};
+import { type CompDef, fetchCompDef, getCachedCompDef } from '../stores/comp-def-cache.js';
 
 // ─── 와이어 경로 계산 (module-level) ─────────────────────────────────────────
 
@@ -41,7 +26,11 @@ function buildWirePath(
     default: { // bezier
       if (waypoints.length >= 1) {
         const wp = waypoints[0];
-        return `M${from.x},${from.y} Q${wp.x},${wp.y} ${to.x},${to.y}`;
+        // B(0.5) = 0.25*from + 0.5*P1 + 0.25*to = wp → P1 = 2wp − 0.5(from+to)
+        // 경유점을 곡선이 실제로 통과하도록 제어점 역산
+        const cx = 2 * wp.x - 0.5 * (from.x + to.x);
+        const cy = 2 * wp.y - 0.5 * (from.y + to.y);
+        return `M${from.x},${from.y} Q${cx},${cy} ${to.x},${to.y}`;
       }
       const dx = to.x - from.x;
       return `M${from.x},${from.y} C${from.x + dx * 0.4},${from.y} ${to.x - dx * 0.4},${to.y} ${to.x},${to.y}`;
@@ -49,7 +38,83 @@ function buildWirePath(
   }
 }
 
-// ─── 컨텍스트 메뉴 ────────────────────────────────────────────────────────────
+// ─── 컴포넌트 컨텍스트 메뉴 ──────────────────────────────────────────────────
+
+class CompContextMenu {
+  private _el: HTMLDivElement;
+  private _currentCompId: string | null = null;
+
+  constructor() {
+    this._el = document.createElement('div');
+    this._el.id = 'comp-ctx-menu';
+    this._el.className = 'ctx-menu';
+    this._el.style.display = 'none';
+    document.body.appendChild(this._el);
+
+    document.addEventListener('click', () => this.hide());
+    document.addEventListener('contextmenu', (e) => {
+      if (e.target !== this._el && !this._el.contains(e.target as Node)) this.hide();
+    });
+  }
+
+  show(compId: string, clientX: number, clientY: number) {
+    this._currentCompId = compId;
+    const comp = circuitStore.components.find(c => c.id === compId);
+    if (!comp) return;
+
+    this._el.innerHTML = `
+      <div class="ctx-title">부품 조작</div>
+      <div class="ctx-item" data-action="rotate">↻ 90° 회전</div>
+      <div class="ctx-item" data-action="duplicate">⧉ 복제</div>
+      <div class="ctx-sep"></div>
+      <div class="ctx-item danger" data-action="delete">🗑 삭제</div>
+    `;
+
+    this._el.querySelector('[data-action="rotate"]')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (this._currentCompId) {
+        const cur = circuitStore.components.find(c => c.id === this._currentCompId);
+        if (cur) circuitStore.updateComponent(this._currentCompId, { rotation: ((cur.rotation ?? 0) + 90) % 360 });
+      }
+      this.hide();
+    });
+    this._el.querySelector('[data-action="duplicate"]')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (this._currentCompId) {
+        const cur = circuitStore.components.find(c => c.id === this._currentCompId);
+        if (cur) {
+          circuitStore.addComponent({
+            ...cur,
+            id: `${cur.type}-${Date.now()}`,
+            x: cur.x + 40,
+            y: cur.y + 40,
+            connections: {},
+          });
+        }
+      }
+      this.hide();
+    });
+    this._el.querySelector('[data-action="delete"]')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (this._currentCompId) circuitStore.removeComponent(this._currentCompId);
+      this.hide();
+    });
+
+    this._el.style.display = 'block';
+    const rect = this._el.getBoundingClientRect();
+    const x = Math.min(clientX, window.innerWidth  - rect.width  - 8);
+    const y = Math.min(clientY, window.innerHeight - rect.height - 8);
+    this._el.style.left = `${x}px`;
+    this._el.style.top  = `${y}px`;
+  }
+
+  hide() {
+    this._el.style.display = 'none';
+    this._currentCompId = null;
+  }
+}
+
+// ─── 와이어 컨텍스트 메뉴 ────────────────────────────────────────────────────
 
 class WireContextMenu {
   private _el: HTMLDivElement;
@@ -58,6 +123,7 @@ class WireContextMenu {
   constructor() {
     this._el = document.createElement('div');
     this._el.id = 'wire-ctx-menu';
+    this._el.className = 'ctx-menu';
     this._el.style.display = 'none';
     document.body.appendChild(this._el);
 
@@ -157,8 +223,8 @@ export class CircuitCanvas {
 
   private _mousePos = { x: 0, y: 0 };
   private _elements = new Map<string, HTMLElement>();
-  private _compDefCache = new Map<string, ServerCompDef | null>();
   private _ctxMenu = new WireContextMenu();
+  private _compCtxMenu = new CompContextMenu();
 
   constructor(container: HTMLElement) {
     this._container = container;
@@ -181,7 +247,7 @@ export class CircuitCanvas {
 
     // z=1: 와이어 SVG (pointer-events:none — 히트 영역은 각 요소에서 직접 설정)
     this._svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    this._svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none;';
+    this._svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:2;pointer-events:none;';
 
     this._wiresLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     this._wiresLayer.style.pointerEvents = 'all';
@@ -193,12 +259,12 @@ export class CircuitCanvas {
 
     // z=2: Lit 컴포넌트
     this._layer = document.createElement('div');
-    this._layer.style.cssText = 'position:absolute;top:0;left:0;transform-origin:0 0;z-index:2;';
+    this._layer.style.cssText = 'position:absolute;top:0;left:0;transform-origin:0 0;z-index:1;';
     this._container.appendChild(this._layer);
 
     // z=3: 끝점 도트 / 경유점 핸들 / 핀 서클 (보드 위에 표시)
     this._topSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    this._topSvg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:3;pointer-events:none;';
+    this._topSvg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:4;pointer-events:none;';
 
     this._endpointLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     this._endpointLayer.style.pointerEvents = 'none';
@@ -290,7 +356,6 @@ export class CircuitCanvas {
       if (this._waypointDrag) {
         this._waypointDrag = null;
       }
-      void e;
     });
 
     document.addEventListener('keydown', (e) => {
@@ -302,20 +367,10 @@ export class CircuitCanvas {
     });
   }
 
-  // ─── 서버 CompDef 캐시 ────────────────────────────────────────────────────
+  // ─── 서버 CompDef 캐시 (공유 캐시 위임) ─────────────────────────────────
 
-  private async _fetchCompDef(type: string): Promise<ServerCompDef | null> {
-    if (this._compDefCache.has(type)) return this._compDefCache.get(type) ?? null;
-    try {
-      const r = await fetch(`/api/components/${type}`);
-      if (!r.ok) { this._compDefCache.set(type, null); return null; }
-      const def = await r.json() as ServerCompDef;
-      this._compDefCache.set(type, def);
-      return def;
-    } catch {
-      this._compDefCache.set(type, null);
-      return null;
-    }
+  private _fetchCompDef(type: string): Promise<CompDef | null> {
+    return fetchCompDef(type);
   }
 
   // ─── 좌표 변환 ────────────────────────────────────────────────────────────
@@ -369,8 +424,8 @@ export class CircuitCanvas {
   }
 
   private _createElement(comp: PlacedComponent) {
-    const cachedDef = this._compDefCache.has(comp.type) ? this._compDefCache.get(comp.type) : undefined;
-    const tag = cachedDef?.element ?? BUILTIN_TAGS[comp.type] ?? 'sim-generic';
+    const cachedDef = getCachedCompDef(comp.type);
+    const tag = cachedDef?.element ?? 'sim-generic';
 
     const el = document.createElement(tag);
     el.style.cssText = `position:absolute;left:${comp.x}px;top:${comp.y}px;cursor:grab;user-select:none;`;
@@ -390,6 +445,13 @@ export class CircuitCanvas {
       this._renderPinPoints();
     });
 
+    el.addEventListener('contextmenu', (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      circuitStore.selectComponent(comp.id);
+      this._compCtxMenu.show(comp.id, e.clientX, e.clientY);
+    });
+
     el.addEventListener('pointerdown', (e: PointerEvent) => {
       if (e.button !== 0 || this._wireDrawing) return;
       e.stopPropagation();
@@ -407,12 +469,14 @@ export class CircuitCanvas {
 
     if (comp.type === 'button') {
       el.addEventListener('sim-press', () => {
-        const gpioPin = comp.connections['PIN1A'];
+        const connMap = circuitStore.getDerivedConnections().get(comp.id);
+        const gpioPin = connMap?.['PIN1A'];
         if (typeof gpioPin === 'number') simController.sendPinEvent(gpioPin, 1);
         simController.sendSensorUpdate(comp.id, { value: 1 });
       });
       el.addEventListener('sim-release', () => {
-        const gpioPin = comp.connections['PIN1A'];
+        const connMap = circuitStore.getDerivedConnections().get(comp.id);
+        const gpioPin = connMap?.['PIN1A'];
         if (typeof gpioPin === 'number') simController.sendPinEvent(gpioPin, 0);
         simController.sendSensorUpdate(comp.id, { value: 0 });
       });
@@ -427,7 +491,7 @@ export class CircuitCanvas {
     this._elements.set(comp.id, el);
   }
 
-  private _applyGenericDef(el: HTMLElement, def: ServerCompDef) {
+  private _applyGenericDef(el: HTMLElement, def: CompDef) {
     const g = el as any;
     g['svgTemplate'] = def.svgTemplate ?? '';
     g['pinDefs']     = def.pins.map(p => ({ name: p.name, x: p.x, y: p.y }));
@@ -452,7 +516,7 @@ export class CircuitCanvas {
       if (local) return { x: base.x + local.x, y: base.y + local.y };
     }
     const comp = circuitStore.components.find(c => c.id === compId);
-    const def = comp ? this._compDefCache.get(comp.type) : undefined;
+    const def = comp ? getCachedCompDef(comp.type) : undefined;
     if (def) {
       const pin = def.pins.find(p => p.name === pinName);
       if (pin) return { x: base.x + pin.x, y: base.y + pin.y };
@@ -466,7 +530,7 @@ export class CircuitCanvas {
     if (el && 'getPinPositions' in el) pinMap = (el as any).getPinPositions();
     if (pinMap.size === 0) {
       const comp = circuitStore.components.find(c => c.id === compId);
-      const def = comp ? this._compDefCache.get(comp.type) : undefined;
+      const def = comp ? getCachedCompDef(comp.type) : undefined;
       if (def) for (const p of def.pins) pinMap.set(p.name, { x: p.x, y: p.y });
     }
     return pinMap;
@@ -834,7 +898,54 @@ export class CircuitCanvas {
 
   // ─── 공개 API ─────────────────────────────────────────────────────────────
 
-  fitView()  { this._transform = { x: 40, y: 40, scale: 1 }; this._applyTransform(); }
+  fitView() {
+    const comps = circuitStore.components;
+    if (comps.length === 0) {
+      this._transform = { x: 0, y: 0, scale: 1 };
+      this._applyTransform();
+      return;
+    }
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const c of comps) {
+      const el = this._elements.get(c.id);
+      const w = el ? (el.offsetWidth  || 80) : 80;
+      const h = el ? (el.offsetHeight || 80) : 80;
+      minX = Math.min(minX, c.x);
+      minY = Math.min(minY, c.y);
+      maxX = Math.max(maxX, c.x + w);
+      maxY = Math.max(maxY, c.y + h);
+    }
+    const padding = 40;
+    const contentW = maxX - minX + padding * 2;
+    const contentH = maxY - minY + padding * 2;
+    const containerW = this._container.clientWidth;
+    const containerH = this._container.clientHeight;
+    const scale = Math.min(containerW / contentW, containerH / contentH, 1.5);
+    this._transform.scale = scale;
+    this._transform.x = (containerW - contentW * scale) / 2 - (minX - padding) * scale;
+    this._transform.y = (containerH - contentH * scale) / 2 - (minY - padding) * scale;
+    this._applyTransform();
+  }
+
   zoomIn()   { this._zoomAt(this._container.clientWidth / 2, this._container.clientHeight / 2, 1.2); }
   zoomOut()  { this._zoomAt(this._container.clientWidth / 2, this._container.clientHeight / 2, 0.8); }
+  /** 현재 줌 레벨 */
+  get scale() { return this._transform.scale; }
+
+
+  /** 캔버스 뷰포트 중앙의 캔버스 좌표 */
+  get viewCenterX(): number {
+    return (this._container.clientWidth  / 2 - this._transform.x) / this._transform.scale;
+  }
+  get viewCenterY(): number {
+    return (this._container.clientHeight / 2 - this._transform.y) / this._transform.scale;
+  }
+
+  /** 클라이언트 좌표(픽셀) → 캔버스 좌표 */
+  clientToCanvas(cx: number, cy: number): { x: number; y: number } {
+    return {
+      x: (cx - this._transform.x) / this._transform.scale,
+      y: (cy - this._transform.y) / this._transform.scale,
+    };
+  }
 }
