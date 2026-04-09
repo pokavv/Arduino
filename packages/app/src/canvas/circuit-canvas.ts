@@ -428,25 +428,49 @@ export class CircuitCanvas {
 
   private _createElement(comp: PlacedComponent) {
     const cachedDef = getCachedCompDef(comp.type);
+    // 캐시에 element 태그가 있으면 사용, 없으면 일단 sim-generic
     const tag = cachedDef?.element ?? 'sim-generic';
 
+    const el = this._buildElement(comp, tag);
+    if (tag === 'sim-generic' && cachedDef) this._applyGenericDef(el, cachedDef);
+
+    this._layer.appendChild(el);
+    this._elements.set(comp.id, el);
+
+    // 비동기로 서버 정의 로드 — 완료 시 실제 태그로 교체 또는 svgTemplate 적용
+    this._fetchCompDef(comp.type).then(def => {
+      if (!def) return;
+      const existing = this._elements.get(comp.id);
+      if (!existing) return;
+
+      const existingTag = existing.tagName.toLowerCase();
+      const targetTag   = def.element ?? 'sim-generic';
+
+      if (existingTag === targetTag) {
+        // 같은 태그 — sim-generic인 경우 svgTemplate 갱신
+        if (existingTag === 'sim-generic') this._applyGenericDef(existing, def);
+      } else {
+        // 태그가 다름 (sim-generic → sim-led 등) — 올바른 엘리먼트로 교체
+        const newEl = this._buildElement(comp, targetTag);
+        // sim-generic이 아닌 경우 svgTemplate 불필요; generic이면 적용
+        if (targetTag === 'sim-generic') this._applyGenericDef(newEl, def);
+        existing.replaceWith(newEl);
+        this._elements.set(comp.id, newEl);
+      }
+
+      this._renderWires();
+      this._renderEndpointDots();
+      this._renderPinPoints();
+    });
+  }
+
+  /** 지정 태그로 엘리먼트를 생성하고 이벤트 리스너를 등록한다 */
+  private _buildElement(comp: PlacedComponent, tag: string): HTMLElement {
     const el = document.createElement(tag);
     el.style.cssText = `position:absolute;left:${comp.x}px;top:${comp.y}px;cursor:grab;user-select:none;`;
 
     for (const [k, v] of Object.entries(comp.props)) (el as any)[k] = v;
     (el as any)['compId'] = comp.id;
-
-    if (tag === 'sim-generic' && cachedDef) this._applyGenericDef(el, cachedDef);
-
-    this._fetchCompDef(comp.type).then(def => {
-      if (!def) return;
-      const existing = this._elements.get(comp.id);
-      if (!existing) return;
-      if (existing.tagName.toLowerCase() === 'sim-generic') this._applyGenericDef(existing, def);
-      this._renderWires();
-      this._renderEndpointDots();
-      this._renderPinPoints();
-    });
 
     el.addEventListener('contextmenu', (e: MouseEvent) => {
       e.preventDefault();
@@ -465,6 +489,7 @@ export class CircuitCanvas {
       el.style.cursor = 'grabbing';
       el.setPointerCapture(e.pointerId);
     });
+
     el.addEventListener('pointerup', (e: PointerEvent) => {
       el.style.cursor = 'grab';
       el.releasePointerCapture(e.pointerId);
@@ -484,14 +509,14 @@ export class CircuitCanvas {
         simController.sendSensorUpdate(comp.id, { value: 0 });
       });
     }
+
     if (comp.type === 'potentiometer') {
       el.addEventListener('sim-change', (e: Event) => {
         simController.sendSensorUpdate(comp.id, { value: (e as CustomEvent).detail.value });
       });
     }
 
-    this._layer.appendChild(el);
-    this._elements.set(comp.id, el);
+    return el;
   }
 
   private _applyGenericDef(el: HTMLElement, def: CompDef) {

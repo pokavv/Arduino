@@ -8,6 +8,7 @@ import { componentEditor } from './panels/component-editor.js';
 import { circuitStore } from './stores/circuit-store.js';
 import { simController } from './stores/sim-controller.js';
 import { circuitValidator } from './stores/circuit-validator.js';
+import { fetchCompDef } from './stores/comp-def-cache.js';
 
 const API_BASE = '/api';
 
@@ -91,6 +92,10 @@ async function loadPalette() {
   try {
     const data = await fetch(`${API_BASE}/components`).then(r => r.json()) as { components: CompSummary[] };
     renderPalette(data.components);
+    // 팔레트 로드 후 모든 컴포넌트 def를 미리 캐시에 저장 → 드래그 시 즉시 올바른 태그 사용
+    for (const comp of data.components) {
+      fetchCompDef(comp.id).catch(() => null);
+    }
   } catch {
     paletteList.innerHTML = `<div style="padding:12px 16px;color:var(--color-error);font-size:11px;">서버에 연결할 수 없습니다.<br>pnpm dev로 서버를 시작하세요.</div>`;
   }
@@ -468,14 +473,9 @@ console.log('%c⚡ Arduino Web Simulator 준비 완료', 'color:#4a9eff;font-siz
 
 async function addComponent(type: string, x: number, y: number) {
   const id = `${type}-${Date.now()}`;
-  let serverDefaults: Record<string, unknown> = {};
-  try {
-    const r = await fetch(`${API_BASE}/components/${type}`);
-    if (r.ok) {
-      const def = await r.json() as { defaultProps?: Record<string, unknown> };
-      serverDefaults = def.defaultProps ?? {};
-    }
-  } catch { /* 서버 없으면 무시 */ }
+  // fetchCompDef는 캐시에 저장하므로 이후 _createElement에서 바로 올바른 태그 사용 가능
+  const def = await fetchCompDef(type).catch(() => null);
+  const serverDefaults: Record<string, unknown> = def?.defaultProps ?? {};
 
   circuitStore.addComponent({
     id, type, x, y, rotation: 0,
