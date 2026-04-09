@@ -128,6 +128,10 @@ export class SimBuzzer extends SimElement {
         <rect x="28.5" y="37" width="3" height="17" rx="0.5" fill="#666666"/>
         <rect x="29.2" y="37" width="1.2" height="17" fill="white" opacity="0.2"/>
 
+        <!-- VCC 극성 표시 "+" (실물: VCC 핀 옆에 흰색 인쇄) -->
+        <text x="14" y="36" font-size="5" fill="white" font-family="monospace"
+          text-anchor="middle" font-weight="bold">+</text>
+
         <!-- 핀 라벨 존 (Wokwi 스타일) -->
         <rect x="0" y="43" width="44" height="11" fill="#0d0d14"/>
         <line x1="0" y1="43" x2="44" y2="43" stroke="#252535" stroke-width="0.5"/>

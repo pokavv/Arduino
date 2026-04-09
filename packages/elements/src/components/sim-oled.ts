@@ -3,9 +3,15 @@ import { customElement, property } from 'lit/decorators.js';
 import { SimElement } from './sim-element.js';
 
 /**
- * <sim-oled> — SSD1306 OLED 128x64
+ * <sim-oled> — SSD1306 OLED 128x64 (0.96인치 I2C 모듈)
  *
- * Pins: VCC, GND, SDA, SCL
+ * 실물 기준:
+ *   - 파란색 PCB, 27×27mm 정사각형
+ *   - OLED 패널: 상단 16행 노란색, 나머지 48행 파란색
+ *   - 핀 헤더: PCB 하단 엣지 (GND-VCC-SCL-SDA 순)
+ *   - 4구석 마운팅 홀
+ *
+ * Pins: GND, VCC, SCL, SDA
  * i2cAddress: 0x3C
  */
 @customElement('sim-oled')
@@ -29,15 +35,17 @@ export class SimOled extends SimElement {
   override get componentType() { return 'oled'; }
   override get pins() { return ['VCC', 'GND', 'SDA', 'SCL']; }
 
+  // host: 90×100px (1:1 SVG)
+  // 핀: PCB 하단 — GND(20,100), VCC(34,100), SCL(48,100), SDA(62,100)
   override getPinPositions() {
-    // SVG 100×90px: 상단 핀헤더 4핀, x = 14, 28, 42, 56 (GND/VCC/SCL/SDA)
     return new Map([
-      ['GND', { x: 14, y:  0 }],
-      ['VCC', { x: 28, y:  0 }],
-      ['SCL', { x: 42, y:  0 }],
-      ['SDA', { x: 56, y:  0 }],
+      ['GND', { x: 20, y: 100 }],
+      ['VCC', { x: 34, y: 100 }],
+      ['SCL', { x: 48, y: 100 }],
+      ['SDA', { x: 62, y: 100 }],
     ]);
   }
+
   private _textX = 0;
   private _textY = 0;
   private _textSize = 1;
@@ -115,14 +123,13 @@ export class SimOled extends SimElement {
     this._redraw();
   }
 
-  // ─── SSD1306 API (시뮬레이션 엔진이 호출) ────────────────────
+  // ─── SSD1306 API ───────────────────────────────────────────────
 
   oledClear() {
     this._frameBuffer.fill(0);
     this._redraw();
   }
 
-  /** 픽셀 찍기 */
   oledDrawPixel(x: number, y: number, color: number) {
     if (x < 0 || x >= SimOled.WIDTH || y < 0 || y >= SimOled.HEIGHT) return;
     const byteIndex = x + Math.floor(y / 8) * SimOled.WIDTH;
@@ -134,10 +141,10 @@ export class SimOled extends SimElement {
     }
   }
 
-  /** 텍스트 출력 (간단 구현) */
   oledPrint(text: string, x: number, y: number, size = 1) {
     const ctx = this._ctx;
-    ctx.fillStyle = '#fff';
+    // 노란/파란 영역 구분 (16행 기준)
+    ctx.fillStyle = y < 16 ? '#FFD700' : '#44aaff';
     ctx.font = `${6 * size}px monospace`;
     ctx.fillText(text, x * 2, y * 2 + 6 * size);
   }
@@ -172,82 +179,109 @@ export class SimOled extends SimElement {
     const ctx = this._ctx;
     const W = SimOled.WIDTH;
     const H = SimOled.HEIGHT;
+
+    // 배경: 검정
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, W * 2, H * 2);
-    ctx.fillStyle = '#fff';
+
+    // 픽셀 렌더링: 상단 16행=노란색, 하단 48행=파란색
     for (let x = 0; x < W; x++) {
       for (let page = 0; page < 8; page++) {
         const byte = this._frameBuffer[x + page * W];
         for (let bit = 0; bit < 8; bit++) {
           if (byte & (1 << bit)) {
-            ctx.fillRect(x * 2, (page * 8 + bit) * 2, 2, 2);
+            const py = page * 8 + bit;
+            ctx.fillStyle = py < 16 ? '#FFD700' : '#44aaff';
+            ctx.fillRect(x * 2, py * 2, 2, 2);
           }
         }
       }
     }
   }
 
-  // ──────────────────────────────────────────────────────────────
-
   override render() {
     return html`
-      <svg width="100" height="90" viewBox="0 0 100 90" xmlns="http://www.w3.org/2000/svg">
+      <svg width="90" height="100" viewBox="0 0 90 100" xmlns="http://www.w3.org/2000/svg">
 
-        <!-- ── 핀헤더 (상단 4핀: GND/VCC/SCL/SDA) ── -->
-        <!-- 핀 플라스틱 블록 -->
-        <rect x="6" y="6" width="58" height="8" rx="1"
-          fill="#0d0d0d" stroke="#222" stroke-width="0.5"/>
-        <!-- 핀 금속 (위로 돌출) -->
-        <rect x="12" y="0" width="2.5" height="7" rx="0.5" fill="#aaa"/>
-        <rect x="26" y="0" width="2.5" height="7" rx="0.5" fill="#aaa"/>
-        <rect x="40" y="0" width="2.5" height="7" rx="0.5" fill="#aaa"/>
-        <rect x="54" y="0" width="2.5" height="7" rx="0.5" fill="#aaa"/>
-        <!-- 핀 라벨 -->
-        <text x="13.5" y="20" font-size="4.5" fill="#88ee99" font-family="monospace"
-          text-anchor="middle">GND</text>
-        <text x="27.5" y="20" font-size="4.5" fill="#ff8877" font-family="monospace"
-          text-anchor="middle">VCC</text>
-        <text x="41.5" y="20" font-size="4.5" fill="#88aaff" font-family="monospace"
-          text-anchor="middle">SCL</text>
-        <text x="55.5" y="20" font-size="4.5" fill="#ffcc55" font-family="monospace"
-          text-anchor="middle">SDA</text>
+        <!-- ── 파란 PCB 본체 ── -->
+        <rect x="0" y="0" width="90" height="88" rx="3"
+          fill="#1a4fa0" stroke="#0d3070" stroke-width="0.8"/>
+        <!-- PCB 상단 미묘한 하이라이트 -->
+        <rect x="0" y="0" width="90" height="6" rx="3"
+          fill="white" opacity="0.04"/>
 
-        <!-- ── PCB 기판 (짙은 남색/검은색) ── -->
-        <rect x="0" y="14" width="100" height="76" rx="3"
-          fill="#0a0a18" stroke="#222244" stroke-width="0.8"/>
-        <!-- PCB 상단 광택 -->
-        <rect x="0" y="14" width="100" height="8" rx="3"
-          fill="white" opacity="0.03"/>
+        <!-- 마운팅 홀 (4구석) -->
+        <circle cx="4.5"  cy="4.5"  r="2" fill="#0a2a5a" stroke="#0d3070" stroke-width="0.5"/>
+        <circle cx="85.5" cy="4.5"  r="2" fill="#0a2a5a" stroke="#0d3070" stroke-width="0.5"/>
+        <circle cx="4.5"  cy="83.5" r="2" fill="#0a2a5a" stroke="#0d3070" stroke-width="0.5"/>
+        <circle cx="85.5" cy="83.5" r="2" fill="#0a2a5a" stroke="#0d3070" stroke-width="0.5"/>
 
-        <!-- 마운팅 홀 -->
-        <circle cx="5"  cy="19" r="2" fill="#060610"/>
-        <circle cx="95" cy="19" r="2" fill="#060610"/>
-        <circle cx="5"  cy="85" r="2" fill="#060610"/>
-        <circle cx="95" cy="85" r="2" fill="#060610"/>
+        <!-- ── OLED 패널 외곽 베젤 ── -->
+        <rect x="3" y="5" width="84" height="62" rx="2"
+          fill="#050508" stroke="#1a1a2e" stroke-width="0.8"/>
 
-        <!-- ── OLED 디스플레이 패널 (검은 베젤) ── -->
-        <rect x="6" y="22" width="88" height="62" rx="2"
-          fill="#050508" stroke="#1a1a2a" stroke-width="0.8"/>
-        <!-- 디스플레이 활성 영역 프레임 -->
-        <rect x="8" y="24" width="84" height="58" rx="1"
-          fill="#000000" stroke="#0a0a14" stroke-width="0.5"/>
+        <!-- 디스플레이 노란 영역 배경 (상단 16행) -->
+        <rect x="4" y="6" width="82" height="15" rx="1"
+          fill="#1a1200"/>
 
-        <!-- Canvas는 foreignObject로 삽입 — 128×64 픽셀 캔버스를 84×58px에 표시 -->
-        <foreignObject x="8" y="24" width="84" height="58">
+        <!-- 디스플레이 파란 영역 배경 (하단 48행) -->
+        <rect x="4" y="21" width="82" height="45" rx="1"
+          fill="#00050f"/>
+
+        <!-- Canvas — 실제 OLED 콘텐츠 렌더링 (128×64 → 82×60 스케일) -->
+        <foreignObject x="4" y="6" width="82" height="60">
           <canvas xmlns="http://www.w3.org/1999/xhtml"
             width="256" height="128"
-            style="width:84px;height:58px;image-rendering:pixelated;display:block">
+            style="width:82px;height:60px;image-rendering:pixelated;display:block">
           </canvas>
         </foreignObject>
 
-        <!-- 디스플레이 유리 반사광 -->
-        <rect x="8" y="24" width="84" height="6" rx="1"
-          fill="white" opacity="0.03"/>
-        <line x1="8" y1="25" x2="30" y2="25" stroke="white" opacity="0.04" stroke-width="0.5"/>
+        <!-- 디스플레이 유리 반사 (미묘한 광택) -->
+        <rect x="4" y="6" width="82" height="5" rx="1"
+          fill="white" opacity="0.04"/>
+        <line x1="6" y1="7" x2="25" y2="7" stroke="white" opacity="0.06" stroke-width="0.5"/>
 
-        <!-- I2C 주소 라벨 -->
-        <text x="78" y="88" font-size="4" fill="#223355" font-family="monospace"
+        <!-- ── PCB 하단 SMD 부품 영역 (장식) ── -->
+        <!-- FPC 리본 소켓 (상단, 패널 연결) -->
+        <rect x="8" y="67" width="74" height="3" rx="1"
+          fill="#0d2a50" stroke="#1a3a70" stroke-width="0.4"/>
+
+        <!-- SMD 디커플링 커패시터 (갈색 사각형) -->
+        <rect x="14" y="72" width="4" height="2.5" rx="0.3" fill="#8a6a30"/>
+        <rect x="20" y="72" width="4" height="2.5" rx="0.3" fill="#8a6a30"/>
+        <!-- SMD 저항 (회색) -->
+        <rect x="30" y="72" width="5" height="2.5" rx="0.3" fill="#555"/>
+        <rect x="37" y="72" width="5" height="2.5" rx="0.3" fill="#555"/>
+        <!-- 점퍼 (작은 회색 사각형) -->
+        <rect x="48" y="72" width="3" height="2.5" rx="0.3" fill="#444"/>
+
+        <!-- I2C 주소 실크스크린 -->
+        <text x="65" y="75" font-size="3.5" fill="#9bb5e0" font-family="monospace"
           text-anchor="middle">0x3C</text>
+
+        <!-- ── 핀 헤더 (하단) ── -->
+        <!-- 플라스틱 블록 -->
+        <rect x="11" y="79" width="60" height="7" rx="1"
+          fill="#0d0d0d" stroke="#222" stroke-width="0.5"/>
+        <!-- 핀 라벨 (실크스크린) — 블록 위 -->
+        <text x="20" y="78.5" font-size="3.5" fill="#9bb5e0" font-family="monospace"
+          text-anchor="middle">GND</text>
+        <text x="34" y="78.5" font-size="3.5" fill="#ff8877" font-family="monospace"
+          text-anchor="middle">VCC</text>
+        <text x="48" y="78.5" font-size="3.5" fill="#aaccff" font-family="monospace"
+          text-anchor="middle">SCL</text>
+        <text x="62" y="78.5" font-size="3.5" fill="#ffcc55" font-family="monospace"
+          text-anchor="middle">SDA</text>
+
+        <!-- 핀 금속 (하단으로 돌출) -->
+        <rect x="18.5" y="84" width="2.5" height="16" rx="0.5" fill="#aaa"/>
+        <rect x="19"   y="84" width="1"   height="16" fill="white" opacity="0.3"/>
+        <rect x="32.5" y="84" width="2.5" height="16" rx="0.5" fill="#aaa"/>
+        <rect x="33"   y="84" width="1"   height="16" fill="white" opacity="0.3"/>
+        <rect x="46.5" y="84" width="2.5" height="16" rx="0.5" fill="#aaa"/>
+        <rect x="47"   y="84" width="1"   height="16" fill="white" opacity="0.3"/>
+        <rect x="60.5" y="84" width="2.5" height="16" rx="0.5" fill="#aaa"/>
+        <rect x="61"   y="84" width="1"   height="16" fill="white" opacity="0.3"/>
       </svg>
     `;
   }
