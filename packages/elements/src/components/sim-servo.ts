@@ -87,36 +87,37 @@ export class SimServo extends SimElement {
         <rect x="10" y="5" width="${(this.angle / 180) * 40}" height="3" rx="1"
           fill="#4477cc" opacity="0.6"/>
 
-        <!-- 서보 본체 -->
+        <!-- 서보 본체 (실물 SG90: 밝은 파란색) -->
         <rect x="5" y="16" width="50" height="36" rx="4"
-          fill="#2244aa" stroke="#1133aa" stroke-width="1"/>
-        <rect x="5" y="16" width="50" height="7" rx="3" fill="white" opacity="0.1"/>
+          fill="#2b5fcc" stroke="#1a4aaa" stroke-width="1"/>
+        <rect x="5" y="16" width="50" height="7" rx="3" fill="white" opacity="0.12"/>
         <rect x="5" y="46" width="50" height="6" fill="#0a1a55" opacity="0.5"/>
 
-        <!-- 마운팅 귀 -->
-        <rect x="0"  y="22" width="8" height="8" rx="2" fill="#2244aa" stroke="#1133aa" stroke-width="0.8"/>
-        <rect x="52" y="22" width="8" height="8" rx="2" fill="#2244aa" stroke="#1133aa" stroke-width="0.8"/>
-        <circle cx="4"  cy="26" r="2" fill="#111"/>
-        <circle cx="56" cy="26" r="2" fill="#111"/>
+        <!-- 마운팅 귀 (실물: 본체와 같은 파란색) -->
+        <rect x="0"  y="21" width="9" height="10" rx="2" fill="#2b5fcc" stroke="#1a4aaa" stroke-width="0.8"/>
+        <rect x="51" y="21" width="9" height="10" rx="2" fill="#2b5fcc" stroke="#1a4aaa" stroke-width="0.8"/>
+        <!-- 마운팅 홀 -->
+        <circle cx="4.5"  cy="26" r="2.2" fill="#111" stroke="#0a0a1a" stroke-width="0.5"/>
+        <circle cx="55.5" cy="26" r="2.2" fill="#111" stroke="#0a0a1a" stroke-width="0.5"/>
 
-        <!-- SG90 라벨 -->
-        <text x="30" y="38" font-size="7.5" fill="#6699ee" font-family="monospace"
+        <!-- SG90 라벨 (실물: 흰색 실크스크린) -->
+        <text x="30" y="39" font-size="7.5" fill="#ccd8ff" font-family="monospace"
           text-anchor="middle" font-weight="bold">SG90</text>
 
-        <!-- 출력축 하우징 캡 -->
-        <rect x="16" y="12" width="28" height="12" rx="3" fill="#555" stroke="#444" stroke-width="0.8"/>
-        <rect x="16" y="12" width="28" height="5" rx="3" fill="white" opacity="0.08"/>
+        <!-- 출력축 하우징 캡 (실물: 짙은 회색) -->
+        <rect x="15" y="11" width="30" height="13" rx="3" fill="#444" stroke="#333" stroke-width="0.8"/>
+        <rect x="15" y="11" width="30" height="5" rx="3" fill="white" opacity="0.07"/>
 
-        <!-- 서보 암 -->
+        <!-- 서보 암 (실물 SG90: 흰색 플라스틱 호른) -->
         <g transform="rotate(${armAngle}, ${cx}, ${cy})">
           <rect x="${cx - 3.5}" y="${cy - armLen}" width="7" height="${armLen + shortLen}"
-            rx="3.5" fill="#cccccc" stroke="#999" stroke-width="0.8"/>
+            rx="3.5" fill="#eeeeee" stroke="#cccccc" stroke-width="0.8"/>
           <rect x="${cx - 1.5}" y="${cy - armLen}" width="3" height="${armLen + shortLen}"
-            rx="1.5" fill="white" opacity="0.2"/>
-          <circle cx="${cx}" cy="${cy - armLen}" r="2.5" fill="#aaa" stroke="#777" stroke-width="0.6"/>
-          <circle cx="${cx}" cy="${cy - armLen}" r="1.2" fill="#555"/>
-          <circle cx="${cx}" cy="${cy + shortLen}" r="2.5" fill="#aaa" stroke="#777" stroke-width="0.6"/>
-          <circle cx="${cx}" cy="${cy + shortLen}" r="1.2" fill="#555"/>
+            rx="1.5" fill="white" opacity="0.4"/>
+          <circle cx="${cx}" cy="${cy - armLen}" r="2.5" fill="#e0e0e0" stroke="#aaa" stroke-width="0.6"/>
+          <circle cx="${cx}" cy="${cy - armLen}" r="1.2" fill="#999"/>
+          <circle cx="${cx}" cy="${cy + shortLen}" r="2.5" fill="#e0e0e0" stroke="#aaa" stroke-width="0.6"/>
+          <circle cx="${cx}" cy="${cy + shortLen}" r="1.2" fill="#999"/>
         </g>
 
         <!-- 출력축 허브 -->

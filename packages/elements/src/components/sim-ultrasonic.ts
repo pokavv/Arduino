@@ -87,27 +87,27 @@ export class SimUltrasonic extends SimElement {
     return html`
       <svg width="102" height="120" viewBox="0 0 68 80" xmlns="http://www.w3.org/2000/svg">
 
-        <!-- 초록 PCB -->
+        <!-- 파란색 PCB (실물 HC-SR04 기준) -->
         <rect x="0" y="0" width="68" height="40" rx="4"
-          fill="#1a4a1a" stroke="#0a3010" stroke-width="1"/>
+          fill="#1a3870" stroke="#0d2050" stroke-width="1"/>
         <rect x="0" y="0" width="68" height="5" rx="3" fill="white" opacity="0.08"/>
-        <rect x="0" y="32" width="68" height="8" fill="#0a2a0a" opacity="0.4"/>
+        <rect x="0" y="32" width="68" height="8" fill="#0a1838" opacity="0.4"/>
 
         <!-- 구리 패드 -->
         ${[9, 25, 43, 59].map(x => html`
           <rect x="${x - 3}" y="33" width="6" height="5" rx="1" fill="#c08030" opacity="0.75"/>
         `)}
 
-        <!-- 라벨 -->
-        <text x="34" y="11" font-size="6.5" fill="#4fcc4f" font-family="monospace"
+        <!-- 라벨 (실물: 흰색 실크스크린 텍스트) -->
+        <text x="34" y="11" font-size="6.5" fill="#ccd8ff" font-family="monospace"
           text-anchor="middle" font-weight="bold">HC-SR04</text>
 
         <!-- 트랜스듀서 (T / R) -->
         ${this._transducer(17, 22, this.trigActive)}
-        <text x="17" y="35.5" font-size="5.5" fill="#5fcc5f" font-family="monospace"
+        <text x="17" y="35.5" font-size="5.5" fill="#aabfff" font-family="monospace"
           text-anchor="middle">T</text>
         ${this._transducer(51, 22, false)}
-        <text x="51" y="35.5" font-size="5.5" fill="#5fcc5f" font-family="monospace"
+        <text x="51" y="35.5" font-size="5.5" fill="#aabfff" font-family="monospace"
           text-anchor="middle">R</text>
 
         <!-- ── 인터랙티브 컨트롤 존 ── -->

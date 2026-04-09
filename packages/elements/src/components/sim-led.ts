@@ -3,18 +3,19 @@ import { customElement, property } from 'lit/decorators.js';
 import { SimElement } from './sim-element.js';
 import type { LedColor } from '../types.js';
 
-const COLOR_MAP: Record<LedColor, { off: string; on: string; glow: string }> = {
-  red:    { off: '#5a0000', on: '#ff2020', glow: '#ff0000' },
-  green:  { off: '#004400', on: '#20ff50', glow: '#00ff44' },
-  blue:   { off: '#000055', on: '#4080ff', glow: '#2060ff' },
-  yellow: { off: '#555500', on: '#ffee00', glow: '#ffdd00' },
-  white:  { off: '#444444', on: '#ffffff', glow: '#ffffff' },
-  orange: { off: '#552200', on: '#ff8800', glow: '#ff7700' },
-  purple: { off: '#330044', on: '#cc44ff', glow: '#aa00ff' },
+const COLOR_MAP: Record<LedColor, { off: string; on: string; glow: string; lens: string }> = {
+  red:    { off: '#4a0000', on: '#ff2020', glow: '#ff0000', lens: '#cc2020' },
+  green:  { off: '#003300', on: '#20ff50', glow: '#00ff44', lens: '#00aa33' },
+  blue:   { off: '#000044', on: '#4488ff', glow: '#2060ff', lens: '#2244cc' },
+  yellow: { off: '#444400', on: '#ffee00', glow: '#ffdd00', lens: '#ccaa00' },
+  white:  { off: '#333333', on: '#ffffff', glow: '#ffffff', lens: '#aaaaaa' },
+  orange: { off: '#441800', on: '#ff8800', glow: '#ff7700', lens: '#cc5500' },
+  purple: { off: '#220033', on: '#cc44ff', glow: '#aa00ff', lens: '#8800cc' },
 };
 
 /**
- * <sim-led> — LED 컴포넌트 (60×90px)
+ * <sim-led> — 5mm through-hole LED (60×90px)
+ * 실물 기준: 투명(또는 착색) 에폭시 렌즈, 캐소드 쪽 평면 구분, 긴 리드=애노드
  * Pins: ANODE(+), CATHODE(-)
  */
 @customElement('sim-led')
@@ -39,8 +40,6 @@ export class SimLed extends SimElement {
     }
   }
 
-  // getPinPositions: viewBox 좌표(40×60) × 1.5 = host 좌표(60×90)
-  // ANODE  x=14 × 1.5 = 21,  CATHODE x=26 × 1.5 = 39
   override getPinPositions() {
     return new Map([
       ['ANODE',   { x: 21, y: 90 }],
@@ -52,58 +51,75 @@ export class SimLed extends SimElement {
 
   override render() {
     const c = this._colors;
-    const fill = this.lit ? c.on : c.off;
     const glowOpacity = this.lit ? (this.brightness / 255) : 0;
+    // 켜졌을 때: 렌즈 색(밝음), 꺼졌을 때: 암색
+    const lensBody  = this.lit ? c.on   : c.off;
+    const lensStroke = this.lit ? '#fff8' : '#5555';
 
     return html`
-      <svg width="60" height="90" viewBox="0 0 40 60">
+      <svg width="60" height="90" viewBox="0 0 40 60" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <radialGradient id="led-glow-${this.compId}" cx="50%" cy="45%" r="55%">
-            <stop offset="0%" stop-color="${c.glow}" stop-opacity="${glowOpacity * 0.9}"/>
+          <!-- 켜졌을 때 외부 글로우 -->
+          <radialGradient id="led-glow-${this.compId}" cx="50%" cy="40%" r="60%">
+            <stop offset="0%"   stop-color="${c.glow}" stop-opacity="${glowOpacity * 0.85}"/>
             <stop offset="100%" stop-color="${c.glow}" stop-opacity="0"/>
+          </radialGradient>
+          <!-- 렌즈 내부 그라디언트 -->
+          <radialGradient id="led-lens-${this.compId}" cx="38%" cy="32%" r="60%">
+            <stop offset="0%"   stop-color="${this.lit ? '#ffffff' : '#888888'}" stop-opacity="${this.lit ? 0.6 : 0.15}"/>
+            <stop offset="60%"  stop-color="${lensBody}" stop-opacity="1"/>
+            <stop offset="100%" stop-color="${this.lit ? c.lens : '#111111'}" stop-opacity="1"/>
           </radialGradient>
         </defs>
 
-        <!-- glow -->
+        <!-- 외부 글로우 (켜졌을 때) -->
         ${this.lit ? svg`
-          <ellipse cx="20" cy="17" rx="22" ry="22"
+          <ellipse cx="20" cy="16" rx="20" ry="20"
             fill="url(#led-glow-${this.compId})"/>
         ` : ''}
 
-        <!-- LED 반돔 몸체 -->
-        <ellipse cx="20" cy="17" rx="14" ry="14" fill="${fill}"
-          stroke="${this.lit ? '#aaa' : '#666'}" stroke-width="1"/>
-        <!-- 원통 하단부 -->
-        <path d="M6,17 L6,28 Q6,35 13,36 L27,36 Q34,35 34,28 L34,17"
-          fill="${fill}" stroke="${this.lit ? '#aaa' : '#666'}" stroke-width="1"/>
-        <line x1="6" y1="17" x2="34" y2="17" stroke="#66666644" stroke-width="0.8"/>
+        <!-- ── 실물 5mm LED 구조 ── -->
 
-        <!-- 상단 하이라이트 -->
-        <ellipse cx="13" cy="10" rx="5" ry="3" fill="white"
-          opacity="${this.lit ? 0.45 : 0.15}" transform="rotate(-30,13,10)"/>
+        <!-- 리드선 금속 (아노드=긴 리드, 캐소드=짧은 리드) — 몸체 아래에서 나옴 -->
+        <!-- 아노드 (+) 리드 — 더 길다 -->
+        <line x1="14" y1="34" x2="14" y2="58" stroke="#bbbbbb" stroke-width="1.8"/>
+        <line x1="14" y1="34" x2="14" y2="58" stroke="white" stroke-width="0.5" opacity="0.3"/>
+        <!-- 캐소드 (-) 리드 — 약간 짧다 (실물은 약 0.5mm 차이) -->
+        <line x1="26" y1="34" x2="26" y2="56" stroke="#bbbbbb" stroke-width="1.8"/>
+        <line x1="26" y1="34" x2="26" y2="56" stroke="white" stroke-width="0.5" opacity="0.3"/>
 
-        <!-- 플랜지 구분선 -->
-        <line x1="8" y1="30" x2="32" y2="30"
-          stroke="${this.lit ? '#ffffff33' : '#33333366'}" stroke-width="0.6"/>
+        <!-- 몸체 원통형 하단부 (플랜지) -->
+        <rect x="8" y="22" width="24" height="12" rx="1"
+          fill="${this.lit ? c.lens : '#222222'}"
+          stroke="${this.lit ? c.glow + '88' : '#444444'}" stroke-width="0.8"/>
+        <!-- 플랜지 하이라이트 -->
+        <rect x="8" y="22" width="24" height="3" rx="1"
+          fill="white" opacity="${this.lit ? 0.15 : 0.06}"/>
 
-        <!-- 캐소드 구분 표시 (평평한 면 = K) -->
-        <line x1="6" y1="24" x2="6" y2="35"
-          stroke="${this.lit ? '#aaa' : '#555'}" stroke-width="1.5"/>
+        <!-- 캐소드 표시 — 평평한 쪽 (실물: 몸체 한쪽이 평평함) -->
+        <rect x="8" y="22" width="4" height="12"
+          fill="${this.lit ? c.lens : '#1a1a1a'}" opacity="0.6"/>
+        <line x1="8" y1="22" x2="8" y2="34"
+          stroke="${this.lit ? '#fff6' : '#5556'}" stroke-width="0.8"/>
 
-        <!-- 핀 금속 — 기능 색상: ANODE=빨강(+), CATHODE=회색(-) -->
-        <rect x="12.5" y="36" width="3" height="24" rx="0.5" fill="#cc4433"/>
-        <rect x="13.2" y="36" width="1.2" height="24" fill="white" opacity="0.25"/>
-        <rect x="24.5" y="36" width="3" height="24" rx="0.5" fill="#666666"/>
-        <rect x="25.2" y="36" width="1.2" height="24" fill="white" opacity="0.2"/>
+        <!-- 에폭시 렌즈 반구 (실물: 반구형 돔) -->
+        <ellipse cx="20" cy="22" rx="12" ry="12"
+          fill="url(#led-lens-${this.compId})"
+          stroke="${lensStroke}" stroke-width="0.8"/>
+        <!-- 렌즈 정반사 하이라이트 -->
+        <ellipse cx="14" cy="15" rx="3.5" ry="2"
+          fill="white" opacity="${this.lit ? 0.5 : 0.18}"
+          transform="rotate(-30,14,15)"/>
+        <!-- 내부 다이 (발광부) — 실물: 렌즈 안에 작은 칩이 보임 -->
+        <ellipse cx="20" cy="22" rx="4" ry="3"
+          fill="${this.lit ? '#ffffff' : c.off}"
+          opacity="${this.lit ? 0.6 : 0.3}"/>
 
-        <!-- 핀 라벨 존 (Wokwi 스타일: 어두운 배경 + 대형 고대비 텍스트) -->
+        <!-- 핀 라벨 존 -->
         <rect x="0" y="47" width="40" height="13" fill="#0d0d14"/>
         <line x1="0" y1="47" x2="40" y2="47" stroke="#252535" stroke-width="0.5"/>
-
-        <!-- ANODE 라벨 (빨간색) -->
         <text x="14" y="57" font-size="8" fill="#ff8877" font-family="monospace"
           text-anchor="middle" font-weight="bold">A+</text>
-        <!-- CATHODE 라벨 (파란색) -->
         <text x="26" y="57" font-size="8" fill="#88aaff" font-family="monospace"
           text-anchor="middle" font-weight="bold">K−</text>
       </svg>
