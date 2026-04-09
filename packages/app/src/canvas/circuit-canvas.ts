@@ -324,8 +324,12 @@ export class CircuitCanvas {
       }
       if (this._dragging) {
         const d = this._dragging;
-        d.liveX = d.ox + (e.clientX - d.startX) / this._transform.scale;
-        d.liveY = d.oy + (e.clientY - d.startY) / this._transform.scale;
+        const dx = e.clientX - d.startX;
+        const dy = e.clientY - d.startY;
+        // 6px 임계값: 버튼 클릭 등 사소한 움직임에는 드래그 시작 안 함
+        if (!d.moved && Math.sqrt(dx * dx + dy * dy) < 6) return;
+        d.liveX = d.ox + dx / this._transform.scale;
+        d.liveY = d.oy + dy / this._transform.scale;
         d.moved = true;
         const el = this._elements.get(d.id);
         if (el) { el.style.left = `${d.liveX}px`; el.style.top = `${d.liveY}px`; }
@@ -472,6 +476,11 @@ export class CircuitCanvas {
     for (const [k, v] of Object.entries(comp.props)) (el as any)[k] = v;
     (el as any)['compId'] = comp.id;
 
+    // sim-interaction-start/end: 포텐셔미터 노브 등 내부 인터랙션 중 드래그 차단
+    let _interacting = false;
+    el.addEventListener('sim-interaction-start', () => { _interacting = true; });
+    el.addEventListener('sim-interaction-end',   () => { _interacting = false; });
+
     el.addEventListener('contextmenu', (e: MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
@@ -480,7 +489,7 @@ export class CircuitCanvas {
     });
 
     el.addEventListener('pointerdown', (e: PointerEvent) => {
-      if (e.button !== 0 || this._wireDrawing) return;
+      if (e.button !== 0 || this._wireDrawing || _interacting) return;
       e.stopPropagation();
       circuitStore.selectComponent(comp.id);
       const cur = circuitStore.components.find(c => c.id === comp.id);
