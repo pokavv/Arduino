@@ -523,6 +523,24 @@ export class CircuitCanvas {
       simController.sendSensorUpdate(comp.id, (e as CustomEvent).detail);
     });
 
+    // 보드 BOOT 버튼: GPIO 직접 주입
+    el.addEventListener('sim-pin-press', (e: Event) => {
+      const gpio = (e as CustomEvent).detail?.gpio;
+      if (typeof gpio === 'number') simController.sendPinEvent(gpio, 0);
+    });
+    el.addEventListener('sim-pin-release', (e: Event) => {
+      const gpio = (e as CustomEvent).detail?.gpio;
+      if (typeof gpio === 'number') simController.sendPinEvent(gpio, 1);
+    });
+
+    // 보드 RST 버튼: 시뮬레이션 재시작
+    el.addEventListener('sim-reset', () => {
+      if (circuitStore.simState === 'running') {
+        simController.stop();
+        setTimeout(() => simController.start(), 300);
+      }
+    });
+
     return el;
   }
 
