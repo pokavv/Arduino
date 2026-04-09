@@ -70,62 +70,51 @@ export class SimButton extends SimElement {
     const bodyOffsetY = this.pressed ? 2 : 0;
 
     return html`
-      <svg width="50" height="50" viewBox="0 0 50 50">
-        <defs>
-          <!-- 몸체 상단 금속 광택 -->
-          <linearGradient id="btnBodyGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stop-color="#4a4a4a"/>
-            <stop offset="40%"  stop-color="#2a2a2a"/>
-            <stop offset="100%" stop-color="#1a1a1a"/>
-          </linearGradient>
-          <!-- 버튼 캡 radialGradient -->
-          <radialGradient id="capGrad" cx="38%" cy="30%" r="60%">
-            <stop offset="0%"   stop-color="${capHighlight}"/>
-            <stop offset="60%"  stop-color="${capColor}"/>
-            <stop offset="100%" stop-color="${capShadow}"/>
-          </radialGradient>
-          <!-- 핀 광택 -->
-          <linearGradient id="pinGrad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%"   stop-color="#999"/>
-            <stop offset="50%"  stop-color="#eee"/>
-            <stop offset="100%" stop-color="#999"/>
-          </linearGradient>
-        </defs>
+      <svg width="50" height="50" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
 
-        <!-- 리드핀 4개 (좌측 2, 우측 2) — 몸체 아래 돌출 -->
-        <!-- 왼쪽 핀 pair -->
-        <rect x="12.5" y="33" width="3" height="17" rx="0.5" fill="url(#pinGrad)"/>
-        <rect x="18.5" y="33" width="3" height="17" rx="0.5" fill="url(#pinGrad)"/>
-        <!-- 오른쪽 핀 pair -->
-        <rect x="28.5" y="33" width="3" height="17" rx="0.5" fill="url(#pinGrad)"/>
-        <rect x="34.5" y="33" width="3" height="17" rx="0.5" fill="url(#pinGrad)"/>
+        <!-- ── 리드핀 4개 (직접 색상) ── -->
+        <rect x="12.5" y="33" width="3" height="17" rx="0.5" fill="#aaaaaa"/>
+        <rect x="13"   y="33" width="1.5" height="17" rx="0.3" fill="white" opacity="0.35"/>
+        <rect x="18.5" y="33" width="3" height="17" rx="0.5" fill="#aaaaaa"/>
+        <rect x="19"   y="33" width="1.5" height="17" rx="0.3" fill="white" opacity="0.35"/>
+        <rect x="28.5" y="33" width="3" height="17" rx="0.5" fill="#aaaaaa"/>
+        <rect x="29"   y="33" width="1.5" height="17" rx="0.3" fill="white" opacity="0.35"/>
+        <rect x="34.5" y="33" width="3" height="17" rx="0.5" fill="#aaaaaa"/>
+        <rect x="35"   y="33" width="1.5" height="17" rx="0.3" fill="white" opacity="0.35"/>
 
-        <!-- PCB 몸체 (정사각 검은 패키지) -->
+        <!-- ── PCB 몸체 (검은 패키지) ── -->
         <rect x="7" y="${16 + bodyOffsetY}" width="36" height="19" rx="2"
-          fill="url(#btnBodyGrad)" stroke="#555" stroke-width="0.8"/>
-
-        <!-- 몸체 윗면 (약간 더 밝은 면) -->
+          fill="#2a2a2a" stroke="#555" stroke-width="0.8"/>
+        <!-- 상단 광택 레이어 -->
         <rect x="7" y="${16 + bodyOffsetY}" width="36" height="5" rx="2"
-          fill="#5a5a5a" opacity="0.5"/>
+          fill="white" opacity="0.07"/>
+        <!-- 하단 그림자 -->
+        <rect x="7" y="${30 + bodyOffsetY}" width="36" height="5"
+          fill="#111" opacity="0.5"/>
 
-        <!-- 몸체 측면 돌출 텍스처 (좌우 가이드 슬롯) -->
-        <rect x="5"  y="${22 + bodyOffsetY}" width="3" height="7" rx="1" fill="#3a3a3a" stroke="#555" stroke-width="0.5"/>
-        <rect x="42" y="${22 + bodyOffsetY}" width="3" height="7" rx="1" fill="#3a3a3a" stroke="#555" stroke-width="0.5"/>
+        <!-- 측면 가이드 슬롯 -->
+        <rect x="5"  y="${22 + bodyOffsetY}" width="3" height="7" rx="1"
+          fill="#3a3a3a" stroke="#555" stroke-width="0.5"/>
+        <rect x="42" y="${22 + bodyOffsetY}" width="3" height="7" rx="1"
+          fill="#3a3a3a" stroke="#555" stroke-width="0.5"/>
 
-        <!-- 버튼 캡 (원형, 클릭 인터랙션) -->
+        <!-- ── 버튼 캡 ── -->
         <g class="btn-cap ${this.pressed ? 'pressed' : ''}"
            @pointerdown="${this._onPress}"
            @pointerup="${this._onRelease}"
            @pointerleave="${this._onRelease}">
-          <!-- 캡 그림자 링 -->
+          <!-- 캡 그림자 -->
           <circle cx="25" cy="${18 + bodyOffsetY}" r="9"
-            fill="#111" opacity="0.4"/>
-          <!-- 캡 본체 -->
+            fill="#000000" opacity="0.3"/>
+          <!-- 캡 본체 (직접 색상) -->
           <circle cx="25" cy="${17 + bodyOffsetY}" r="8.5"
-            fill="url(#capGrad)" stroke="${capShadow}" stroke-width="0.8"/>
-          <!-- 캡 상단 광택 하이라이트 -->
+            fill="${capColor}" stroke="${capShadow}" stroke-width="0.8"/>
+          <!-- 캡 밝은 레이어 (좌상) -->
+          <circle cx="25" cy="${17 + bodyOffsetY}" r="8.5"
+            fill="${capHighlight}" opacity="0.25"/>
+          <!-- 캡 상단 하이라이트 -->
           <ellipse cx="22" cy="${14 + bodyOffsetY}" rx="3.5" ry="2"
-            fill="white" opacity="${this.pressed ? 0.1 : 0.22}"
+            fill="white" opacity="${this.pressed ? 0.08 : 0.22}"
             transform="rotate(-15,22,${14 + bodyOffsetY})"/>
         </g>
       </svg>

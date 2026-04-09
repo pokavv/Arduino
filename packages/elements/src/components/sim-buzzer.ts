@@ -108,57 +108,40 @@ export class SimBuzzer extends SimElement {
     return html`
       <svg width="44" height="44" viewBox="0 0 44 44">
         <defs>
-          <!-- 원통 몸체 광택 -->
-          <radialGradient id="buzzerBodyGrad" cx="40%" cy="35%" r="60%">
-            <stop offset="0%"   stop-color="#4a4a4a"/>
-            <stop offset="55%"  stop-color="#1e1e1e"/>
-            <stop offset="100%" stop-color="#0a0a0a"/>
-          </radialGradient>
-          <!-- active glow 필터 -->
-          <filter id="buzzerGlow" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="2.5" result="blur"/>
-            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-          <!-- 은색 테두리 gradient -->
-          <linearGradient id="buzzerRimGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stop-color="#888"/>
-            <stop offset="50%"  stop-color="#ccc"/>
-            <stop offset="100%" stop-color="#666"/>
-          </linearGradient>
-          <!-- 핀 광택 -->
-          <linearGradient id="buzzerPinGrad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%"   stop-color="#999"/>
-            <stop offset="50%"  stop-color="#eee"/>
-            <stop offset="100%" stop-color="#999"/>
-          </linearGradient>
+          <!-- defs 비어 있음 (url() 없이 직접 색상 사용) -->
         </defs>
 
-        <!-- active 상태 외곽 glow -->
+        <!-- ── active 상태 외곽 glow (직접 색상) ── -->
         ${this.active ? html`
-          <circle cx="22" cy="20" r="16" fill="${glowColor}"
-            opacity="${glowOpacity}" filter="url(#buzzerGlow)"/>
+          <circle cx="22" cy="20" r="18"
+            fill="${glowColor}" opacity="${glowOpacity * 0.5}"/>
+          <circle cx="22" cy="20" r="16"
+            fill="${glowColor}" opacity="${glowOpacity * 0.3}"/>
         ` : ''}
 
-        <!-- 은색 외곽 림 -->
+        <!-- ── 은색 외곽 림 (직접 색상 + 광택 레이어) ── -->
         <circle cx="22" cy="20" r="15.5"
-          fill="none" stroke="url(#buzzerRimGrad)" stroke-width="2.5"/>
+          fill="none" stroke="#aaaaaa" stroke-width="2.5"/>
+        <!-- 광택 하이라이트 (상단) -->
+        <path d="M 8,14 A 15.5 15.5 0 0 1 36,14"
+          fill="none" stroke="white" stroke-width="1.5" opacity="0.3"/>
 
-        <!-- 검은 원통 몸체 -->
-        <circle cx="22" cy="20" r="14.5" fill="url(#buzzerBodyGrad)"/>
+        <!-- ── 검은 원통 몸체 (레이어) ── -->
+        <circle cx="22" cy="20" r="14.5" fill="#111111"/>
+        <circle cx="22" cy="20" r="14.5" fill="white" opacity="0.04"/>
 
-        <!-- 내부 다크 링 (통기구 영역 경계) -->
-        <circle cx="22" cy="20" r="13" fill="none"
-          stroke="#333" stroke-width="0.8"/>
+        <!-- 내부 다크 링 -->
+        <circle cx="22" cy="20" r="13"
+          fill="none" stroke="#333" stroke-width="0.8"/>
 
-        <!-- 방사형 통기구 슬롯 -->
+        <!-- ── 방사형 통기구 슬롯 ── -->
         ${slots}
 
-        <!-- 중앙 멤브레인 원 -->
+        <!-- ── 중앙 멤브레인 원 ── -->
         <circle cx="22" cy="20" r="4.5"
           fill="${this.active ? '#cc8800' : '#2a2a2a'}"
           stroke="${this.active ? '#ffcc00' : '#444'}"
           stroke-width="0.8"/>
-        <!-- 멤브레인 중심점 -->
         <circle cx="22" cy="20" r="1.5"
           fill="${this.active ? '#ffee88' : '#444'}"/>
 
@@ -166,14 +149,16 @@ export class SimBuzzer extends SimElement {
         <ellipse cx="18" cy="14" rx="4" ry="2.5"
           fill="white" opacity="0.12" transform="rotate(-20,18,14)"/>
 
-        <!-- PCB 마운트 핀 2개 -->
-        <rect x="12.5" y="34" width="3" height="10" rx="0.5" fill="url(#buzzerPinGrad)"/>
-        <rect x="28.5" y="34" width="3" height="10" rx="0.5" fill="url(#buzzerPinGrad)"/>
+        <!-- ── PCB 마운트 핀 2개 ── -->
+        <rect x="12.5" y="34" width="3" height="10" rx="0.5" fill="#aaaaaa"/>
+        <rect x="13"   y="34" width="1.5" height="10" rx="0.3" fill="white" opacity="0.35"/>
+        <rect x="28.5" y="34" width="3" height="10" rx="0.5" fill="#aaaaaa"/>
+        <rect x="29"   y="34" width="1.5" height="10" rx="0.3" fill="white" opacity="0.35"/>
 
-        <!-- 핀 라벨 -->
-        <text x="10" y="43" font-size="6.5" fill="#f88" font-family="monospace"
+        <!-- ── 핀 라벨 ── -->
+        <text x="10" y="43" font-size="6.5" fill="#ff8888" font-family="monospace"
           font-weight="bold">+</text>
-        <text x="29.5" y="43" font-size="6.5" fill="#8f8" font-family="monospace">−</text>
+        <text x="29.5" y="43" font-size="6.5" fill="#88ee88" font-family="monospace">−</text>
       </svg>
     `;
   }

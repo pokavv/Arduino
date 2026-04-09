@@ -95,62 +95,53 @@ export class SimPotentiometer extends SimElement {
     const pct = Math.round(ratio * 100);
 
     return html`
-      <svg width="60" height="60" viewBox="0 0 60 60">
-        <defs>
-          <!-- Bourns 스타일 세라믹 몸체: 파란/회색 계열 -->
-          <linearGradient id="potBodyGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stop-color="#5a7a9a"/>
-            <stop offset="40%"  stop-color="#3a5a7a"/>
-            <stop offset="100%" stop-color="#1e3a52"/>
-          </linearGradient>
-          <!-- 노브 radialGradient -->
-          <radialGradient id="potKnobGrad" cx="38%" cy="30%" r="65%">
-            <stop offset="0%"   stop-color="#9a9a9a"/>
-            <stop offset="50%"  stop-color="#5a5a5a"/>
-            <stop offset="100%" stop-color="#2a2a2a"/>
-          </radialGradient>
-          <!-- 핀 광택 -->
-          <linearGradient id="potPinGrad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%"   stop-color="#999"/>
-            <stop offset="50%"  stop-color="#eee"/>
-            <stop offset="100%" stop-color="#999"/>
-          </linearGradient>
-          <!-- 노브 상단 금속 슬롯 그림자 -->
-          <filter id="potShadow" x="-10%" y="-10%" width="120%" height="120%">
-            <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.4"/>
-          </filter>
-        </defs>
+      <svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
 
-        <!-- 세라믹 몸체 (정사각형 패키지) -->
+        <!-- ── 세라믹 몸체 (Bourns 스타일 파란/회색) ── -->
         <rect x="5" y="8" width="50" height="34" rx="3"
-          fill="url(#potBodyGrad)" stroke="#2a4a6a" stroke-width="1"/>
-        <!-- 상단 광택 -->
-        <rect x="5" y="8" width="50" height="6" rx="3"
-          fill="white" opacity="0.12"/>
+          fill="#3a5a7a" stroke="#2a4a6a" stroke-width="1"/>
+        <!-- 상단 광택 레이어 -->
+        <rect x="5" y="8" width="50" height="7" rx="3"
+          fill="white" opacity="0.14"/>
+        <!-- 하단 그림자 레이어 -->
+        <rect x="5" y="36" width="50" height="6" rx="0"
+          fill="#0d2030" opacity="0.4"/>
         <!-- 몸체 각인 텍스트 -->
-        <text x="30" y="40" font-size="5" fill="#8ab" font-family="monospace"
+        <text x="30" y="39" font-size="5" fill="#8ab" font-family="monospace"
           text-anchor="middle" opacity="0.8">BOURNS</text>
 
-        <!-- 트랙 배경 호 (회색) -->
+        <!-- ── 트랙 호 ── -->
+        <!-- 배경 호 (어두운 회색) -->
         <path d="M ${trackStart.x} ${trackStart.y} A ${trackR} ${trackR} 0 1 1 ${trackEnd.x} ${trackEnd.y}"
           fill="none" stroke="#1a2a3a" stroke-width="4" stroke-linecap="round"/>
-
-        <!-- 트랙 활성 호 (파란색) -->
+        <!-- 활성 호 (파란색) -->
         <path d="M ${trackStart.x} ${trackStart.y} A ${trackR} ${trackR} 0 ${largeArc} 1 ${activeEnd.x} ${activeEnd.y}"
           fill="none" stroke="#4a9eff" stroke-width="3.5" stroke-linecap="round"/>
 
-        <!-- 노브 원형 -->
+        <!-- ── 노브 (회색 금속 — opacity 레이어로 입체감) ── -->
         <circle cx="${knobCx}" cy="${knobCy}" r="12"
-          fill="url(#potKnobGrad)" stroke="#4a4a4a" stroke-width="1"
-          filter="url(#potShadow)"
+          fill="#4a4a4a"
+          class="knob"
+          @pointerdown="${this._onPointerDown}"
+          @pointermove="${this._onPointerMove}"
+          @pointerup="${this._onPointerUp}"/>
+        <!-- 노브 광택 레이어 -->
+        <circle cx="${knobCx}" cy="${knobCy}" r="12"
+          fill="white" opacity="0.05"
+          class="knob"
+          @pointerdown="${this._onPointerDown}"
+          @pointermove="${this._onPointerMove}"
+          @pointerup="${this._onPointerUp}"/>
+        <circle cx="${knobCx}" cy="${knobCy}" r="12"
+          fill="none" stroke="#333" stroke-width="1"
           class="knob"
           @pointerdown="${this._onPointerDown}"
           @pointermove="${this._onPointerMove}"
           @pointerup="${this._onPointerUp}"/>
         <!-- 노브 상단 하이라이트 -->
-        <ellipse cx="${knobCx - 3}" cy="${knobCy - 4}" rx="3.5" ry="2"
-          fill="white" opacity="0.18" transform="rotate(-20,${knobCx-3},${knobCy-4})"/>
-        <!-- 드라이버 슬롯 (일자 슬롯 느낌) -->
+        <ellipse cx="${knobCx - 3.5}" cy="${knobCy - 5}" rx="4" ry="2.2"
+          fill="white" opacity="0.18" transform="rotate(-20,${knobCx-3.5},${knobCy-5})"/>
+        <!-- 드라이버 슬롯 -->
         <line x1="${knobCx - 5}" y1="${knobCy}" x2="${knobCx + 5}" y2="${knobCy}"
           stroke="#1a1a1a" stroke-width="1.5" stroke-linecap="round"
           transform="rotate(${angleDeg}, ${knobCx}, ${knobCy})"/>
@@ -162,15 +153,20 @@ export class SimPotentiometer extends SimElement {
         <text x="${knobCx}" y="${knobCy + 4}" font-size="5.5" fill="#cde"
           font-family="monospace" text-anchor="middle">${pct}%</text>
 
-        <!-- 핀 3개 -->
-        <rect x="14.5" y="42" width="3" height="16" rx="0.5" fill="url(#potPinGrad)"/>
-        <rect x="28.5" y="42" width="3" height="16" rx="0.5" fill="url(#potPinGrad)"/>
-        <rect x="42.5" y="42" width="3" height="16" rx="0.5" fill="url(#potPinGrad)"/>
+        <!-- ── 핀 3개 ── -->
+        <rect x="14.5" y="42" width="3" height="16" rx="0.5" fill="#aaaaaa"/>
+        <rect x="15"   y="42" width="1.5" height="16" rx="0.3" fill="white" opacity="0.35"/>
 
-        <!-- 핀 라벨 -->
-        <text x="10"  y="57" font-size="4.5" fill="#f88" font-family="monospace">VCC</text>
-        <text x="26"  y="57" font-size="4.5" fill="#4a9eff" font-family="monospace">W</text>
-        <text x="38"  y="57" font-size="4.5" fill="#8f8" font-family="monospace">GND</text>
+        <rect x="28.5" y="42" width="3" height="16" rx="0.5" fill="#aaaaaa"/>
+        <rect x="29"   y="42" width="1.5" height="16" rx="0.3" fill="white" opacity="0.35"/>
+
+        <rect x="42.5" y="42" width="3" height="16" rx="0.5" fill="#aaaaaa"/>
+        <rect x="43"   y="42" width="1.5" height="16" rx="0.3" fill="white" opacity="0.35"/>
+
+        <!-- ── 핀 라벨 ── -->
+        <text x="10"  y="57" font-size="4.5" fill="#ff8888" font-family="monospace">VCC</text>
+        <text x="26"  y="57" font-size="4.5" fill="#88aaff" font-family="monospace">W</text>
+        <text x="38"  y="57" font-size="4.5" fill="#88ee88" font-family="monospace">GND</text>
       </svg>
     `;
   }

@@ -53,48 +53,37 @@ export class SimResistor extends SimElement {
       : `${this.ohms}Ω`;
 
     return html`
-      <svg width="70" height="28" viewBox="0 0 70 28">
-        <defs>
-          <!-- 몸체 원통 광택 (위에서 빛이 오는 방향) -->
-          <radialGradient id="resBodyGrad" cx="50%" cy="25%" r="65%">
-            <stop offset="0%"   stop-color="#f0deb0"/>
-            <stop offset="45%"  stop-color="#d4a96a"/>
-            <stop offset="85%"  stop-color="#b07a40"/>
-            <stop offset="100%" stop-color="#8a5a28"/>
-          </radialGradient>
-          <!-- 리드선 광택 -->
-          <linearGradient id="leadGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stop-color="#ddd"/>
-            <stop offset="50%"  stop-color="#fff"/>
-            <stop offset="100%" stop-color="#bbb"/>
-          </linearGradient>
-        </defs>
+      <svg width="70" height="28" viewBox="0 0 70 28" xmlns="http://www.w3.org/2000/svg">
 
-        <!-- 리드선 (양쪽 은색 금속선) -->
-        <line x1="0"  y1="14" x2="14" y2="14" stroke="url(#leadGrad)" stroke-width="2.5"/>
-        <line x1="56" y1="14" x2="70" y2="14" stroke="url(#leadGrad)" stroke-width="2.5"/>
+        <!-- ── 리드선 (양쪽 은색 금속선) ── -->
+        <line x1="0"  y1="14" x2="14" y2="14" stroke="#cccccc" stroke-width="2.5"/>
+        <line x1="0"  y1="14" x2="14" y2="14" stroke="white"   stroke-width="0.8" opacity="0.4"/>
+        <line x1="56" y1="14" x2="70" y2="14" stroke="#cccccc" stroke-width="2.5"/>
+        <line x1="56" y1="14" x2="70" y2="14" stroke="white"   stroke-width="0.8" opacity="0.4"/>
 
-        <!-- 원통 몸체 — 좌우 끝 타원으로 3D 효과 -->
-        <!-- 오른쪽 끝 타원 (밑에 먼저 그려서 가려지게) -->
+        <!-- ── 원통 몸체 (베이지 세라믹) ── -->
+        <!-- 오른쪽 끝 타원 (어두운 면) -->
         <ellipse cx="56" cy="14" rx="3" ry="8" fill="#8a5a28"/>
-        <!-- 몸체 직사각형 -->
-        <rect x="14" y="6" width="42" height="16" fill="url(#resBodyGrad)"/>
-        <!-- 왼쪽 끝 타원 (광택, 위에 그림) -->
-        <ellipse cx="14" cy="14" rx="3" ry="8" fill="#d4a96a"/>
+        <!-- 몸체 기본 색상 -->
+        <rect x="14" y="6" width="42" height="16" fill="#d4a96a"/>
+        <!-- 몸체 상단 밝은 레이어 (광택) -->
+        <rect x="14" y="6" width="42" height="5" fill="white" opacity="0.15"/>
+        <!-- 왼쪽 끝 타원 (밝은 면) -->
+        <ellipse cx="14" cy="14" rx="3" ry="8" fill="#e8c080"/>
         <!-- 왼쪽 끝 하이라이트 -->
-        <ellipse cx="13" cy="11" rx="1.5" ry="3.5" fill="#f0deb0" opacity="0.6"/>
+        <ellipse cx="13" cy="11" rx="1.5" ry="3.5" fill="#f5d8a8" opacity="0.7"/>
 
-        <!-- 컬러 밴드 4개 (클리핑 없이 정확한 rect) -->
+        <!-- ── 컬러 밴드 4개 ── -->
         <rect x="20" y="6" width="4" height="16" fill="${BAND_COLORS[b1] ?? '#000'}" opacity="0.95"/>
         <rect x="27" y="6" width="4" height="16" fill="${BAND_COLORS[b2] ?? '#000'}" opacity="0.95"/>
         <rect x="34" y="6" width="4" height="16" fill="${BAND_COLORS[b3] ?? '#000'}" opacity="0.95"/>
         <rect x="44" y="6" width="4" height="16" fill="${BAND_COLORS[b4] ?? '#000'}" opacity="0.95"/>
 
-        <!-- 몸체 상단 광택 하이라이트 라인 -->
-        <rect x="14" y="7" width="42" height="3" fill="white" opacity="0.18" rx="1"/>
+        <!-- 몸체 상단 광택 하이라이트 -->
+        <rect x="14" y="7" width="42" height="2.5" fill="white" opacity="0.22" rx="1"/>
 
-        <!-- 저항값 라벨 -->
-        <text x="35" y="26" font-size="6" fill="#aaa" font-family="monospace"
+        <!-- ── 저항값 라벨 ── -->
+        <text x="35" y="26" font-size="6" fill="#999" font-family="monospace"
           text-anchor="middle">${label}</text>
       </svg>
     `;
