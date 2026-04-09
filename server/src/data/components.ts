@@ -216,7 +216,7 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
     pins: [
       { name: 'VCC',  label: 'VCC(1)',  x: 14, y: 120, type: 'power',   required: true,  description: 'VCC (3.3~5V)', compatibleWith: ['power'] },
       { name: 'DATA', label: 'DATA(2)', x: 32, y: 120, type: 'digital', required: true,  description: '데이터 + 4.7kΩ 풀업 필수', compatibleWith: ['digital','signal'] },
-      { name: 'NC',   label: 'NC(3)',   x: 50, y: 120, type: 'other',   required: false, description: 'Not Connected (미연결)', compatibleWith: [] },
+      { name: 'NC',   label: 'NC(3)',   x: 50, y: 120, type: 'signal',  required: false, description: 'Not Connected (미연결)', compatibleWith: [] },
       { name: 'GND',  label: 'GND(4)',  x: 68, y: 120, type: 'ground',  required: true,  description: 'GND', compatibleWith: ['ground'] },
     ],
     electrical: { vccMin: 3.3, vccMax: 5.5, currentMa: 2.5, maxCurrentMa: 10 },
