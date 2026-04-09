@@ -89,9 +89,9 @@ export class SimUltrasonic extends SimElement {
 
         <!-- 파란색 PCB (실물 HC-SR04 기준) -->
         <rect x="0" y="0" width="68" height="40" rx="4"
-          fill="#1a3870" stroke="#0d2050" stroke-width="1"/>
+          fill="#456f93" stroke="#2a5070" stroke-width="1"/>
         <rect x="0" y="0" width="68" height="5" rx="3" fill="white" opacity="0.08"/>
-        <rect x="0" y="32" width="68" height="8" fill="#0a1838" opacity="0.4"/>
+        <rect x="0" y="32" width="68" height="8" fill="#0d2840" opacity="0.35"/>
 
         <!-- 구리 패드 -->
         ${[9, 25, 43, 59].map(x => html`

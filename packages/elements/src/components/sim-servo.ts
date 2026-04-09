@@ -69,7 +69,7 @@ export class SimServo extends SimElement {
   override render() {
     const armAngle = this.angle - 90;
     const rad = (armAngle * Math.PI) / 180;
-    const armLen = 17, cx = 30, cy = 34;
+    const armLen = 17, cx = 22, cy = 34;
     const shortLen = 9;
     // 암 끝 위치 계산 (각도 표시용)
     const tipX = (cx + armLen * Math.sin(rad)).toFixed(1);
@@ -89,13 +89,13 @@ export class SimServo extends SimElement {
 
         <!-- 서보 본체 (실물 SG90: 밝은 파란색) -->
         <rect x="5" y="16" width="50" height="36" rx="4"
-          fill="#2b5fcc" stroke="#1a4aaa" stroke-width="1"/>
+          fill="#3d8ecf" stroke="#2a6aaa" stroke-width="1"/>
         <rect x="5" y="16" width="50" height="7" rx="3" fill="white" opacity="0.12"/>
         <rect x="5" y="46" width="50" height="6" fill="#0a1a55" opacity="0.5"/>
 
         <!-- 마운팅 귀 (실물: 본체와 같은 파란색) -->
-        <rect x="0"  y="21" width="9" height="10" rx="2" fill="#2b5fcc" stroke="#1a4aaa" stroke-width="0.8"/>
-        <rect x="51" y="21" width="9" height="10" rx="2" fill="#2b5fcc" stroke="#1a4aaa" stroke-width="0.8"/>
+        <rect x="0"  y="21" width="9" height="10" rx="2" fill="#3d8ecf" stroke="#2a6aaa" stroke-width="0.8"/>
+        <rect x="51" y="21" width="9" height="10" rx="2" fill="#3d8ecf" stroke="#2a6aaa" stroke-width="0.8"/>
         <!-- 마운팅 홀 -->
         <circle cx="4.5"  cy="26" r="2.2" fill="#111" stroke="#0a0a1a" stroke-width="0.5"/>
         <circle cx="55.5" cy="26" r="2.2" fill="#111" stroke="#0a0a1a" stroke-width="0.5"/>
@@ -104,9 +104,9 @@ export class SimServo extends SimElement {
         <text x="30" y="39" font-size="7.5" fill="#ccd8ff" font-family="monospace"
           text-anchor="middle" font-weight="bold">SG90</text>
 
-        <!-- 출력축 하우징 캡 (실물: 짙은 회색) -->
-        <rect x="15" y="11" width="30" height="13" rx="3" fill="#444" stroke="#333" stroke-width="0.8"/>
-        <rect x="15" y="11" width="30" height="5" rx="3" fill="white" opacity="0.07"/>
+        <!-- 출력축 하우징 캡 (실물: 짙은 회색, cx=22 기준) -->
+        <rect x="7" y="11" width="30" height="13" rx="3" fill="#444" stroke="#333" stroke-width="0.8"/>
+        <rect x="7" y="11" width="30" height="5" rx="3" fill="white" opacity="0.07"/>
 
         <!-- 서보 암 (실물 SG90: 흰색 플라스틱 호른) -->
         <g transform="rotate(${armAngle}, ${cx}, ${cy})">

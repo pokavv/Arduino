@@ -79,13 +79,13 @@ export class SimDht extends SimElement {
     const isDHT22 = this.model === 'DHT22';
 
     // 실물 색상: DHT22=크림백색, DHT11=파란색
-    const bodyFill   = isDHT22 ? '#e8e4d8' : '#1e68aa';
-    const bodyStroke = isDHT22 ? '#c8c0aa' : '#1855aa';
+    const bodyFill   = isDHT22 ? '#f2f2f2' : '#1e68aa';
+    const bodyStroke = isDHT22 ? '#cccccc' : '#1855aa';
     const bodyLight  = isDHT22 ? '#ffffff' : '#3a88cc';
-    const bodyShade  = isDHT22 ? '#ccc8b8' : '#0d3a6a';
+    const bodyShade  = isDHT22 ? '#d8d8d8' : '#0d3a6a';
     const labelColor = isDHT22 ? '#444444' : '#ffffff';
-    const holeColor  = isDHT22 ? '#b8b0a0' : '#4488cc';
-    const holeBg     = isDHT22 ? '#d0c8b8' : '#0d3a6a';
+    const holeColor  = isDHT22 ? '#aaaaaa' : '#4488cc';
+    const holeBg     = isDHT22 ? '#dadada' : '#0d3a6a';
 
     // 환기 격자 — 5열 × 4행 원형 홀
     const holes = [];
