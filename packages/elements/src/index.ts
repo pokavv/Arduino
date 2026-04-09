@@ -32,6 +32,12 @@ export { SimServo } from './components/sim-servo.js';
 export { SimNeopixel } from './components/sim-neopixel.js';
 export { SimRelay } from './components/sim-relay.js';
 export { SimDcMotor } from './components/sim-dc-motor.js';
+export { SimStepper } from './components/sim-stepper.js';
+
+// 복합 모듈 / IC
+export { SimJoystick } from './components/sim-joystick.js';
+export { Sim74hc595 } from './components/sim-74hc595.js';
+export { SimL298n } from './components/sim-l298n.js';
 
 // 보드
 export { SimBoardUno } from './components/sim-board-uno.js';
