@@ -120,18 +120,18 @@ export class SimBoardEsp32c3 extends SimElement {
     return html`
       <svg width="124" height="180" viewBox="0 0 124 180" xmlns="http://www.w3.org/2000/svg">
 
-        <!-- ── PCB 기판 (파란색) ── -->
+        <!-- ── PCB 기판 (실물: 검정 PCB) ── -->
         <rect x="22" y="12" width="80" height="162" rx="2"
-          fill="#1a2e6a" stroke="#0d1a4a" stroke-width="1"/>
+          fill="#111111" stroke="#000000" stroke-width="1"/>
         <!-- 실크스크린 테두리 -->
         <rect x="26" y="16" width="72" height="154" rx="1"
-          fill="none" stroke="#0d2050" stroke-width="0.4" opacity="0.7"/>
+          fill="none" stroke="#1e1e1e" stroke-width="0.4" opacity="0.7"/>
 
         <!-- ── 마운팅 홀 (4모서리) ── -->
-        <circle cx="28" cy="18"  r="2" fill="#0a1438"/>
-        <circle cx="96" cy="18"  r="2" fill="#0a1438"/>
-        <circle cx="28" cy="168" r="2" fill="#0a1438"/>
-        <circle cx="96" cy="168" r="2" fill="#0a1438"/>
+        <circle cx="28" cy="18"  r="2" fill="#080808"/>
+        <circle cx="96" cy="18"  r="2" fill="#080808"/>
+        <circle cx="28" cy="168" r="2" fill="#080808"/>
+        <circle cx="96" cy="168" r="2" fill="#080808"/>
 
         <!-- ── USB-C 커넥터 (상단 중앙, 보드 밖으로 돌출) ── -->
         <rect x="47" y="0" width="30" height="16" rx="5"
@@ -227,11 +227,11 @@ export class SimBoardEsp32c3 extends SimElement {
         <!-- 핀1 마커 -->
         <circle cx="41" cy="71" r="0.8" fill="#444"/>
         <!-- 칩 마킹 -->
-        <text x="62" y="87" font-size="4.5" fill="#484848" font-family="monospace"
+        <text x="62" y="87" font-size="4.5" fill="#666666" font-family="monospace"
           text-anchor="middle" letter-spacing="0.3">ESP32-C3</text>
-        <text x="62" y="95" font-size="3.8" fill="#383838" font-family="monospace"
+        <text x="62" y="95" font-size="3.8" fill="#555555" font-family="monospace"
           text-anchor="middle">FN4 R0</text>
-        <text x="62" y="102" font-size="3.2" fill="#303030" font-family="monospace"
+        <text x="62" y="102" font-size="3.2" fill="#444444" font-family="monospace"
           text-anchor="middle">ESPRESSIF</text>
         <!-- 칩 광택 -->
         <rect x="38" y="68" width="48" height="5" rx="2"
@@ -245,9 +245,9 @@ export class SimBoardEsp32c3 extends SimElement {
 
         <!-- ── 핀 헤더 소켓 (검은 플라스틱 — 양쪽) ── -->
         <rect x="9"  y="44" width="13" height="118" rx="1"
-          fill="#0d0d0d" stroke="#1a1a1a" stroke-width="0.5"/>
+          fill="#181818" stroke="#000000" stroke-width="0.5"/>
         <rect x="102" y="44" width="13" height="118" rx="1"
-          fill="#0d0d0d" stroke="#1a1a1a" stroke-width="0.5"/>
+          fill="#181818" stroke="#000000" stroke-width="0.5"/>
 
         <!-- ── 핀 구멍 & 라벨 ── -->
         ${C3_PINS.map(pin => {
@@ -258,7 +258,7 @@ export class SimBoardEsp32c3 extends SimElement {
           const ringColor = pin.type === 'power'
             ? (pin.name === 'GND' ? '#55aa77' : pin.name === '5V' ? '#cc7766' : '#cc8877')
             : pin.isAdc ? '#bbaa44' : '#a0905a';
-          const holeColor = isHigh ? '#ffee55' : '#06101f';
+          const holeColor = isHigh ? '#ffee55' : '#0a0a0a';
           const labelColor = pin.type === 'power'
             ? (pin.name === 'GND' ? '#55aa77' : '#cc8877')
             : pin.isAdc ? '#aaa033' : '#6688bb';
@@ -279,7 +279,7 @@ export class SimBoardEsp32c3 extends SimElement {
         })}
 
         <!-- ── 보드 실크스크린 ── -->
-        <text x="62" y="176" font-size="3.8" fill="#1e3070" font-family="Arial,sans-serif"
+        <text x="62" y="176" font-size="3.8" fill="#aaaaaa" font-family="Arial,sans-serif"
           text-anchor="middle" font-weight="bold" letter-spacing="0.2">ESP32-C3 Super Mini</text>
       </svg>
     `;
