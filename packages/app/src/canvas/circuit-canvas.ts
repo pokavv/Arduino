@@ -519,11 +519,9 @@ export class CircuitCanvas {
       });
     }
 
-    if (comp.type === 'potentiometer') {
-      el.addEventListener('sim-change', (e: Event) => {
-        simController.sendSensorUpdate(comp.id, { value: (e as CustomEvent).detail.value });
-      });
-    }
+    el.addEventListener('sim-change', (e: Event) => {
+      simController.sendSensorUpdate(comp.id, (e as CustomEvent).detail);
+    });
 
     return el;
   }
