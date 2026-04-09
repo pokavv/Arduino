@@ -28,7 +28,7 @@ export type MainToWorker =
 export type WorkerToMain =
   | { type: 'READY' }
   | { type: 'PIN_STATE'; pin: number; value: number }
-  | { type: 'COMPONENT_UPDATE'; id: string; pin: string; value: number }
+  | { type: 'COMPONENT_UPDATE'; id: string; pin: string; value: number | string }
   | { type: 'SERIAL_OUTPUT'; text: string }
   | { type: 'COMPILE_ERROR'; message: string; line?: number }
   | { type: 'RUNTIME_ERROR'; message: string }

@@ -9,13 +9,13 @@ export class SimController {
   private _starting = false;
   private _terminateTimer: ReturnType<typeof setTimeout> | null = null;
   private _onPinState: ((pin: number, value: number) => void) | null = null;
-  private _onComponentUpdate: ((id: string, pin: string, value: number) => void) | null = null;
+  private _onComponentUpdate: ((id: string, pin: string, value: number | string) => void) | null = null;
 
   set onPinState(fn: (pin: number, value: number) => void) {
     this._onPinState = fn;
   }
 
-  set onComponentUpdate(fn: (id: string, pin: string, value: number) => void) {
+  set onComponentUpdate(fn: (id: string, pin: string, value: number | string) => void) {
     this._onComponentUpdate = fn;
   }
 

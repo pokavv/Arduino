@@ -8,6 +8,7 @@ type PostFn = (msg: WorkerToMain) => void;
 export class GpioController {
   private _pinModes: Map<number, number> = new Map(); // 0=INPUT, 1=OUTPUT, 2=INPUT_PULLUP
   private _pinValues: Map<number, number> = new Map();
+  private _analogValues: Map<number, number> = new Map(); // ADC 범위 (0-1023 or 0-4095)
   private _inputCallbacks: Map<number, () => number> = new Map();
   private _postMessage: PostFn;
 
@@ -47,7 +48,12 @@ export class GpioController {
   analogRead(pin: number): number {
     const cb = this._inputCallbacks.get(pin);
     if (cb) return cb();
-    return this._pinValues.get(pin) ?? 0;
+    return this._analogValues.get(pin) ?? 0;
+  }
+
+  /** 외부에서 ADC 값 설정 (센서 아날로그 입력용, ADC 범위 0-1023/0-4095) */
+  setAnalogValue(pin: number, value: number) {
+    this._analogValues.set(pin, value);
   }
 
   /** 외부에서 핀 상태 주입 (버튼, 센서 등) */
