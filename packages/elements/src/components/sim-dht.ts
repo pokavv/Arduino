@@ -87,15 +87,19 @@ export class SimDht extends SimElement {
     const holeColor  = isDHT22 ? '#aaaaaa' : '#4488cc';
     const holeBg     = isDHT22 ? '#dadada' : '#0d3a6a';
 
-    // 환기 격자 — 5열 × 4행 원형 홀
+    // 환기 격자 — Wokwi 기준: 직사각형 슬롯 3열 × 4행
+    // Wokwi viewBox 15.1×30.885mm → 우리 viewBox 52×80 스케일 적용
+    // slot x(mm): 4.967, 7.135, 9.287 → ×(52/15.1) → 17.1, 24.5, 32.0
+    // slot y(mm): 8.66, 10.02, 11.37, 15.56 → ×(80/30.885) → 22.4, 25.9, 29.5, 40.3 (바디기준 ×48/23.885)
+    const slotXs = [17.1, 24.5, 32.0];
+    const slotYs = [10.5, 16.5, 22.5, 30.5];
+    const slotW = 3.2, slotH = 2.2;
     const holes = [];
-    for (let row = 0; row < 4; row++) {
-      for (let col = 0; col < 5; col++) {
-        const hx = 8 + col * 8;
-        const hy = 5 + row * 7;
+    for (const sy of slotYs) {
+      for (const sx of slotXs) {
         holes.push(html`
-          <circle cx="${hx}" cy="${hy}" r="2.8" fill="${holeBg}" stroke="${holeColor}" stroke-width="0.6"/>
-          <circle cx="${hx}" cy="${hy}" r="1.5" fill="${isDHT22 ? '#a8a098' : '#0a2a50'}"/>
+          <rect x="${sx}" y="${sy}" width="${slotW}" height="${slotH}"
+            fill="${isDHT22 ? '#222' : '#0a1830'}" rx="0.2"/>
         `);
       }
     }

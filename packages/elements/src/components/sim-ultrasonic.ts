@@ -58,26 +58,42 @@ export class SimUltrasonic extends SimElement {
     }, 60);
   }
 
-  private _transducer(cx: number, cy: number, active: boolean) {
-    const rings = [10, 7.5, 5.5, 3.2, 1.5];
+  private _transducer(cx: number, cy: number, active: boolean, id: string) {
+    // Wokwi 기준 레이어 구조:
+    // 외곽 #dcdcdc → 검정 #222 → 회색 #777 → 방사형 그라디언트 → 체커보드 오버레이
     return html`
-      <circle cx="${cx}" cy="${cy}" r="11" fill="#787878" stroke="#555" stroke-width="0.8"/>
-      <circle cx="${cx}" cy="${cy}" r="10" fill="#555555"/>
-      <circle cx="${cx}" cy="${cy}" r="10" fill="white" opacity="0.08"/>
-      ${rings.map((r, i) => html`
-        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none"
-          stroke="${active
-            ? (i < 2 ? '#6be06b' : i < 4 ? '#4ab04a' : '#2a802a')
-            : (i < 2 ? '#666' : i < 4 ? '#3a4a3a' : '#2a3a2a')}"
-          stroke-width="${i === 0 ? 0.9 : 0.6}"/>
-      `)}
-      <circle cx="${cx}" cy="${cy}" r="1.8" fill="${active ? '#88ff88' : '#3a3a3a'}"/>
-      <ellipse cx="${cx - 3.5}" cy="${cy - 5}" rx="3" ry="1.8"
-        fill="white" opacity="0.12" transform="rotate(-20,${cx - 3.5},${cy - 5})"/>
+      <!-- 외곽 실버링 -->
+      <circle cx="${cx}" cy="${cy}" r="12" fill="#dcdcdc" stroke="#bbb" stroke-width="0.5"/>
+      <!-- 검정 내부 -->
+      <circle cx="${cx}" cy="${cy}" r="10.5" fill="#222"/>
+      <!-- 회색 원 -->
+      <circle cx="${cx}" cy="${cy}" r="8.0" fill="#777"/>
+      <!-- 방사형 그라디언트 (중심 밝음→외곽 어두움) -->
+      <radialGradient id="sg-grad-${id}" cx="${cx}" cy="${cy}" r="5.5"
+        gradientUnits="userSpaceOnUse">
+        <stop offset="0%"   stop-color="#b9b9b9"/>
+        <stop offset="100%" stop-color="#777777"/>
+      </radialGradient>
+      <circle cx="${cx}" cy="${cy}" r="5.5" fill="url(#sg-grad-${id})"/>
+      <!-- 체커보드 메쉬 클리핑 오버레이 (Wokwi checkerboard pattern) -->
+      <clipPath id="clip-${id}">
+        <circle cx="${cx}" cy="${cy}" r="8.0"/>
+      </clipPath>
+      <pattern id="checker-${id}" patternUnits="userSpaceOnUse" width="3" height="3">
+        <rect x="0" y="0" width="1.5" height="1.5" fill="black"/>
+        <rect x="1.5" y="1.5" width="1.5" height="1.5" fill="black"/>
+      </pattern>
+      <circle cx="${cx}" cy="${cy}" r="8.0"
+        fill="url(#checker-${id})" opacity="0.4" clip-path="url(#clip-${id})"/>
+      <!-- 중앙 포인트 -->
+      <circle cx="${cx}" cy="${cy}" r="0.5" fill="#777"/>
+      <!-- 하이라이트 -->
+      <ellipse cx="${cx - 3}" cy="${cy - 4}" rx="2.5" ry="1.5"
+        fill="white" opacity="0.12" transform="rotate(-20,${cx - 3},${cy - 4})"/>
       ${active ? html`
-        <circle cx="${cx}" cy="${cy}" r="13" fill="none"
+        <circle cx="${cx}" cy="${cy}" r="13.5" fill="none"
           stroke="#44ff44" stroke-width="0.8" opacity="0.5"/>
-        <circle cx="${cx}" cy="${cy}" r="15.5" fill="none"
+        <circle cx="${cx}" cy="${cy}" r="16" fill="none"
           stroke="#44ff44" stroke-width="0.5" opacity="0.3"/>
       ` : ''}
     `;
@@ -102,12 +118,12 @@ export class SimUltrasonic extends SimElement {
         <text x="34" y="11" font-size="6.5" fill="#ccd8ff" font-family="monospace"
           text-anchor="middle" font-weight="bold">HC-SR04</text>
 
-        <!-- 트랜스듀서 (T / R) -->
-        ${this._transducer(17, 22, this.trigActive)}
-        <text x="17" y="35.5" font-size="5.5" fill="#aabfff" font-family="monospace"
+        <!-- 트랜스듀서 (T / R) — Wokwi: cx=8.98/36.10 mm → 스케일×(68/45)≈1.51 -->
+        ${this._transducer(14, 20, this.trigActive, 't')}
+        <text x="14" y="35" font-size="5.5" fill="#e6e6e6" font-family="monospace"
           text-anchor="middle">T</text>
-        ${this._transducer(51, 22, false)}
-        <text x="51" y="35.5" font-size="5.5" fill="#aabfff" font-family="monospace"
+        ${this._transducer(55, 20, false, 'r')}
+        <text x="55" y="35" font-size="5.5" fill="#e6e6e6" font-family="monospace"
           text-anchor="middle">R</text>
 
         <!-- ── 인터랙티브 컨트롤 존 ── -->
