@@ -3,14 +3,23 @@ import { customElement, property } from 'lit/decorators.js';
 import { SimElement } from './sim-element.js';
 
 /**
- * <sim-buzzer> — 부저 (66×81px)
- * Pins: VCC(+), GND(-)
+ * <sim-buzzer> — 압전 부저
+ *
+ * Wokwi buzzer-element.ts 기준 정밀 재현:
+ *   viewBox: 0 0 17 20 (mm, 1unit=1mm)
+ *   host: 64×76px  (scale 3.76px/mm)
+ *   몸체: cx=8.5 cy=8.5 r=8.15 fill=#1a1a1a
+ *   동심원: r=6.3472, r=4.3488 (stroke only)
+ *   중심: r=1.3744 fill=#ccc
+ *   Pin1(GND): m7.23 16.5v3.5  stroke=black
+ *   Pin2(VCC): m9.77 16.5v3.5  stroke=red(#f00)
+ *   pinInfo: GND x=27 y=76, VCC x=37 y=76
  */
 @customElement('sim-buzzer')
 export class SimBuzzer extends SimElement {
   static override styles = [
     SimElement.styles,
-    css`:host { width: 66px; height: 81px; }`,
+    css`:host { width: 64px; height: 76px; }`,
   ];
 
   @property({ type: Boolean, reflect: true }) active = false;
@@ -21,15 +30,15 @@ export class SimBuzzer extends SimElement {
   private _gainNode: GainNode | null = null;
 
   override get componentType() { return 'buzzer'; }
-  override get pins() { return ['VCC', 'GND']; }
+  override get pins() { return ['GND', 'VCC']; }
 
-  // getPinPositions: viewBox(44×54) × 1.5 = host(66×81)
-  // Wokwi: GND(−) 왼쪽, VCC(+) 오른쪽
-  // GND x=14×1.5=21, VCC x=30×1.5=45
+  // Wokwi pinInfo: GND x=27 y=76, VCC x=37 y=76
+  // (viewBox 17×20 → host 64×76, scale≈3.76)
+  // GND: 7.23mm×3.76=27.2≈27, VCC: 9.77mm×3.76=36.7≈37
   override getPinPositions() {
     return new Map([
-      ['GND', { x: 21, y: 81 }],
-      ['VCC', { x: 45, y: 81 }],
+      ['GND', { x: 27, y: 76 }],
+      ['VCC', { x: 37, y: 76 }],
     ]);
   }
 
@@ -77,70 +86,46 @@ export class SimBuzzer extends SimElement {
   }
 
   override render() {
-    const glowColor   = this.active ? '#ffaa00' : 'none';
-    const glowOpacity = this.active ? 0.55 : 0;
-    const slots = Array.from({ length: 8 }, (_, i) => {
-      const angle = (i * 45 * Math.PI) / 180;
-      const r1 = 5.5, r2 = 11.5, cx = 22, cy = 20;
-      const x1 = cx + r1 * Math.cos(angle), y1 = cy + r1 * Math.sin(angle);
-      const x2 = cx + r2 * Math.cos(angle), y2 = cy + r2 * Math.sin(angle);
-      return html`<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}"
-        x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}"
-        stroke="${this.active ? '#ffcc44' : '#555'}"
-        stroke-width="${this.active ? 1.6 : 1.2}"
-        stroke-linecap="round"/>`;
-    });
+    // active 시 음파 애니메이션용 glow
+    const glowOpacity = this.active ? 0.45 : 0;
 
     return html`
-      <svg width="66" height="81" viewBox="0 0 44 54">
+      <svg width="64" height="76" viewBox="0 0 17 20"
+           xmlns="http://www.w3.org/2000/svg">
 
-        <!-- active glow -->
+        <!-- ── active 글로우 ── -->
         ${this.active ? html`
-          <circle cx="22" cy="20" r="18" fill="${glowColor}" opacity="${glowOpacity * 0.5}"/>
-          <circle cx="22" cy="20" r="16" fill="${glowColor}" opacity="${glowOpacity * 0.3}"/>
+          <circle cx="8.5" cy="8.5" r="8.5" fill="#ffaa00" opacity="0.18"/>
         ` : ''}
 
-        <!-- 은색 외곽 림 -->
-        <circle cx="22" cy="20" r="15.5" fill="none" stroke="#aaaaaa" stroke-width="2.5"/>
-        <path d="M 8,14 A 15.5 15.5 0 0 1 36,14"
-          fill="none" stroke="white" stroke-width="1.5" opacity="0.3"/>
+        <!-- ── 외곽 몸체 (Wokwi: cx=8.5 cy=8.5 rx=ry=8.15 fill=#1a1a1a) ── -->
+        <ellipse cx="8.5" cy="8.5" rx="8.15" ry="8.15"
+          fill="#1a1a1a" stroke="#000000" stroke-width="0.7"/>
 
-        <!-- 검은 원통 몸체 -->
-        <circle cx="22" cy="20" r="14.5" fill="#111111"/>
-        <circle cx="22" cy="20" r="14.5" fill="white" opacity="0.04"/>
-        <circle cx="22" cy="20" r="13" fill="none" stroke="#333" stroke-width="0.8"/>
+        <!-- ── 상단 광택 하이라이트 ── -->
+        <ellipse cx="6.8" cy="4.5" rx="2.8" ry="1.6"
+          fill="white" opacity="0.07" transform="rotate(-15,6.8,4.5)"/>
 
-        <!-- 방사형 통기구 슬롯 -->
-        ${slots}
+        <!-- ── 동심원 링 1 (Wokwi: r=6.3472) ── -->
+        <circle cx="8.5" cy="8.5" r="6.3472"
+          fill="none" stroke="#000000" stroke-width="0.3"/>
 
-        <!-- 중앙 멤브레인 -->
-        <circle cx="22" cy="20" r="4.5"
-          fill="${this.active ? '#cc8800' : '#2a2a2a'}"
-          stroke="${this.active ? '#ffcc00' : '#444'}" stroke-width="0.8"/>
-        <circle cx="22" cy="20" r="1.5" fill="${this.active ? '#ffee88' : '#444'}"/>
+        <!-- ── 동심원 링 2 (Wokwi: r=4.3488) ── -->
+        <circle cx="8.5" cy="8.5" r="4.3488"
+          fill="none" stroke="#000000" stroke-width="0.3"/>
 
-        <!-- 상단 하이라이트 -->
-        <ellipse cx="18" cy="14" rx="4" ry="2.5"
-          fill="white" opacity="0.12" transform="rotate(-20,18,14)"/>
+        <!-- ── 중심 멤브레인 (Wokwi: r=1.3744 fill=#ccc) ── -->
+        <circle cx="8.5" cy="8.5" r="1.3744"
+          fill="${this.active ? '#ffcc44' : '#cccccc'}"
+          stroke="#000000" stroke-width="0.25"/>
 
-        <!-- 핀 금속 — GND=회색(왼쪽), VCC=빨간색(오른쪽) — Wokwi 실물 순서 -->
-        <rect x="12.5" y="37" width="3" height="17" rx="0.5" fill="#666666"/>
-        <rect x="13.2" y="37" width="1.2" height="17" fill="white" opacity="0.2"/>
-        <rect x="28.5" y="37" width="3" height="17" rx="0.5" fill="#cc4433"/>
-        <rect x="29.2" y="37" width="1.2" height="17" fill="white" opacity="0.25"/>
+        <!-- ── 핀 1: GND (Wokwi: m7.23 16.5v3.5, stroke=black) ── -->
+        <path d="M 7.23 16.5 v 3.5"
+          fill="none" stroke="#000000" stroke-width="0.5" stroke-linecap="round"/>
 
-        <!-- VCC 극성 표시 "+" (실물: VCC 핀=오른쪽) -->
-        <text x="30" y="36" font-size="5" fill="white" font-family="monospace"
-          text-anchor="middle" font-weight="bold">+</text>
-
-        <!-- 핀 라벨 존 (Wokwi 스타일) -->
-        <rect x="0" y="43" width="44" height="11" fill="#0d0d14"/>
-        <line x1="0" y1="43" x2="44" y2="43" stroke="#252535" stroke-width="0.5"/>
-
-        <text x="14" y="52" font-size="8.5" fill="#88ee99" font-family="monospace"
-          text-anchor="middle" font-weight="bold">GND</text>
-        <text x="30" y="52" font-size="8.5" fill="#ff8877" font-family="monospace"
-          text-anchor="middle" font-weight="bold">VCC</text>
+        <!-- ── 핀 2: VCC (Wokwi: m9.77 16.5v3.5, stroke=red) ── -->
+        <path d="M 9.77 16.5 v 3.5"
+          fill="none" stroke="#f00000" stroke-width="0.5" stroke-linecap="round"/>
       </svg>
     `;
   }

@@ -5,11 +5,22 @@ import { SimElement } from './sim-element.js';
 /**
  * <sim-lcd> — I2C LCD 1602 / 2004
  *
- * Pins: VCC, GND, SDA, SCL
- * Attributes:
- *   rows: 2 | 4
- *   cols: 16 | 20
- *   i2c-address: 0x27 (기본값)
+ * Wokwi lcd1602-element.ts 기준 정밀 재현:
+ *   viewBox: 0 0 80 H (mm, 1unit=1mm)  — H는 rows에 따라 가변
+ *   1602: H=36mm, 2004: H≈47.5mm
+ *   scale: 3px/mm → host: 240×108px (1602), 240×142px (2004)
+ *
+ *   PCB:  fill=#087f45 (진한 녹색)
+ *   검정 베젤: x=4.95 y=5.7 w=71.2 h=25.2 (1602)
+ *   LCD 유리: x=7.55 y=10.3 w=66.0 h=16.0 rx=1.5
+ *   배경색 ON(green): #6cb201, ON(blue): #000eff
+ *   문자 그리드 origin: panelX=12.45 panelY=12.55
+ *   셀 간격: xSpacing=3.55mm ySpacing=5.95mm
+ *   픽셀: 0.55mm × 0.65mm  (5×8 grid)
+ *
+ *   I2C 핀 (왼쪽, mm 기준): x=1.06mm, y≈[8.47, 10.98, 13.49, 16.0]mm
+ *
+ * Pins: GND, VCC, SDA, SCL
  */
 @customElement('sim-lcd')
 export class SimLcd extends SimElement {
@@ -25,52 +36,67 @@ export class SimLcd extends SimElement {
   @property({ type: Number }) cols = 16;
   @property({ type: Number }) i2cAddress = 0x27;
 
+  // Wokwi 치수 상수 (mm)
+  private readonly CHAR_X_SPACING = 3.55;
+  private readonly CHAR_Y_SPACING = 5.95;
+  private readonly PIXEL_W = 0.55;
+  private readonly PIXEL_H = 0.65;
+  private readonly PIXEL_X_STEP = 0.6;
+  private readonly PIXEL_Y_STEP = 0.7;
+  private readonly PANEL_X = 12.45;  // 문자 origin x
+  private readonly PANEL_Y = 12.55;  // 문자 origin y
+  private readonly SCALE = 3;        // px/mm
+
   /** 현재 화면 내용 [row][col] */
   private _buffer: string[][] = [];
   private _backlight = true;
   private _cursor = { row: 0, col: 0 };
   private _displayOn = true;
   private _cursorVisible = false;
-  private _blinkVisible = false;
 
   override get componentType() { return 'lcd'; }
-  override get pins() { return ['VCC', 'GND', 'SDA', 'SCL']; }
+  override get pins() { return ['GND', 'VCC', 'SDA', 'SCL']; }
 
+  // viewBox 가변 계산
+  private get _vbH(): number {
+    const panelH = this.rows * 5.75;
+    return panelH + 24.5;
+  }
+
+  private get _hostH(): number {
+    return Math.ceil(this._vbH * this.SCALE);
+  }
+
+  private get _hostW(): number {
+    return 240; // 80mm × 3px/mm
+  }
+
+  // I2C 핀: viewBox mm → host px
+  // x = 1.06mm × 3 = 3.18 ≈ 3px → x=0 (핀 리드가 PCB 밖으로 나옴)
+  // y(mm): 8.47, 10.98, 13.49, 16.0 → ×3: 25.4, 32.9, 40.5, 48.0
   override getPinPositions() {
-    // Wokwi LCD I2C: 핀이 왼쪽 측면에서 나옴 (I2C 백팩)
-    // h = 20 + rows*14 + (rows-1)*2
-    const h = 20 + this.rows * 14 + (this.rows - 1) * 2;
-    const totalH = h + 8;
-    // 4핀을 수직으로 배분 (위→아래: GND, VCC, SDA, SCL)
-    const step = Math.round(totalH * 0.18);
-    const y0   = Math.round(totalH * 0.22);
+    const s = this.SCALE;
     return new Map([
-      ['GND', { x: 0, y: y0 }],
-      ['VCC', { x: 0, y: y0 + step }],
-      ['SDA', { x: 0, y: y0 + step * 2 }],
-      ['SCL', { x: 0, y: y0 + step * 3 }],
+      ['GND', { x: 0, y: Math.round(8.47  * s) }],
+      ['VCC', { x: 0, y: Math.round(10.98 * s) }],
+      ['SDA', { x: 0, y: Math.round(13.49 * s) }],
+      ['SCL', { x: 0, y: Math.round(16.0  * s) }],
     ]);
   }
+
   override setPinState(pin: string, value: number | string) {
     switch (pin) {
-      case 'CLEAR':
-        this.lcdClear();
-        break;
-      case 'HOME':
-        this.lcdHome();
-        break;
+      case 'CLEAR':   this.lcdClear();   break;
+      case 'HOME':    this.lcdHome();    break;
       case 'CURSOR': {
         const parts = String(value).split(',').map(Number);
         if (parts.length >= 2) this.lcdSetCursor(parts[0], parts[1]);
         break;
       }
       case 'PRINT': {
-        const text = String(value);
-        // 개행문자 처리
-        const lines = text.split('\\n');
+        const lines = String(value).split('\\n');
         for (let i = 0; i < lines.length; i++) {
           if (i > 0) {
-            // 다음 줄로 커서 이동
             this._cursor.col = 0;
             this._cursor.row = (this._cursor.row + 1) % this.rows;
           }
@@ -79,7 +105,6 @@ export class SimLcd extends SimElement {
         break;
       }
       case 'INIT': {
-        // 'COLSxROWS' 형식
         const parts = String(value).split('x').map(Number);
         if (parts.length >= 2) this.lcdBegin(parts[0], parts[1]);
         break;
@@ -97,16 +122,13 @@ export class SimLcd extends SimElement {
   }
 
   private _initBuffer() {
-    this._buffer = Array.from({ length: this.rows }, () =>
-      Array(this.cols).fill(' ')
-    );
+    this._buffer = Array.from({ length: this.rows }, () => Array(this.cols).fill(' '));
   }
 
-  // ─── LCD API (시뮬레이션 엔진이 호출) ─────────────────────────
+  // ─── LCD API ────────────────────────────────────────────────────
 
   lcdBegin(cols: number, rows: number) {
-    this.cols = cols;
-    this.rows = rows;
+    this.cols = cols; this.rows = rows;
     this._initBuffer();
   }
 
@@ -144,86 +166,112 @@ export class SimLcd extends SimElement {
     this.requestUpdate();
   }
 
-  // ──────────────────────────────────────────────────────────────
+  // ────────────────────────────────────────────────────────────────
 
   override render() {
-    const charW = 10;
-    const charH = 14;
-    const padX  = 12;
-    const padY  = 10;
-    const lcdW  = padX * 2 + this.cols * charW;
-    const lcdH  = padY * 2 + this.rows * charH + (this.rows - 1) * 2;
-    const totalH = lcdH + 8;
-    const bgColor = this._backlight ? '#4a8c5c' : '#2a4a2a';
+    const s = this.SCALE;
+    const vbW = 80;
+    const vbH = this._vbH;
+    const hostW = this._hostW;
+    const hostH = this._hostH;
 
-    // I2C 백팩 영역 (왼쪽) — 폭 24px + 핀 리드 8px = 32px 오프셋
-    const i2cBlockW = 20;
-    const pinLeadW  = 10;
-    const xShift    = i2cBlockW + pinLeadW;
+    // Wokwi 치수 (mm)
+    const panelW = this.cols * 3.5125;
+    const panelH = this.rows * 5.75;
+    const bezelW = panelW + 15;
+    const bezelH = panelH + 13.7;
+    const glassW = panelW + 9.8;
+    const glassH = panelH + 4.5;
 
-    // SVG 총 너비
-    const svgW = xShift + lcdW + 20;
+    const bgColor = this._backlight ? '#6cb201' : '#2a4a2a';
+    const charColor = this._backlight ? '#000000' : 'transparent';
 
-    // 핀 y 좌표 (getPinPositions와 일치)
-    const step = Math.round(totalH * 0.18);
-    const y0   = Math.round(totalH * 0.22);
-    const pinYs   = [y0, y0 + step, y0 + step * 2, y0 + step * 3];
-    const pinLabels: Array<{ label: string; color: string }> = [
-      { label: 'GND', color: '#88ee99' },
-      { label: 'VCC', color: '#ff8877' },
-      { label: 'SDA', color: '#ffcc55' },
-      { label: 'SCL', color: '#88aaff' },
-    ];
+    // 문자 렌더링 (5×8 픽셀 폰트 스타일 — simplified: 단일 글자)
+    // Wokwi는 HD44780 ROM 기반 path 렌더링, 여기서는 SVG text로 근사
+    const charCells = this._buffer.flatMap((row, ri) =>
+      row.map((ch, ci) => {
+        const cx = this.PANEL_X + ci * this.CHAR_X_SPACING;
+        const cy = this.PANEL_Y + ri * this.CHAR_Y_SPACING;
+        const isCursor = this._cursor.row === ri && this._cursor.col === ci;
+        return { ch, cx, cy, isCursor };
+      })
+    );
 
     return html`
-      <svg width="${svgW}" height="${totalH}" viewBox="0 0 ${svgW} ${totalH}">
+      <svg width="${hostW}" height="${hostH}"
+           viewBox="0 0 ${vbW} ${vbH}"
+           xmlns="http://www.w3.org/2000/svg">
 
-        <!-- ── 메인 PCB ── -->
-        <rect x="${xShift}" y="0" width="${lcdW + 20}" height="${totalH}" rx="4"
-          fill="#1a3a1a" stroke="#2a5a2a" stroke-width="1"/>
+        <!-- ── 메인 PCB (Wokwi: fill=#087f45 진한 녹색) ── -->
+        <rect x="0" y="0" width="${vbW}" height="${vbH}"
+          fill="#087f45" stroke="#055c33" stroke-width="0.5"/>
 
-        <!-- ── LCD 화면 ── -->
-        <rect x="${xShift + 10}" y="4" width="${lcdW}" height="${lcdH}" rx="3"
-          fill="${bgColor}" stroke="#1a4a1a" stroke-width="1"/>
+        <!-- PCB 상단 미묘한 하이라이트 -->
+        <rect x="0" y="0" width="${vbW}" height="3"
+          fill="white" opacity="0.05"/>
 
-        <!-- ── 문자 셀들 ── -->
-        ${this._buffer.map((row, ri) =>
-          row.map((ch, ci) => {
-            const cx = padX + ci * charW + xShift + 10;
-            const cy = padY + ri * (charH + 2) + 4;
-            const isCursor = this._cursor.row === ri && this._cursor.col === ci;
-            return html`
-              <rect x="${cx}" y="${cy}" width="${charW - 1}" height="${charH}"
-                fill="${isCursor && this._cursorVisible ? '#ffffff22' : 'transparent'}"/>
-              <text x="${cx + 1}" y="${cy + charH - 2}"
-                font-family="'Courier New', monospace"
-                font-size="11"
-                fill="${this._displayOn ? '#00ff44' : 'transparent'}">${ch}</text>
-            `;
-          })
-        )}
+        <!-- ── 검정 LCD 베젤 (Wokwi: x=4.95 y=5.7) ── -->
+        <rect x="4.95" y="5.7" width="${bezelW}" height="${bezelH}"
+          fill="#000000"/>
 
-        <!-- ── I2C 백팩 PCB (왼쪽) ── -->
-        <rect x="${pinLeadW}" y="${Math.round(totalH * 0.12)}"
-          width="${i2cBlockW}" height="${Math.round(totalH * 0.76)}" rx="2"
-          fill="#0d2a0d" stroke="#1a4a1a" stroke-width="0.8"/>
-        <!-- PCF8574 IC 심볼 -->
-        <rect x="${pinLeadW + 4}" y="${Math.round(totalH * 0.28)}"
-          width="${i2cBlockW - 8}" height="${Math.round(totalH * 0.32)}" rx="1"
-          fill="#222" stroke="#333" stroke-width="0.5"/>
-        <text x="${pinLeadW + i2cBlockW/2}" y="${Math.round(totalH * 0.49)}"
-          font-size="3.5" fill="#556" font-family="monospace" text-anchor="middle"
-          font-weight="bold">PCF8574</text>
+        <!-- ── LCD 유리면 (백라이트 색상) ── -->
+        <rect x="7.55" y="10.3" width="${glassW}" height="${glassH}"
+          rx="1.5" ry="1.5"
+          fill="${bgColor}"/>
 
-        <!-- ── 핀 리드 (왼쪽으로 나옴) ── -->
-        ${pinYs.map((py, i) => html`
-          <line x1="0" y1="${py}" x2="${pinLeadW}" y2="${py}"
-            stroke="#aaaaaa" stroke-width="2" stroke-linecap="round"/>
-          <!-- 핀 라벨 (I2C 블록 위에 표시) -->
-          <text x="${pinLeadW + 2}" y="${py - 2}"
-            font-size="3.5" fill="${pinLabels[i].color}" font-family="monospace"
-            font-weight="bold">${pinLabels[i].label}</text>
+        <!-- ── 문자 셀 그리드 오버레이 (셀 경계 미묘한 표시) ── -->
+        ${charCells.map(({ ch, cx, cy, isCursor }) => html`
+          <!-- 커서 블록 -->
+          ${isCursor && this._cursorVisible ? html`
+            <rect x="${cx}" y="${cy}" width="2.95" height="5.55"
+              fill="white" opacity="0.5"/>
+          ` : ''}
+          <!-- 문자 (SVG text로 근사 — 실제 Wokwi는 path 폰트) -->
+          <text x="${cx + 0.15}" y="${cy + 4.8}"
+            font-family="'Courier New', monospace"
+            font-size="3.6"
+            fill="${this._displayOn ? charColor : 'transparent'}"
+            font-weight="bold">${ch}</text>
         `)}
+
+        <!-- 유리 반사 (상단 하이라이트) -->
+        <rect x="7.55" y="10.3" width="${glassW}" height="2.0"
+          rx="1.5" fill="white" opacity="0.08"/>
+
+        <!-- ── I2C 백팩 영역 (왼쪽 엣지) ── -->
+        <!-- I2C 모듈 표시 영역 (viewBox 0~4mm 범위) -->
+        <rect x="0.3" y="6.5" width="4.3" height="${vbH - 10}" rx="0.5"
+          fill="#055c33" stroke="#044428" stroke-width="0.3"/>
+        <!-- PCF8574 IC 표시 -->
+        <rect x="0.8" y="${vbH * 0.35}" width="3.3" height="${vbH * 0.22}" rx="0.3"
+          fill="#1a1a1a" stroke="#333" stroke-width="0.2"/>
+        <text x="2.45" y="${vbH * 0.48}"
+          font-size="0.9" fill="#445" font-family="monospace" text-anchor="middle"
+          font-weight="bold">I2C</text>
+
+        <!-- ── I2C 핀 패드 (왼쪽, mm 좌표) ── -->
+        <!-- GND: y=8.47mm, VCC: 10.98mm, SDA: 13.49mm, SCL: 16.0mm -->
+        ${[
+          { y: 8.47,  label: 'G', color: '#88ee99' },
+          { y: 10.98, label: 'V', color: '#ff8877' },
+          { y: 13.49, label: 'D', color: '#ffcc55' },
+          { y: 16.00, label: 'C', color: '#88aaff' },
+        ].map(({ y, label, color }) => html`
+          <!-- 핀 리드 (x=0에서 시작, viewBox 밖으로 나옴) -->
+          <line x1="-0.5" y1="${y}" x2="0.8" y2="${y}"
+            stroke="#aaa" stroke-width="0.5" stroke-linecap="round"/>
+          <!-- 핀 패드 원형 -->
+          <circle cx="0.8" cy="${y}" r="0.4"
+            fill="#92926d" stroke="#666" stroke-width="0.1"/>
+          <!-- 라벨 (IC 위) -->
+          <text x="1.5" y="${y - 0.2}"
+            font-size="0.9" fill="${color}" font-family="monospace"
+            font-weight="bold">${label}</text>
+        `)}
+
+        <!-- ── 핀 헤더 (하단 16핀, 장식용) ── -->
+        <rect x="7.55" y="${vbH - 3.5}" width="${this.cols * 2.54}" height="2.5"
+          fill="#0a0a0a" stroke="#222" stroke-width="0.2" rx="0.3"/>
       </svg>
     `;
   }

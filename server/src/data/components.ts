@@ -128,14 +128,16 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
     description: '패시브 부저. PWM 주파수로 음 출력.',
     icon: '🔊',
     element: 'sim-buzzer',
-    width: 66, height: 81,
+    // Wokwi: viewBox 17×20mm, scale 3.76px/mm → host 64×76px
+    // pinInfo: GND x=27 y=76, VCC x=37 y=76
+    width: 64, height: 76,
     defaultProps: {},
     props: [
       { key: 'type', label: '유형', type: 'select', default: 'passive', options: ['passive','active'] },
     ],
     pins: [
-      { name: 'VCC', label: '+', x: 21, y: 81, type: 'power',  required: true, description: '양극 (+)', compatibleWith: ['digital','pwm','power'] },
-      { name: 'GND', label: '−', x: 45, y: 81, type: 'ground', required: true, description: '음극 (−)', compatibleWith: ['ground'] },
+      { name: 'GND', label: '−', x: 27, y: 76, type: 'ground', required: true, description: '음극 (−) 왼쪽 핀', compatibleWith: ['ground'] },
+      { name: 'VCC', label: '+', x: 37, y: 76, type: 'power',  required: true, description: '양극 (+) 오른쪽 핀', compatibleWith: ['digital','pwm','power'] },
     ],
     electrical: { vccMin: 3.3, vccMax: 5.0, currentMa: 30, maxCurrentMa: 50 },
     validation: [
@@ -260,7 +262,9 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
     description: 'I2C 인터페이스 LCD 16×2.',
     icon: '🖥️',
     element: 'sim-lcd',
-    width: 234, height: 58,
+    // Wokwi: viewBox 80×36mm (1602), scale 3px/mm → host 240×108px
+    // I2C 핀 왼쪽 (x=0): y = mm×3 → GND:25, VCC:33, SDA:40, SCL:48
+    width: 240, height: 108,
     defaultProps: { rows: 2, cols: 16, i2cAddress: 0x27 },
     props: [
       { key: 'rows',       label: '행',       type: 'select', default: 2,    options: ['2','4'] },
@@ -268,12 +272,11 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { key: 'i2cAddress', label: 'I2C 주소', type: 'select', default: 0x27, options: ['0x27','0x3F'] },
     ],
     pins: [
-      // Wokwi I2C 백팩: 핀이 왼쪽 측면에서 나옴
-      // 1602 기준(totalH=58): y0=13, step=10
-      { name: 'GND', label: 'GND', x: 0, y: 13, type: 'ground',   required: true, description: 'GND', compatibleWith: ['ground'] },
-      { name: 'VCC', label: 'VCC', x: 0, y: 23, type: 'power',    required: true, description: '5V', compatibleWith: ['power'] },
-      { name: 'SDA', label: 'SDA', x: 0, y: 33, type: 'i2c_sda',  required: true, description: 'I2C SDA', compatibleWith: ['i2c_sda','digital'] },
-      { name: 'SCL', label: 'SCL', x: 0, y: 43, type: 'i2c_scl',  required: true, description: 'I2C SCL', compatibleWith: ['i2c_scl','digital'] },
+      // Wokwi pinInfo (mm→px, scale=3): x=0(왼쪽 리드), y = mm×3
+      { name: 'GND', label: 'GND', x: 0, y: 25, type: 'ground',   required: true, description: 'GND', compatibleWith: ['ground'] },
+      { name: 'VCC', label: 'VCC', x: 0, y: 33, type: 'power',    required: true, description: '5V', compatibleWith: ['power'] },
+      { name: 'SDA', label: 'SDA', x: 0, y: 40, type: 'i2c_sda',  required: true, description: 'I2C SDA', compatibleWith: ['i2c_sda','digital'] },
+      { name: 'SCL', label: 'SCL', x: 0, y: 48, type: 'i2c_scl',  required: true, description: 'I2C SCL', compatibleWith: ['i2c_scl','digital'] },
     ],
     electrical: { vccMin: 5.0, vccMax: 5.0, currentMa: 40, logic: '5V' },
     validation: [],
@@ -315,22 +318,25 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
     tags: ['7segment','세그먼트','display','숫자'],
     description: '공통 캐소드 7-세그먼트.',
     element: 'sim-seven-segment',
-    width: 66, height: 88,
+    // Wokwi: viewBox 12.55×22mm (pins=top), scale 3.74px/mm → host 47×83px
+    // 상단 5핀(y=0): G,F,COM,A,B  /  하단 5핀(y=83): E,D,COM,C,DP
+    // x = mm × 3.74: 1.195→4, 3.735→14, 6.275→23, 8.815→33, 11.355→42
+    width: 47, height: 83,
     defaultProps: { color: '#ff2020' },
     props: [
       { key: 'color', label: '세그먼트 색상', type: 'color', default: '#ff2020' },
       { key: 'type',  label: '공통 단자',     type: 'select', default: 'cathode', options: ['cathode','anode'] },
     ],
     pins: [
-      { name: 'A',   label: 'A',   x:  5, y: 88, type: 'input', required: false, description: '세그먼트 A', compatibleWith: ['digital','signal'] },
-      { name: 'B',   label: 'B',   x: 12, y: 88, type: 'input', required: false, description: '세그먼트 B', compatibleWith: ['digital','signal'] },
-      { name: 'C',   label: 'C',   x: 19, y: 88, type: 'input', required: false, description: '세그먼트 C', compatibleWith: ['digital','signal'] },
-      { name: 'D',   label: 'D',   x: 27, y: 88, type: 'input', required: false, description: '세그먼트 D', compatibleWith: ['digital','signal'] },
-      { name: 'E',   label: 'E',   x: 34, y: 88, type: 'input', required: false, description: '세그먼트 E', compatibleWith: ['digital','signal'] },
-      { name: 'F',   label: 'F',   x: 41, y: 88, type: 'input', required: false, description: '세그먼트 F', compatibleWith: ['digital','signal'] },
-      { name: 'G',   label: 'G',   x: 49, y: 88, type: 'input', required: false, description: '세그먼트 G', compatibleWith: ['digital','signal'] },
-      { name: 'DP',  label: 'DP',  x: 56, y: 88, type: 'input', required: false, description: '소수점',     compatibleWith: ['digital','signal'] },
-      { name: 'COM', label: 'COM', x: 63, y: 88, type: 'ground',required: true,  description: '공통 단자 → GND', compatibleWith: ['ground','power'] },
+      { name: 'G',   label: 'G',   x:  4, y:  0, type: 'input', required: false, description: '세그먼트 G (상단좌)', compatibleWith: ['digital','signal'] },
+      { name: 'F',   label: 'F',   x: 14, y:  0, type: 'input', required: false, description: '세그먼트 F (상단)',    compatibleWith: ['digital','signal'] },
+      { name: 'A',   label: 'A',   x: 33, y:  0, type: 'input', required: false, description: '세그먼트 A (상단)',    compatibleWith: ['digital','signal'] },
+      { name: 'B',   label: 'B',   x: 42, y:  0, type: 'input', required: false, description: '세그먼트 B (상단우)', compatibleWith: ['digital','signal'] },
+      { name: 'E',   label: 'E',   x:  4, y: 83, type: 'input', required: false, description: '세그먼트 E (하단좌)', compatibleWith: ['digital','signal'] },
+      { name: 'D',   label: 'D',   x: 14, y: 83, type: 'input', required: false, description: '세그먼트 D (하단)',    compatibleWith: ['digital','signal'] },
+      { name: 'COM', label: 'COM', x: 23, y: 83, type: 'ground',required: true,  description: '공통 캐소드 → GND',   compatibleWith: ['ground','power'] },
+      { name: 'C',   label: 'C',   x: 33, y: 83, type: 'input', required: false, description: '세그먼트 C (하단)',    compatibleWith: ['digital','signal'] },
+      { name: 'DP',  label: 'DP',  x: 42, y: 83, type: 'input', required: false, description: '소수점 (하단우)',      compatibleWith: ['digital','signal'] },
     ],
     electrical: { vccMin: 1.8, vccMax: 3.3, currentMa: 10, maxCurrentMa: 15 },
     validation: [{ rule: 'requires_series_resistor', message: '각 세그먼트에 330Ω 저항 필요', severity: 'error' }],
