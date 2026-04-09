@@ -3,22 +3,31 @@ import { customElement, property } from 'lit/decorators.js';
 import { SimElement } from './sim-element.js';
 
 /**
- * <sim-potentiometer> — 가변저항 (90×96px)
- * Pins: VCC, GND, WIPER
- * 노브 드래그 시 sim-interaction-start/end 이벤트를 디스패치 →
- * 캔버스가 이 이벤트를 받으면 컴포넌트 드래그를 차단해 충돌 방지
+ * <sim-potentiometer> — 로터리 가변저항 (150×165px)
+ *
+ * Wokwi potentiometer-element.ts 기준 정밀 재현:
+ *   viewBox: 0 0 20 20 (mm, 1unit=1mm)
+ *   scale: 7.5 px/mm → host 150×150px + 핀 영역
+ *   바디: #045881 (진한 파란색)
+ *   외곽 노브: cx=9.91 cy=8.18 rx=7.27 ry=7.43
+ *   내부 노브: cx=9.95 cy=8.06 rx=6.60 ry=6.58
+ *   회전 인디케이터: rect x=10 y=2 w=0.42 h=3.1 (transform-origin: 10 8)
+ *   각도 범위: -135° ~ +135° (총 270°)
+ *   핀 (y=18mm): GND(7.68), SIG(10.22), VCC(12.76)
+ *
+ * Pins: GND, WIPER(SIG), VCC
  */
 @customElement('sim-potentiometer')
 export class SimPotentiometer extends SimElement {
   static override styles = [
     SimElement.styles,
     css`
-      :host { width: 90px; height: 96px; }
-      .knob { cursor: ew-resize; }
+      :host { width: 150px; height: 165px; }
+      .knob-drag { cursor: ew-resize; }
     `,
   ];
 
-  @property({ type: Number }) value = 512;
+  @property({ type: Number }) value = 0;
   @property({ type: Number }) min = 0;
   @property({ type: Number }) max = 1023;
 
@@ -30,13 +39,15 @@ export class SimPotentiometer extends SimElement {
   override get pins() { return ['VCC', 'GND', 'WIPER']; }
   override setPinState(_pin: string, _value: number | string) {}
 
-  // getPinPositions: viewBox(60×64) × 1.5 = host(90×96)
-  // VCC x=16×1.5=24, WIPER x=30×1.5=45, GND x=44×1.5=66
+  // viewBox 0 0 20 22 (mm, 핀 영역 포함), host 150×165
+  // scale 7.5px/mm
+  // 핀 y=18mm (viewBox) → 18/22×165 = 135px, 핀 끝은 y=165
+  // GND x=7.68mm → 7.68/20×150=57.6, SIG x=10.22→76.65, VCC x=12.76→95.7
   override getPinPositions() {
     return new Map([
-      ['VCC',   { x: 24, y: 96 }],
-      ['WIPER', { x: 45, y: 96 }],
-      ['GND',   { x: 66, y: 96 }],
+      ['GND',   { x: 58,  y: 165 }],
+      ['WIPER', { x: 77,  y: 165 }],
+      ['VCC',   { x: 96,  y: 165 }],
     ]);
   }
 
@@ -47,116 +58,150 @@ export class SimPotentiometer extends SimElement {
     this._dragging = true;
     this._startX = e.clientX;
     this._startValue = this.value;
-    (e.target as Element).setPointerCapture(e.pointerId);
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
     this.dispatchEvent(new CustomEvent('sim-interaction-start', { bubbles: true, composed: true }));
   }
 
   private _onPointerMove(e: PointerEvent) {
     if (!this._dragging) return;
+    e.stopPropagation();
     const dx = e.clientX - this._startX;
     const range = this.max - this.min;
-    const newVal = Math.round(this._startValue + (dx / 100) * range);
+    const newVal = Math.round(this._startValue + (dx / 120) * range);
     this.value = Math.max(this.min, Math.min(this.max, newVal));
+    this.requestUpdate();
     this.dispatchEvent(new CustomEvent('sim-change', {
       bubbles: true, composed: true, detail: { value: this.value },
     }));
   }
 
   private _onPointerUp(e: PointerEvent) {
+    if (!this._dragging) return;
+    e.stopPropagation();
     this._dragging = false;
-    (e.target as Element).releasePointerCapture(e.pointerId);
+    (e.currentTarget as Element).releasePointerCapture(e.pointerId);
     this.dispatchEvent(new CustomEvent('sim-interaction-end', { bubbles: true, composed: true }));
   }
 
   override render() {
     const ratio = (this.value - this.min) / (this.max - this.min);
-    const angleDeg = -135 + ratio * 270;
-    const angleRad = (angleDeg * Math.PI) / 180;
-    const kx = 30, ky = 28, indR = 9.5;
-    const indX = kx + indR * Math.sin(angleRad);
-    const indY = ky - indR * Math.cos(angleRad);
-    const trackR = 16;
-    const toXY = (deg: number) => {
-      const r = (deg * Math.PI) / 180;
-      return { x: (kx + trackR * Math.sin(r)).toFixed(2), y: (ky - trackR * Math.cos(r)).toFixed(2) };
-    };
-    const ts = toXY(-135), te = toXY(135), ae = toXY(angleDeg);
-    const largeArc = ratio > 0.5 ? 1 : 0;
+    // Wokwi: 각도 = 270 * ratio - 135
+    const knobDeg = 270 * ratio - 135;
     const pct = Math.round(ratio * 100);
 
+    // 트랙 호 (startDeg=-135, endDeg=+135)
+    const trackR = 6.0; // mm
+    const kx = 9.91, ky = 8.18;
+    const toXY = (deg: number) => {
+      const r = (deg * Math.PI) / 180;
+      return { x: (kx + trackR * Math.sin(r)).toFixed(3), y: (ky - trackR * Math.cos(r)).toFixed(3) };
+    };
+    const ts = toXY(-135), te = toXY(135), ae = toXY(knobDeg);
+    const largeArc = ratio > 0.5 ? 1 : 0;
+
     return html`
-      <svg width="90" height="96" viewBox="0 0 60 64" xmlns="http://www.w3.org/2000/svg">
+      <svg width="150" height="165"
+           viewBox="0 0 20 22"
+           xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <!-- 노브 방사형 그라디언트 -->
+          <radialGradient id="knob-outer" cx="0.4" cy="0.3" r="0.7">
+            <stop offset="0%"   stop-color="#f8f8f8"/>
+            <stop offset="100%" stop-color="#c0c0c0"/>
+          </radialGradient>
+          <radialGradient id="knob-inner" cx="0.4" cy="0.3" r="0.7">
+            <stop offset="0%"   stop-color="#d8d8d8"/>
+            <stop offset="100%" stop-color="#a8a8a8"/>
+          </radialGradient>
+          <!-- 포커스 글로우 -->
+          <filter id="pot-focus">
+            <feGaussianBlur stdDeviation="0.4"/>
+          </filter>
+        </defs>
 
-        <!-- 세라믹 몸체 -->
-        <rect x="5" y="6" width="50" height="34" rx="3" fill="#3a5a7a" stroke="#2a4a6a" stroke-width="1"/>
-        <rect x="5" y="6" width="50" height="7" rx="3" fill="white" opacity="0.14"/>
-        <rect x="5" y="34" width="50" height="6" fill="#0d2030" opacity="0.4"/>
-        <text x="30" y="39" font-size="5" fill="#8ab" font-family="monospace"
-          text-anchor="middle" opacity="0.8">BOURNS</text>
+        <!-- ── 바디 (Wokwi: #045881, 둥근 사각형) ── -->
+        <rect x="0.15" y="0.15" width="19.5" height="19.5" ry="1.23"
+          fill="#045881" stroke="#03406a" stroke-width="0.15"/>
+        <!-- 상단 하이라이트 -->
+        <rect x="0.15" y="0.15" width="19.5" height="2.5" ry="1.23"
+          fill="white" opacity="0.08"/>
 
-        <!-- 트랙 호 -->
+        <!-- ── 상단 마운팅 슬롯 (Wokwi: x=5.4 y=0.70 w=9.1 h=1.9) ── -->
+        <rect x="5.4" y="0.70" width="9.1" height="1.9"
+          fill="#ccdae3" stroke="none"/>
+
+        <!-- ── 코너 마운팅 홀 (흰색 원) ── -->
+        <ellipse cx="1.68"  cy="1.81"  rx="0.99" ry="0.96" fill="#ffffff"/>
+        <ellipse cx="1.48"  cy="18.37" rx="0.99" ry="0.96" fill="#ffffff"/>
+        <ellipse cx="17.97" cy="18.47" rx="0.99" ry="0.96" fill="#ffffff"/>
+        <ellipse cx="18.07" cy="1.91"  rx="0.99" ry="0.96" fill="#ffffff"/>
+        <!-- 홀 내부 (어두운 중심) -->
+        <ellipse cx="1.68"  cy="1.81"  rx="0.55" ry="0.52" fill="#033d5e"/>
+        <ellipse cx="1.48"  cy="18.37" rx="0.55" ry="0.52" fill="#033d5e"/>
+        <ellipse cx="17.97" cy="18.47" rx="0.55" ry="0.52" fill="#033d5e"/>
+        <ellipse cx="18.07" cy="1.91"  rx="0.55" ry="0.52" fill="#033d5e"/>
+
+        <!-- ── 트랙 호 (전체: 회색 배경) ── -->
         <path d="M ${ts.x} ${ts.y} A ${trackR} ${trackR} 0 1 1 ${te.x} ${te.y}"
-          fill="none" stroke="#1a2a3a" stroke-width="4" stroke-linecap="round"/>
-        <path d="M ${ts.x} ${ts.y} A ${trackR} ${trackR} 0 ${largeArc} 1 ${ae.x} ${ae.y}"
-          fill="none" stroke="#4a9eff" stroke-width="3.5" stroke-linecap="round"/>
+          fill="none" stroke="#023050" stroke-width="1.1" stroke-linecap="round"/>
+        <!-- 트랙 호 (활성: 파랑) -->
+        ${ratio > 0.001 ? html`
+          <path d="M ${ts.x} ${ts.y} A ${trackR} ${trackR} 0 ${largeArc} 1 ${ae.x} ${ae.y}"
+            fill="none" stroke="#4ad4ff" stroke-width="0.9" stroke-linecap="round"/>
+        ` : ''}
 
-        <!-- 노브 클릭 영역 (투명 큰 원) -->
-        <circle cx="${kx}" cy="${ky}" r="14"
+        <!-- ── 외곽 노브 (Wokwi: cx=9.91 cy=8.18 rx=7.27 ry=7.43) ── -->
+        <ellipse id="knob" cx="${kx}" cy="${ky}" rx="7.27" ry="7.43"
+          fill="url(#knob-outer)" stroke="#aaaaaa" stroke-width="0.12"/>
+        <!-- 내부 노브 (Wokwi: cx=9.95 cy=8.06 rx=6.60 ry=6.58) -->
+        <ellipse cx="9.95" cy="8.06" rx="6.60" ry="6.58"
+          fill="url(#knob-inner)" stroke="#999999" stroke-width="0.10"/>
+        <!-- 노브 상단 하이라이트 -->
+        <ellipse cx="8.8" cy="5.8" rx="2.5" ry="1.8"
+          fill="white" opacity="0.25" transform="rotate(-20, 8.8, 5.8)"/>
+
+        <!-- ── 회전 인디케이터 (Wokwi: rect x=10 y=2 w=0.42 h=3.1) ── -->
+        <!-- transform-origin: 10px 8px (SVG 좌표에서 10mm, 8mm) -->
+        <rect x="9.79" y="2.0" width="0.42" height="3.1"
+          fill="#cccccc" rx="0.1"
+          transform="rotate(${knobDeg}, ${kx}, ${ky})"/>
+
+        <!-- ── 드래그 핸들 (투명 원) ── -->
+        <ellipse class="knob-drag" cx="${kx}" cy="${ky}" rx="7.27" ry="7.43"
           fill="transparent"
-          class="knob"
           @pointerdown="${this._onPointerDown}"
           @pointermove="${this._onPointerMove}"
-          @pointerup="${this._onPointerUp}"/>
+          @pointerup="${this._onPointerUp}"
+          @pointercancel="${this._onPointerUp}"/>
 
-        <!-- 노브 본체 -->
-        <circle cx="${kx}" cy="${ky}" r="12" fill="#4a4a4a" class="knob"
-          @pointerdown="${this._onPointerDown}"
-          @pointermove="${this._onPointerMove}"
-          @pointerup="${this._onPointerUp}"/>
-        <circle cx="${kx}" cy="${ky}" r="12" fill="white" opacity="0.05" class="knob"
-          @pointerdown="${this._onPointerDown}"
-          @pointermove="${this._onPointerMove}"
-          @pointerup="${this._onPointerUp}"/>
-        <circle cx="${kx}" cy="${ky}" r="12" fill="none" stroke="#333" stroke-width="1"
-          class="knob"
-          @pointerdown="${this._onPointerDown}"
-          @pointermove="${this._onPointerMove}"
-          @pointerup="${this._onPointerUp}"/>
+        <!-- ── 값 표시 ── -->
+        <text x="${kx}" y="${ky + 1.0}" font-size="1.6" fill="#0a2540"
+          font-family="monospace" text-anchor="middle" font-weight="bold"
+          opacity="0.7">${pct}%</text>
 
-        <!-- 노브 하이라이트 -->
-        <ellipse cx="${kx - 3.5}" cy="${ky - 5}" rx="4" ry="2.2"
-          fill="white" opacity="0.18" transform="rotate(-20,${kx - 3.5},${ky - 5})"/>
+        <!-- ── 핀 패드 (Wokwi: y=18, 3개) ── -->
+        <!-- GND: cx=7.68 -->
+        <ellipse cx="7.68" cy="18" rx="0.61" ry="0.63" fill="#b3b1b0"/>
+        <ellipse cx="7.68" cy="18" rx="0.32" ry="0.32" fill="#0a0a0a"/>
+        <!-- SIG: cx=10.22 -->
+        <ellipse cx="10.22" cy="18" rx="0.61" ry="0.63" fill="#b3b1b0"/>
+        <ellipse cx="10.22" cy="18" rx="0.32" ry="0.32" fill="#0a0a0a"/>
+        <!-- VCC: cx=12.76 -->
+        <ellipse cx="12.76" cy="18" rx="0.61" ry="0.63" fill="#b3b1b0"/>
+        <ellipse cx="12.76" cy="18" rx="0.32" ry="0.32" fill="#0a0a0a"/>
 
-        <!-- 드라이버 슬롯 -->
-        <line x1="${kx - 5}" y1="${ky}" x2="${kx + 5}" y2="${ky}"
-          stroke="#1a1a1a" stroke-width="1.5" stroke-linecap="round"
-          transform="rotate(${angleDeg}, ${kx}, ${ky})"/>
+        <!-- ── 핀 라벨 (Wokwi 실크스크린) ── -->
+        <text x="6.21"  y="16.6" font-size="1" fill="#ffffff" font-family="monospace">GND</text>
+        <text x="9.2"   y="16.63" font-size="1" fill="#ffffff" font-family="monospace">SIG</text>
+        <text x="11.5"  y="16.59" font-size="1" fill="#ffffff" font-family="monospace">VCC</text>
 
-        <!-- 인디케이터 점 -->
-        <circle cx="${indX.toFixed(2)}" cy="${indY.toFixed(2)}" r="2" fill="#4a9eff"/>
-
-        <!-- 퍼센트 값 -->
-        <text x="${kx}" y="${ky + 4.5}" font-size="5.5" fill="#cde"
-          font-family="monospace" text-anchor="middle">${pct}%</text>
-
-        <!-- 핀 금속 — VCC=빨강, WIPER=보라, GND=회색 -->
-        <rect x="14.5" y="42" width="3" height="22" rx="0.5" fill="#cc4433"/>
-        <rect x="15.2" y="42" width="1.2" height="22" fill="white" opacity="0.25"/>
-        <rect x="28.5" y="42" width="3" height="22" rx="0.5" fill="#9944bb"/>
-        <rect x="29.2" y="42" width="1.2" height="22" fill="white" opacity="0.25"/>
-        <rect x="42.5" y="42" width="3" height="22" rx="0.5" fill="#666666"/>
-        <rect x="43.2" y="42" width="1.2" height="22" fill="white" opacity="0.2"/>
-
-        <!-- 핀 라벨 존 (Wokwi 스타일) -->
-        <rect x="0" y="52" width="60" height="12" fill="#0d0d14"/>
-        <line x1="0" y1="52" x2="60" y2="52" stroke="#252535" stroke-width="0.5"/>
-
-        <text x="16" y="62" font-size="8" fill="#ff8877" font-family="monospace"
-          text-anchor="middle" font-weight="bold">VCC</text>
-        <text x="30" y="62" font-size="8" fill="#cc88ff" font-family="monospace"
-          text-anchor="middle" font-weight="bold">WIP</text>
-        <text x="44" y="62" font-size="8" fill="#88ee99" font-family="monospace"
-          text-anchor="middle" font-weight="bold">GND</text>
+        <!-- ── 핀 금속 리드 (보드 하단 → y=20~22mm) ── -->
+        <!-- GND -->
+        <rect x="7.53" y="19.8" width="0.3" height="2.1" rx="0.1" fill="#888"/>
+        <!-- SIG -->
+        <rect x="10.07" y="19.8" width="0.3" height="2.1" rx="0.1" fill="#888"/>
+        <!-- VCC -->
+        <rect x="12.61" y="19.8" width="0.3" height="2.1" rx="0.1" fill="#888"/>
       </svg>
     `;
   }
