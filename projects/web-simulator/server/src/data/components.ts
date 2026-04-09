@@ -421,4 +421,512 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
     notes: ['⚠️ GPIO 5V 연결 금지', 'PWM: ledcWrite()', 'ADC 12bit (G0~G5)', '내장 LED G8: LOW=켜짐'],
     datasheet: 'https://www.espressif.com/sites/default/files/documentation/esp32-c3_datasheet_en.pdf',
   },
+
+  // ── 커패시터 ──────────────────────────────────────────────────────────────
+  {
+    id: 'capacitor',
+    name: '커패시터',
+    category: 'passive',
+    tags: ['capacitor','커패시터','전해','100uF','bypass'],
+    description: '전해 커패시터 100µF. 극성 있음.',
+    element: 'sim-generic',
+    width: 40, height: 60,
+    defaultProps: { capacitance: 100 },
+    props: [
+      { key: 'capacitance', label: '용량', type: 'number', default: 100, min: 1, max: 100000, unit: 'µF' },
+      { key: 'voltage',     label: '내압', type: 'select', default: '25V', options: ['6.3V','10V','16V','25V','50V'] },
+    ],
+    pins: [
+      { name: 'PLUS',  label: '+', x: 12, y: 60, type: 'power',  required: true, description: '양극 (+)', compatibleWith: ['power','digital','signal'] },
+      { name: 'MINUS', label: '−', x: 28, y: 60, type: 'ground', required: true, description: '음극 (−)', compatibleWith: ['ground'] },
+    ],
+    svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="60" viewBox="0 0 40 60">
+  <rect x="4" y="10" width="32" height="42" rx="16" ry="16" fill="#1a2030" stroke="#3a5070" stroke-width="1.5"/>
+  <rect x="4" y="10" width="32" height="14" rx="4" fill="#2a3a50"/>
+  <text x="20" y="30" font-family="monospace" font-size="6" fill="#6a9ac0" text-anchor="middle">100µF</text>
+  <text x="20" y="40" font-family="monospace" font-size="5" fill="#6a9ac0" text-anchor="middle">CAP</text>
+  <circle cx="12" cy="58" r="3" fill="#5a8090"/>
+  <circle cx="28" cy="58" r="3" fill="#5a8090"/>
+  <text x="12" y="58" font-family="monospace" font-size="5" fill="#ffffff" text-anchor="middle" dominant-baseline="middle">+</text>
+</svg>`,
+    electrical: { vccMin: 0, vccMax: 25 },
+    validation: [{ rule: 'polarity_sensitive', message: '극성 주의 — 반대 연결 시 파손', severity: 'error' }],
+    notes: ['양극(+)을 전원 쪽에 연결', '디커플링용: VCC와 GND 사이에 배치', '내압 이상의 전압 연결 금지'],
+  },
+
+  // ── 정류 다이오드 ─────────────────────────────────────────────────────────
+  {
+    id: 'diode',
+    name: '정류 다이오드',
+    category: 'active',
+    tags: ['diode','다이오드','1N4007','정류'],
+    description: '1N4007 실리콘 정류 다이오드. 역방향 전압 보호.',
+    element: 'sim-generic',
+    width: 40, height: 60,
+    defaultProps: {},
+    props: [
+      { key: 'model', label: '모델', type: 'select', default: '1N4007', options: ['1N4001','1N4004','1N4007','1N5819'] },
+    ],
+    pins: [
+      { name: 'ANODE',   label: 'A', x: 12, y: 60, type: 'input',  required: true, description: '애노드 (+)', compatibleWith: ['power','digital','signal'] },
+      { name: 'CATHODE', label: 'K', x: 28, y: 60, type: 'output', required: true, description: '캐소드 (−) — 띠 표시', compatibleWith: ['power','ground','signal'] },
+    ],
+    svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="60" viewBox="0 0 40 60">
+  <rect x="6" y="12" width="28" height="38" rx="4" fill="#1a2030" stroke="#3a5070" stroke-width="1.5"/>
+  <rect x="26" y="12" width="8" height="38" rx="0" fill="#2a1a30"/>
+  <text x="20" y="30" font-family="monospace" font-size="5" fill="#6a9ac0" text-anchor="middle">1N4007</text>
+  <text x="20" y="40" font-family="monospace" font-size="5" fill="#6a9ac0" text-anchor="middle">DIODE</text>
+  <circle cx="12" cy="58" r="3" fill="#5a8090"/>
+  <circle cx="28" cy="58" r="3" fill="#5a8090"/>
+  <text x="12" y="58" font-family="monospace" font-size="5" fill="#aaaaaa" text-anchor="middle" dominant-baseline="middle">A</text>
+  <text x="28" y="58" font-family="monospace" font-size="5" fill="#aaaaaa" text-anchor="middle" dominant-baseline="middle">K</text>
+</svg>`,
+    electrical: { vccMin: 0, vccMax: 1000, currentMa: 1000, maxCurrentMa: 1000 },
+    validation: [],
+    notes: ['캐소드(띠 쪽)가 출력', '순방향 전압강하 약 0.7V', '역방향 전압 최대 1000V (1N4007)'],
+    datasheet: 'https://www.vishay.com/docs/88503/1n4001.pdf',
+  },
+
+  // ── NPN BJT 트랜지스터 ────────────────────────────────────────────────────
+  {
+    id: 'transistor-npn',
+    name: 'NPN BJT',
+    category: 'active',
+    tags: ['transistor','npn','bjt','2N2222','스위칭'],
+    description: 'NPN BJT 2N2222. 스위칭 및 증폭.',
+    element: 'sim-generic',
+    width: 50, height: 70,
+    defaultProps: {},
+    props: [
+      { key: 'model', label: '모델', type: 'select', default: '2N2222', options: ['2N2222','BC547','S8050','2N3904'] },
+    ],
+    pins: [
+      { name: 'BASE',     label: 'B', x: 10, y: 70, type: 'input',  required: true, description: '베이스 — GPIO 제어',    compatibleWith: ['digital','pwm','signal'] },
+      { name: 'COLLECTOR',label: 'C', x: 25, y: 70, type: 'input',  required: true, description: '컬렉터 — 부하 연결',    compatibleWith: ['power','signal','output'] },
+      { name: 'EMITTER',  label: 'E', x: 40, y: 70, type: 'ground', required: true, description: '이미터 — GND 연결',     compatibleWith: ['ground'] },
+    ],
+    svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="50" height="70" viewBox="0 0 50 70">
+  <rect x="8" y="10" width="34" height="50" rx="5" fill="#1a2030" stroke="#3a5070" stroke-width="1.5"/>
+  <text x="25" y="30" font-family="monospace" font-size="5" fill="#6a9ac0" text-anchor="middle">2N2222</text>
+  <text x="25" y="42" font-family="monospace" font-size="5" fill="#6a9ac0" text-anchor="middle">NPN</text>
+  <circle cx="10" cy="68" r="3" fill="#5a8090"/>
+  <circle cx="25" cy="68" r="3" fill="#5a8090"/>
+  <circle cx="40" cy="68" r="3" fill="#5a8090"/>
+  <text x="10" y="68" font-family="monospace" font-size="4" fill="#aaaaaa" text-anchor="middle" dominant-baseline="middle">B</text>
+  <text x="25" y="68" font-family="monospace" font-size="4" fill="#aaaaaa" text-anchor="middle" dominant-baseline="middle">C</text>
+  <text x="40" y="68" font-family="monospace" font-size="4" fill="#aaaaaa" text-anchor="middle" dominant-baseline="middle">E</text>
+</svg>`,
+    electrical: { vccMin: 0, vccMax: 40, currentMa: 600, maxCurrentMa: 600 },
+    validation: [
+      { rule: 'requires_series_resistor', pin: 'BASE', message: 'BASE와 GPIO 사이에 직렬 저항 필요 (1kΩ)', severity: 'error' },
+    ],
+    notes: ['BASE 저항: R = (Vcc - 0.7) / Ib', '베이스 전류 = 컬렉터 전류 / hFE (약 100)'],
+    datasheet: 'https://www.onsemi.com/pdf/datasheet/p2n2222a-d.pdf',
+  },
+
+  // ── 릴레이 모듈 ──────────────────────────────────────────────────────────
+  {
+    id: 'relay',
+    name: '5V 릴레이 모듈',
+    category: 'actuator',
+    tags: ['relay','릴레이','5V','스위치'],
+    description: '5V 단채널 릴레이 모듈. AC/DC 고전압 제어.',
+    element: 'sim-generic',
+    width: 60, height: 80,
+    defaultProps: {},
+    props: [
+      { key: 'triggerLevel', label: '트리거', type: 'select', default: 'LOW', options: ['LOW','HIGH'] },
+    ],
+    pins: [
+      { name: 'IN',  label: 'IN',  x:  8, y: 80, type: 'input',  required: true,  description: '제어 신호 입력',    compatibleWith: ['digital','signal'] },
+      { name: 'VCC', label: 'VCC', x: 20, y: 80, type: 'power',  required: true,  description: '모듈 전원 5V',      compatibleWith: ['power'] },
+      { name: 'GND', label: 'GND', x: 32, y: 80, type: 'ground', required: true,  description: 'GND',               compatibleWith: ['ground'] },
+      { name: 'NO',  label: 'NO',  x: 44, y: 80, type: 'output', required: false, description: '상시 열림 (Normal Open)',  compatibleWith: ['signal','power'] },
+      { name: 'COM', label: 'COM', x: 56, y: 80, type: 'output', required: false, description: '공통 단자',          compatibleWith: ['signal','power'] },
+    ],
+    svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="60" height="80" viewBox="0 0 60 80">
+  <rect x="2" y="6" width="56" height="64" rx="4" fill="#1a2030" stroke="#3a5070" stroke-width="1.5"/>
+  <rect x="8" y="14" width="20" height="24" rx="3" fill="#0a1520" stroke="#2a4060" stroke-width="1"/>
+  <rect x="32" y="14" width="22" height="24" rx="3" fill="#1a3020" stroke="#2a6040" stroke-width="1"/>
+  <text x="30" y="52" font-family="monospace" font-size="6" fill="#6a9ac0" text-anchor="middle">RELAY</text>
+  <text x="30" y="62" font-family="monospace" font-size="5" fill="#6a9ac0" text-anchor="middle">5V</text>
+  <circle cx="8"  cy="78" r="3" fill="#5a8090"/>
+  <circle cx="20" cy="78" r="3" fill="#5a8090"/>
+  <circle cx="32" cy="78" r="3" fill="#5a8090"/>
+  <circle cx="44" cy="78" r="3" fill="#5a8090"/>
+  <circle cx="56" cy="78" r="3" fill="#5a8090"/>
+</svg>`,
+    electrical: { vccMin: 5.0, vccMax: 5.0, currentMa: 70, maxCurrentMa: 100 },
+    validation: [{ rule: 'high_voltage_warning', message: 'COM/NO/NC 단자에 고전압 주의', severity: 'warning' }],
+    notes: ['코일 5V / 접점 250VAC 10A', '릴레이 코일 역기전력 → 프리휠링 다이오드 권장', 'LOW 트리거 모듈 일반적'],
+  },
+
+  // ── DC 모터 ───────────────────────────────────────────────────────────────
+  {
+    id: 'dc-motor',
+    name: 'DC 모터',
+    category: 'actuator',
+    tags: ['motor','dc','모터','드라이버'],
+    description: 'DC 모터. 모터 드라이버 IC 필수.',
+    element: 'sim-generic',
+    width: 40, height: 60,
+    defaultProps: {},
+    props: [
+      { key: 'voltage', label: '정격 전압', type: 'select', default: '5V', options: ['3V','5V','6V','9V','12V'] },
+    ],
+    pins: [
+      { name: 'PLUS',  label: '+', x: 12, y: 60, type: 'power',  required: true, description: '양극 (+)', compatibleWith: ['power','output'] },
+      { name: 'MINUS', label: '−', x: 28, y: 60, type: 'ground', required: true, description: '음극 (−)', compatibleWith: ['ground','output'] },
+    ],
+    svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="60" viewBox="0 0 40 60">
+  <ellipse cx="20" cy="32" rx="16" ry="20" fill="#1a2030" stroke="#3a5070" stroke-width="1.5"/>
+  <ellipse cx="20" cy="32" rx="10" ry="14" fill="#0e1828" stroke="#2a4060" stroke-width="1"/>
+  <text x="20" y="30" font-family="monospace" font-size="5" fill="#6a9ac0" text-anchor="middle">DC</text>
+  <text x="20" y="40" font-family="monospace" font-size="5" fill="#6a9ac0" text-anchor="middle">MOTOR</text>
+  <circle cx="12" cy="58" r="3" fill="#5a8090"/>
+  <circle cx="28" cy="58" r="3" fill="#5a8090"/>
+</svg>`,
+    electrical: { vccMin: 3.0, vccMax: 12.0, currentMa: 200, maxCurrentMa: 1000 },
+    validation: [{ rule: 'requires_driver', message: 'GPIO 직결 금지 — L298N/L9110S 드라이버 사용', severity: 'error' }],
+    notes: ['GPIO 직결 절대 금지', 'L298N 또는 L9110S 드라이버 사용', '역기전력 보호 다이오드 권장'],
+  },
+
+  // ── IR LED ────────────────────────────────────────────────────────────────
+  {
+    id: 'ir-led',
+    name: '적외선 LED',
+    category: 'active',
+    tags: ['ir','led','적외선','infrared','remote'],
+    description: '940nm 적외선 LED. 리모컨 송신.',
+    element: 'sim-generic',
+    width: 40, height: 60,
+    defaultProps: {},
+    props: [],
+    pins: [
+      { name: 'ANODE',   label: '+', x: 14, y: 60, type: 'input',  required: true, description: '양극 (+)', compatibleWith: ['digital','pwm','signal','power'] },
+      { name: 'CATHODE', label: '−', x: 26, y: 60, type: 'ground', required: true, description: '음극 (−)', compatibleWith: ['ground'] },
+    ],
+    svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="60" viewBox="0 0 40 60">
+  <circle cx="20" cy="28" r="14" fill="#1a2030" stroke="#3a5070" stroke-width="1.5"/>
+  <circle cx="20" cy="28" r="8" fill="#0a1020" stroke="#2a4060" stroke-width="1"/>
+  <text x="20" y="26" font-family="monospace" font-size="5" fill="#6a7a60" text-anchor="middle">IR</text>
+  <text x="20" y="36" font-family="monospace" font-size="5" fill="#6a7a60" text-anchor="middle">LED</text>
+  <circle cx="14" cy="58" r="3" fill="#5a8090"/>
+  <circle cx="26" cy="58" r="3" fill="#5a8090"/>
+</svg>`,
+    electrical: { vccMin: 1.2, vccMax: 1.6, currentMa: 20, maxCurrentMa: 100 },
+    validation: [{ rule: 'requires_series_resistor', pin: 'ANODE', message: 'ANODE와 GPIO 사이에 직렬 저항 필요', severity: 'error' }],
+    notes: ['38kHz 캐리어 필요 (IRremote 라이브러리)', '저항: (Vcc - 1.4) / 0.02 Ω', '라이브러리: IRremote'],
+  },
+
+  // ── IR 수신기 ─────────────────────────────────────────────────────────────
+  {
+    id: 'ir-receiver',
+    name: 'IR 수신기',
+    category: 'sensor',
+    tags: ['ir','receiver','수신기','TSOP38238','remote'],
+    description: 'TSOP38238 38kHz IR 수신기. 리모컨 수신.',
+    element: 'sim-generic',
+    width: 50, height: 70,
+    defaultProps: {},
+    props: [],
+    pins: [
+      { name: 'OUT', label: 'OUT', x: 10, y: 70, type: 'output',  required: true, description: '디지털 출력 (Active LOW)', compatibleWith: ['digital','signal'] },
+      { name: 'VCC', label: 'VCC', x: 25, y: 70, type: 'power',   required: true, description: '전원 2.5~5.5V',           compatibleWith: ['power'] },
+      { name: 'GND', label: 'GND', x: 40, y: 70, type: 'ground',  required: true, description: 'GND',                     compatibleWith: ['ground'] },
+    ],
+    svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="50" height="70" viewBox="0 0 50 70">
+  <rect x="6" y="10" width="38" height="50" rx="4" fill="#1a2030" stroke="#3a5070" stroke-width="1.5"/>
+  <rect x="10" y="14" width="30" height="28" rx="3" fill="#0a0e18" stroke="#2a4060" stroke-width="1"/>
+  <text x="25" y="52" font-family="monospace" font-size="5" fill="#6a9ac0" text-anchor="middle">TSOP</text>
+  <text x="25" y="60" font-family="monospace" font-size="5" fill="#6a9ac0" text-anchor="middle">38238</text>
+  <circle cx="10" cy="68" r="3" fill="#5a8090"/>
+  <circle cx="25" cy="68" r="3" fill="#5a8090"/>
+  <circle cx="40" cy="68" r="3" fill="#5a8090"/>
+</svg>`,
+    electrical: { vccMin: 2.5, vccMax: 5.5, currentMa: 5, maxCurrentMa: 10 },
+    validation: [],
+    notes: ['라이브러리: IRremote', 'OUT 핀 → GPIO 디지털 입력', '수신 거리 최대 15m'],
+    datasheet: 'https://www.vishay.com/docs/82491/tsop382.pdf',
+  },
+
+  // ── 홀 효과 센서 ──────────────────────────────────────────────────────────
+  {
+    id: 'hall-sensor',
+    name: '홀 효과 센서',
+    category: 'sensor',
+    tags: ['hall','자석','sensor','A3144','magnetic'],
+    description: 'A3144 홀 효과 센서. 자석 근접 감지.',
+    element: 'sim-generic',
+    width: 50, height: 70,
+    defaultProps: {},
+    props: [],
+    pins: [
+      { name: 'VCC', label: 'VCC', x: 10, y: 70, type: 'power',   required: true, description: '전원 4.5~24V',           compatibleWith: ['power'] },
+      { name: 'GND', label: 'GND', x: 25, y: 70, type: 'ground',  required: true, description: 'GND',                    compatibleWith: ['ground'] },
+      { name: 'OUT', label: 'OUT', x: 40, y: 70, type: 'output',  required: true, description: '오픈 컬렉터 출력 (풀업 필요)', compatibleWith: ['digital','signal'] },
+    ],
+    svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="50" height="70" viewBox="0 0 50 70">
+  <rect x="6" y="10" width="38" height="50" rx="4" fill="#1a2030" stroke="#3a5070" stroke-width="1.5"/>
+  <text x="25" y="30" font-family="monospace" font-size="5" fill="#6a9ac0" text-anchor="middle">A3144</text>
+  <text x="25" y="42" font-family="monospace" font-size="5" fill="#6a9ac0" text-anchor="middle">HALL</text>
+  <text x="25" y="52" font-family="monospace" font-size="5" fill="#6a9ac0" text-anchor="middle">SENSOR</text>
+  <circle cx="10" cy="68" r="3" fill="#5a8090"/>
+  <circle cx="25" cy="68" r="3" fill="#5a8090"/>
+  <circle cx="40" cy="68" r="3" fill="#5a8090"/>
+</svg>`,
+    electrical: { vccMin: 4.5, vccMax: 24.0, currentMa: 10, maxCurrentMa: 25 },
+    validation: [{ rule: 'requires_pullup', pin: 'OUT', message: 'OUT 핀에 10kΩ 풀업 저항 필요', severity: 'warning' }],
+    notes: ['OUT 핀에 10kΩ 풀업 저항 필요', '오픈 컬렉터 출력 (Active LOW)', '자석 S극 감지'],
+    datasheet: 'https://www.allegromicro.com/en/products/sense/switches-and-latches/unipolar-switches/a3141-2-3-4',
+  },
+
+  // ── LM35 온도 센서 ────────────────────────────────────────────────────────
+  {
+    id: 'lm35',
+    name: 'LM35 온도센서',
+    category: 'sensor',
+    tags: ['lm35','온도','temperature','analog','sensor'],
+    description: 'LM35 아날로그 온도 센서. 10mV/°C.',
+    element: 'sim-generic',
+    width: 50, height: 70,
+    defaultProps: { temperature: 25 },
+    props: [
+      { key: 'temperature', label: '온도', type: 'number', default: 25, min: -55, max: 150, step: 0.1, unit: '°C' },
+    ],
+    pins: [
+      { name: 'VCC', label: 'VCC', x: 10, y: 70, type: 'power',  required: true, description: '전원 4~30V',             compatibleWith: ['power'] },
+      { name: 'OUT', label: 'OUT', x: 25, y: 70, type: 'analog', required: true, description: '아날로그 출력 10mV/°C',  compatibleWith: ['analog'] },
+      { name: 'GND', label: 'GND', x: 40, y: 70, type: 'ground', required: true, description: 'GND',                    compatibleWith: ['ground'] },
+    ],
+    svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="50" height="70" viewBox="0 0 50 70">
+  <rect x="6" y="10" width="38" height="50" rx="4" fill="#1a2030" stroke="#3a5070" stroke-width="1.5"/>
+  <text x="25" y="30" font-family="monospace" font-size="6" fill="#6a9ac0" text-anchor="middle">LM35</text>
+  <text x="25" y="42" font-family="monospace" font-size="5" fill="#6a9ac0" text-anchor="middle">TEMP</text>
+  <text x="25" y="52" font-family="monospace" font-size="5" fill="#6a9ac0" text-anchor="middle">10mV/°C</text>
+  <circle cx="10" cy="68" r="3" fill="#5a8090"/>
+  <circle cx="25" cy="68" r="3" fill="#5a8090"/>
+  <circle cx="40" cy="68" r="3" fill="#5a8090"/>
+</svg>`,
+    electrical: { vccMin: 4.0, vccMax: 30.0, currentMa: 0.06, maxCurrentMa: 10 },
+    validation: [{ rule: 'requires_adc_pin', pin: 'OUT', message: 'OUT는 ADC 핀에 연결', severity: 'warning' }],
+    notes: ['출력: 온도(°C) × 10mV', '25°C → 250mV', 'analogRead 변환: Vout × (Vref/ADCmax) / 0.01'],
+    datasheet: 'https://www.ti.com/lit/ds/symlink/lm35.pdf',
+  },
+
+  // ── 아날로그 조이스틱 ──────────────────────────────────────────────────────
+  {
+    id: 'joystick',
+    name: '아날로그 조이스틱',
+    category: 'sensor',
+    tags: ['joystick','조이스틱','analog','게임','ps2'],
+    description: '듀얼 축 아날로그 조이스틱 모듈 (PS2 스타일).',
+    element: 'sim-generic',
+    width: 60, height: 80,
+    defaultProps: { vrx: 512, vry: 512, sw: 1 },
+    props: [
+      { key: 'vrx', label: 'X축',  type: 'number', default: 512, min: 0, max: 4095 },
+      { key: 'vry', label: 'Y축',  type: 'number', default: 512, min: 0, max: 4095 },
+      { key: 'sw',  label: '버튼', type: 'select', default: 1, options: ['0','1'] },
+    ],
+    pins: [
+      { name: 'VCC', label: 'VCC', x:  8, y: 80, type: 'power',   required: true,  description: '3.3V~5V 전원',      compatibleWith: ['power'] },
+      { name: 'GND', label: 'GND', x: 20, y: 80, type: 'ground',  required: true,  description: 'GND',               compatibleWith: ['ground'] },
+      { name: 'VRX', label: 'VRX', x: 32, y: 80, type: 'analog',  required: false, description: 'X축 아날로그 출력', compatibleWith: ['analog'] },
+      { name: 'VRY', label: 'VRY', x: 44, y: 80, type: 'analog',  required: false, description: 'Y축 아날로그 출력', compatibleWith: ['analog'] },
+      { name: 'SW',  label: 'SW',  x: 56, y: 80, type: 'digital', required: false, description: '버튼 (Active LOW)', compatibleWith: ['digital','signal'] },
+    ],
+    svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="60" height="80" viewBox="0 0 60 80">
+  <rect x="2" y="6" width="56" height="64" rx="4" fill="#1a2030" stroke="#3a5070" stroke-width="1.5"/>
+  <circle cx="30" cy="34" r="18" fill="#0e1828" stroke="#2a4060" stroke-width="1.5"/>
+  <circle cx="30" cy="34" r="8" fill="#1a2a40" stroke="#3a5070" stroke-width="1"/>
+  <text x="30" y="62" font-family="monospace" font-size="5" fill="#6a9ac0" text-anchor="middle">JOYSTICK</text>
+  <circle cx="8"  cy="78" r="3" fill="#5a8090"/>
+  <circle cx="20" cy="78" r="3" fill="#5a8090"/>
+  <circle cx="32" cy="78" r="3" fill="#5a8090"/>
+  <circle cx="44" cy="78" r="3" fill="#5a8090"/>
+  <circle cx="56" cy="78" r="3" fill="#5a8090"/>
+</svg>`,
+    electrical: { vccMin: 3.3, vccMax: 5.0 },
+    validation: [],
+    notes: ['VRX/VRY: ADC 핀 연결', 'SW: INPUT_PULLUP 사용', '중립 위치: 약 ADCmax/2'],
+  },
+
+  // ── 74HC595 시프트 레지스터 ───────────────────────────────────────────────
+  {
+    id: '74hc595',
+    name: '74HC595',
+    category: 'active',
+    tags: ['shift register','595','시프트레지스터','확장','spi'],
+    description: '8비트 직렬→병렬 시프트 레지스터. 핀 확장.',
+    element: 'sim-generic',
+    width: 60, height: 80,
+    defaultProps: {},
+    props: [],
+    pins: [
+      { name: 'DS',    label: 'DS',    x:  8, y: 80, type: 'input',  required: true,  description: '직렬 데이터 입력 (SER)', compatibleWith: ['digital','signal','spi_mosi'] },
+      { name: 'SH_CP', label: 'SHCP',  x: 18, y: 80, type: 'input',  required: true,  description: '시프트 클럭 (SRCLK)',    compatibleWith: ['digital','signal','spi_sck'] },
+      { name: 'ST_CP', label: 'STCP',  x: 28, y: 80, type: 'input',  required: true,  description: '래치 클럭 (RCLK)',      compatibleWith: ['digital','signal'] },
+      { name: 'MR',    label: 'MR',    x: 38, y: 80, type: 'input',  required: false, description: '마스터 리셋 (Active LOW)', compatibleWith: ['digital','power'] },
+      { name: 'OE',    label: 'OE',    x: 48, y: 80, type: 'input',  required: false, description: '출력 인에이블 (Active LOW)', compatibleWith: ['digital','ground'] },
+      { name: 'VCC',   label: 'VCC',   x: 58, y: 80, type: 'power',  required: true,  description: '전원 2~6V',             compatibleWith: ['power'] },
+      { name: 'GND',   label: 'GND',   x: 68, y: 80, type: 'ground', required: true,  description: 'GND',                   compatibleWith: ['ground'] },
+    ],
+    svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="60" height="80" viewBox="0 0 60 80">
+  <rect x="2" y="6" width="56" height="64" rx="3" fill="#1a2030" stroke="#3a5070" stroke-width="1.5"/>
+  <rect x="24" y="2" width="12" height="8" rx="2" fill="#0e1828" stroke="#3a5070" stroke-width="1"/>
+  <text x="30" y="32" font-family="monospace" font-size="6" fill="#6a9ac0" text-anchor="middle">74HC</text>
+  <text x="30" y="44" font-family="monospace" font-size="6" fill="#6a9ac0" text-anchor="middle">595</text>
+  <text x="30" y="58" font-family="monospace" font-size="5" fill="#5a7a90" text-anchor="middle">SHIFT REG</text>
+  <line x1="2" y1="22" x2="0" y2="22" stroke="#5a8090" stroke-width="1"/>
+  <line x1="2" y1="30" x2="0" y2="30" stroke="#5a8090" stroke-width="1"/>
+  <line x1="2" y1="38" x2="0" y2="38" stroke="#5a8090" stroke-width="1"/>
+  <line x1="2" y1="46" x2="0" y2="46" stroke="#5a8090" stroke-width="1"/>
+  <line x1="58" y1="22" x2="60" y2="22" stroke="#5a8090" stroke-width="1"/>
+  <line x1="58" y1="30" x2="60" y2="30" stroke="#5a8090" stroke-width="1"/>
+  <line x1="58" y1="38" x2="60" y2="38" stroke="#5a8090" stroke-width="1"/>
+  <line x1="58" y1="46" x2="60" y2="46" stroke="#5a8090" stroke-width="1"/>
+</svg>`,
+    electrical: { vccMin: 2.0, vccMax: 6.0, currentMa: 70, maxCurrentMa: 70 },
+    validation: [],
+    notes: ['DS→SH_CP 클럭→ST_CP 래치 순서', 'MR은 VCC에, OE는 GND에 연결', '라이브러리 없이 shiftOut() 사용'],
+    datasheet: 'https://www.ti.com/lit/ds/symlink/sn74hc595.pdf',
+  },
+
+  // ── L298N 모터 드라이버 ──────────────────────────────────────────────────
+  {
+    id: 'l298n',
+    name: 'L298N 모터 드라이버',
+    category: 'actuator',
+    tags: ['l298n','motor driver','모터드라이버','H브릿지','DC모터'],
+    description: 'L298N 듀얼 H-브릿지 모터 드라이버. DC 모터 2개 제어.',
+    element: 'sim-generic',
+    width: 80, height: 100,
+    defaultProps: {},
+    props: [],
+    pins: [
+      { name: 'IN1', label: 'IN1', x:  8, y: 100, type: 'input',  required: true,  description: '모터A 방향 제어 1',  compatibleWith: ['digital','signal'] },
+      { name: 'IN2', label: 'IN2', x: 20, y: 100, type: 'input',  required: true,  description: '모터A 방향 제어 2',  compatibleWith: ['digital','signal'] },
+      { name: 'IN3', label: 'IN3', x: 32, y: 100, type: 'input',  required: true,  description: '모터B 방향 제어 1',  compatibleWith: ['digital','signal'] },
+      { name: 'IN4', label: 'IN4', x: 44, y: 100, type: 'input',  required: true,  description: '모터B 방향 제어 2',  compatibleWith: ['digital','signal'] },
+      { name: 'ENA', label: 'ENA', x: 56, y: 100, type: 'pwm',    required: false, description: '모터A PWM 속도 제어', compatibleWith: ['pwm','digital'] },
+      { name: 'ENB', label: 'ENB', x: 68, y: 100, type: 'pwm',    required: false, description: '모터B PWM 속도 제어', compatibleWith: ['pwm','digital'] },
+      { name: 'VCC', label: 'VCC', x: 56, y: 8,   type: 'power',  required: true,  description: '모터 전원 5~35V',    compatibleWith: ['power'] },
+      { name: 'GND', label: 'GND', x: 68, y: 8,   type: 'ground', required: true,  description: 'GND',               compatibleWith: ['ground'] },
+    ],
+    svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="100" viewBox="0 0 80 100">
+  <rect x="2" y="6" width="76" height="84" rx="4" fill="#1a2030" stroke="#3a5070" stroke-width="1.5"/>
+  <rect x="22" y="18" width="36" height="50" rx="3" fill="#2a1020" stroke="#6a3050" stroke-width="1.5"/>
+  <text x="40" y="40" font-family="monospace" font-size="7" fill="#9a5070" text-anchor="middle">L298N</text>
+  <text x="40" y="54" font-family="monospace" font-size="5" fill="#6a9ac0" text-anchor="middle">DUAL H-BRIDGE</text>
+  <text x="40" y="64" font-family="monospace" font-size="5" fill="#5a7a90" text-anchor="middle">MOTOR DRIVER</text>
+</svg>`,
+    electrical: { vccMin: 5.0, vccMax: 35.0, currentMa: 2000, maxCurrentMa: 4000 },
+    validation: [],
+    notes: ['모터 전원 5~35V', '채널당 최대 2A', 'ENA/ENB 점퍼 제거 후 PWM 연결', 'IN1=H, IN2=L → 정방향'],
+    datasheet: 'https://www.st.com/resource/en/datasheet/l298.pdf',
+  },
+
+  // ── PIR 인체 감지 센서 ────────────────────────────────────────────────────
+  {
+    id: 'pir-sensor',
+    name: 'PIR 센서',
+    category: 'sensor',
+    tags: ['pir','motion','인체감지','HC-SR501','passive infrared'],
+    description: 'HC-SR501 수동 적외선 인체 감지 센서.',
+    element: 'sim-generic',
+    width: 50, height: 70,
+    defaultProps: { delay: 5, sensitivity: 'medium' },
+    props: [
+      { key: 'delay',       label: '지연 시간', type: 'number', default: 5, min: 1, max: 300, unit: 's' },
+      { key: 'sensitivity', label: '감도',      type: 'select', default: 'medium', options: ['low','medium','high'] },
+    ],
+    pins: [
+      { name: 'VCC', label: 'VCC', x: 10, y: 70, type: 'power',   required: true, description: '전원 5~20V',          compatibleWith: ['power'] },
+      { name: 'OUT', label: 'OUT', x: 25, y: 70, type: 'output',  required: true, description: '디지털 출력 (HIGH=감지)', compatibleWith: ['digital','signal'] },
+      { name: 'GND', label: 'GND', x: 40, y: 70, type: 'ground',  required: true, description: 'GND',                 compatibleWith: ['ground'] },
+    ],
+    svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="50" height="70" viewBox="0 0 50 70">
+  <rect x="4" y="14" width="42" height="46" rx="3" fill="#1a2030" stroke="#3a5070" stroke-width="1.5"/>
+  <circle cx="25" cy="32" r="14" fill="#e8e0c8" stroke="#c0b090" stroke-width="1.5"/>
+  <circle cx="25" cy="32" r="10" fill="#d8d0b8" stroke="#b0a080" stroke-width="0.5"/>
+  <text x="25" y="52" font-family="monospace" font-size="5" fill="#6a9ac0" text-anchor="middle">HC-SR501</text>
+  <circle cx="10" cy="68" r="3" fill="#5a8090"/>
+  <circle cx="25" cy="68" r="3" fill="#5a8090"/>
+  <circle cx="40" cy="68" r="3" fill="#5a8090"/>
+</svg>`,
+    electrical: { vccMin: 5.0, vccMax: 20.0, currentMa: 65, maxCurrentMa: 65 },
+    validation: [],
+    notes: ['감지 범위 120도 / 최대 7m', '전원 인가 후 약 60초 안정화 시간 필요', 'OUT HIGH = 인체 감지'],
+  },
+
+  // ── 사운드 센서 ───────────────────────────────────────────────────────────
+  {
+    id: 'sound-sensor',
+    name: '사운드 센서',
+    category: 'sensor',
+    tags: ['sound','소리','마이크','microphone','sensor'],
+    description: '디지털 사운드 감지 센서 모듈.',
+    element: 'sim-generic',
+    width: 50, height: 70,
+    defaultProps: { threshold: 512 },
+    props: [
+      { key: 'threshold', label: '임계값', type: 'number', default: 512, min: 0, max: 4095 },
+    ],
+    pins: [
+      { name: 'VCC',  label: 'VCC',  x: 10, y: 70, type: 'power',   required: true,  description: '전원 3.3~5V',          compatibleWith: ['power'] },
+      { name: 'GND',  label: 'GND',  x: 25, y: 70, type: 'ground',  required: true,  description: 'GND',                  compatibleWith: ['ground'] },
+      { name: 'DOUT', label: 'DOUT', x: 40, y: 70, type: 'output',  required: false, description: '디지털 출력 (임계 초과 시 HIGH)', compatibleWith: ['digital','signal'] },
+    ],
+    svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="50" height="70" viewBox="0 0 50 70">
+  <rect x="4" y="10" width="42" height="50" rx="4" fill="#1a2030" stroke="#3a5070" stroke-width="1.5"/>
+  <circle cx="25" cy="30" r="10" fill="#0a0e18" stroke="#2a4060" stroke-width="1.5"/>
+  <circle cx="25" cy="30" r="5"  fill="#1a1e28"/>
+  <text x="25" y="52" font-family="monospace" font-size="5" fill="#6a9ac0" text-anchor="middle">SOUND</text>
+  <text x="25" y="60" font-family="monospace" font-size="4" fill="#5a7a90" text-anchor="middle">SENSOR</text>
+  <circle cx="10" cy="68" r="3" fill="#5a8090"/>
+  <circle cx="25" cy="68" r="3" fill="#5a8090"/>
+  <circle cx="40" cy="68" r="3" fill="#5a8090"/>
+</svg>`,
+    electrical: { vccMin: 3.3, vccMax: 5.0, currentMa: 15, maxCurrentMa: 20 },
+    validation: [],
+    notes: ['가변저항으로 임계값 조정', 'DOUT: 소리 감지 시 HIGH (모듈에 따라 반전)', '민감도: 모듈 위 트리머 조정'],
+  },
+
+  // ── 스텝 모터 ─────────────────────────────────────────────────────────────
+  {
+    id: 'stepper-motor',
+    name: '28BYJ-48 스텝 모터',
+    category: 'actuator',
+    tags: ['stepper','스텝모터','28BYJ-48','ULN2003','단극'],
+    description: '28BYJ-48 5V 스텝 모터 (ULN2003 드라이버 사용).',
+    element: 'sim-generic',
+    width: 60, height: 80,
+    defaultProps: {},
+    props: [
+      { key: 'speed', label: 'RPM', type: 'number', default: 15, min: 1, max: 15, unit: 'RPM' },
+    ],
+    pins: [
+      { name: 'IN1', label: 'IN1', x:  8, y: 80, type: 'input', required: true, description: '코일 1 제어',  compatibleWith: ['digital','signal'] },
+      { name: 'IN2', label: 'IN2', x: 20, y: 80, type: 'input', required: true, description: '코일 2 제어',  compatibleWith: ['digital','signal'] },
+      { name: 'IN3', label: 'IN3', x: 32, y: 80, type: 'input', required: true, description: '코일 3 제어',  compatibleWith: ['digital','signal'] },
+      { name: 'IN4', label: 'IN4', x: 44, y: 80, type: 'input', required: true, description: '코일 4 제어',  compatibleWith: ['digital','signal'] },
+      { name: 'VCC', label: 'VCC', x: 56, y: 80, type: 'power', required: true, description: '전원 5V',       compatibleWith: ['power'] },
+    ],
+    svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="60" height="80" viewBox="0 0 60 80">
+  <ellipse cx="30" cy="38" rx="26" ry="30" fill="#1a2030" stroke="#3a5070" stroke-width="1.5"/>
+  <ellipse cx="30" cy="38" rx="18" ry="22" fill="#0e1828" stroke="#2a4060" stroke-width="1"/>
+  <ellipse cx="30" cy="38" rx="8"  ry="10" fill="#1a2838" stroke="#3a5070" stroke-width="1"/>
+  <text x="30" y="36" font-family="monospace" font-size="5" fill="#6a9ac0" text-anchor="middle">28BYJ</text>
+  <text x="30" y="46" font-family="monospace" font-size="5" fill="#6a9ac0" text-anchor="middle">-48</text>
+  <circle cx="8"  cy="78" r="3" fill="#5a8090"/>
+  <circle cx="20" cy="78" r="3" fill="#5a8090"/>
+  <circle cx="32" cy="78" r="3" fill="#5a8090"/>
+  <circle cx="44" cy="78" r="3" fill="#5a8090"/>
+  <circle cx="56" cy="78" r="3" fill="#5a8090"/>
+</svg>`,
+    electrical: { vccMin: 5.0, vccMax: 5.0, currentMa: 240, maxCurrentMa: 500 },
+    validation: [{ rule: 'requires_driver', message: 'ULN2003 드라이버 IC 또는 별도 드라이버 필수', severity: 'error' }],
+    notes: ['ULN2003 드라이버 모듈 사용 권장', '스텝 각도: 5.625° / 64 스텝 = 1회전', '라이브러리: Stepper 또는 AccelStepper'],
+  },
 ];
