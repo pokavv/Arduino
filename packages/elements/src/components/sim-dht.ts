@@ -20,7 +20,21 @@ export class SimDht extends SimElement {
 
   override get componentType() { return 'dht'; }
   override get pins() { return ['VCC', 'DATA', 'GND']; }
-  override setPinState(_pin: string, _value: number) {}
+  override setPinState(pin: string, value: number | string) {
+    const v = typeof value === 'string' ? parseFloat(value) : value;
+    if (pin === 'TEMP' || pin === 'temperature') {
+      this.temperature = v;
+    } else if (pin === 'HUM' || pin === 'humidity') {
+      this.humidity = v;
+    } else if (pin === 'DATA') {
+      // DATA 핀에 복합 데이터가 오는 경우 (JSON 형태)
+      try {
+        const data = typeof value === 'string' ? JSON.parse(value) : {};
+        if (data.temperature !== undefined) this.temperature = data.temperature;
+        if (data.humidity    !== undefined) this.humidity    = data.humidity;
+      } catch { /* ignore */ }
+    }
+  }
 
   override getPinPositions() {
     return new Map([
@@ -44,8 +58,10 @@ export class SimDht extends SimElement {
         <text x="20" y="24" font-size="7" fill="#88ccff" font-family="monospace"
           text-anchor="middle">${this.model}</text>
         <!-- 값 표시 -->
-        <text x="20" y="34" font-size="5.5" fill="#aaddff" font-family="monospace"
+        <text x="20" y="29" font-size="5.5" fill="#aaddff" font-family="monospace"
           text-anchor="middle">${this.temperature.toFixed(1)}°C</text>
+        <text x="20" y="37" font-size="5.5" fill="#aaddff" font-family="monospace"
+          text-anchor="middle">${this.humidity.toFixed(1)}%H</text>
 
         <!-- 핀 3개 -->
         <line x1="10" y1="40" x2="10" y2="56" stroke="#aaa" stroke-width="2"/>

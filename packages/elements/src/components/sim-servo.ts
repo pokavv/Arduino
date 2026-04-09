@@ -27,10 +27,11 @@ export class SimServo extends SimElement {
     ]);
   }
 
-  override setPinState(pin: string, value: number) {
+  override setPinState(pin: string, value: number | string) {
+    const v = typeof value === 'string' ? parseFloat(value) : value;
     if (pin === 'SIGNAL') {
       // value: 0~180 (도)
-      this.angle = Math.max(0, Math.min(180, value));
+      this.angle = Math.max(0, Math.min(180, v));
     }
   }
 

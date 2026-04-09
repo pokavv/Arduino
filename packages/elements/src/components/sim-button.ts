@@ -32,7 +32,7 @@ export class SimButton extends SimElement {
   override get componentType() { return 'button'; }
   override get pins() { return ['PIN1A', 'PIN1B', 'PIN2A', 'PIN2B']; }
 
-  override setPinState(_pin: string, _value: number) {}
+  override setPinState(_pin: string, _value: number | string) {}
 
   override getPinPositions() {
     return new Map([

@@ -35,7 +35,7 @@ export class SimNeopixel extends SimElement {
     this._pixels = Array.from({ length: this.count }, () => [0, 0, 0]);
   }
 
-  override setPinState(_pin: string, _value: number) {}
+  override setPinState(_pin: string, _value: number | string) {}
 
   setPixel(index: number, r: number, g: number, b: number) {
     if (index < 0 || index >= this.count) return;

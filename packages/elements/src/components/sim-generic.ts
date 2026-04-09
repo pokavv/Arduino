@@ -36,7 +36,7 @@ export class SimGeneric extends SimElement {
 
   get componentType() { return 'generic'; }
   get pins() { return this.pinDefs.map(p => p.name); }
-  setPinState(_pin: string, _value: number) { /* 커스텀 부품은 시각 업데이트 없음 */ }
+  setPinState(_pin: string, _value: number | string) { /* 커스텀 부품은 시각 업데이트 없음 */ }
 
   override getPinPositions(): Map<string, { x: number; y: number }> {
     const map = new Map<string, { x: number; y: number }>();

@@ -37,7 +37,7 @@ export class SimResistor extends SimElement {
 
   override get componentType() { return 'resistor'; }
   override get pins() { return ['PIN1', 'PIN2']; }
-  override setPinState(_pin: string, _value: number) {}
+  override setPinState(_pin: string, _value: number | string) {}
 
   override getPinPositions() {
     return new Map([

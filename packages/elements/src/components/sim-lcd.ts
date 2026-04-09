@@ -48,7 +48,45 @@ export class SimLcd extends SimElement {
       ['SCL', { x: 68, y: pinY }],
     ]);
   }
-  override setPinState(_pin: string, _value: number) {}
+  override setPinState(pin: string, value: number | string) {
+    switch (pin) {
+      case 'CLEAR':
+        this.lcdClear();
+        break;
+      case 'HOME':
+        this.lcdHome();
+        break;
+      case 'CURSOR': {
+        const parts = String(value).split(',').map(Number);
+        if (parts.length >= 2) this.lcdSetCursor(parts[0], parts[1]);
+        break;
+      }
+      case 'PRINT': {
+        const text = String(value);
+        // 개행문자 처리
+        const lines = text.split('\\n');
+        for (let i = 0; i < lines.length; i++) {
+          if (i > 0) {
+            // 다음 줄로 커서 이동
+            this._cursor.col = 0;
+            this._cursor.row = (this._cursor.row + 1) % this.rows;
+          }
+          if (lines[i]) this.lcdPrint(lines[i]);
+        }
+        break;
+      }
+      case 'INIT': {
+        // 'COLSxROWS' 형식
+        const parts = String(value).split('x').map(Number);
+        if (parts.length >= 2) this.lcdBegin(parts[0], parts[1]);
+        break;
+      }
+      case 'BACKLIGHT':
+        this._backlight = (typeof value === 'number' ? value : Number(value)) > 0;
+        this.requestUpdate();
+        break;
+    }
+  }
 
   override connectedCallback() {
     super.connectedCallback();

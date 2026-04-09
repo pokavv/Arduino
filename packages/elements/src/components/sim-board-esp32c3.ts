@@ -51,10 +51,11 @@ export class SimBoardEsp32c3 extends SimElement {
   override get componentType() { return 'board-esp32c3'; }
   override get pins() { return C3_PINS.map(p => p.name); }
 
-  override setPinState(pin: string, value: number) {
+  override setPinState(pin: string, value: number | string) {
+    const v = typeof value === 'string' ? parseFloat(value) : value;
     const p = C3_PINS.find(p => p.name === pin || `G${p.gpioNum}` === pin);
     if (p?.gpioNum !== undefined) {
-      this.pinStates = { ...this.pinStates, [p.gpioNum]: value };
+      this.pinStates = { ...this.pinStates, [p.gpioNum]: v };
     }
   }
 

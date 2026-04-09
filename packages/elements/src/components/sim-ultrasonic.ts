@@ -18,7 +18,12 @@ export class SimUltrasonic extends SimElement {
 
   override get componentType() { return 'ultrasonic'; }
   override get pins() { return ['VCC', 'TRIG', 'ECHO', 'GND']; }
-  override setPinState(_pin: string, _value: number) {}
+  override setPinState(pin: string, value: number | string) {
+    const v = typeof value === 'string' ? parseFloat(value) : value;
+    if (pin === 'DIST' || pin === 'distanceCm' || pin === 'ECHO') {
+      this.distanceCm = Math.max(2, Math.min(400, v));
+    }
+  }
 
   override getPinPositions() {
     return new Map([

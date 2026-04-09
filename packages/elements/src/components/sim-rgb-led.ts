@@ -22,10 +22,11 @@ export class SimRgbLed extends SimElement {
   override get componentType() { return 'rgb-led'; }
   override get pins() { return ['RED', 'GREEN', 'BLUE', 'COMMON']; }
 
-  override setPinState(pin: string, value: number) {
-    if (pin === 'RED') this.r = this.commonAnode ? 255 - value : value;
-    else if (pin === 'GREEN') this.g = this.commonAnode ? 255 - value : value;
-    else if (pin === 'BLUE') this.b = this.commonAnode ? 255 - value : value;
+  override setPinState(pin: string, value: number | string) {
+    const v = typeof value === 'string' ? parseFloat(value) : value;
+    if (pin === 'RED') this.r = this.commonAnode ? 255 - v : v;
+    else if (pin === 'GREEN') this.g = this.commonAnode ? 255 - v : v;
+    else if (pin === 'BLUE') this.b = this.commonAnode ? 255 - v : v;
   }
 
   override getPinPositions() {
