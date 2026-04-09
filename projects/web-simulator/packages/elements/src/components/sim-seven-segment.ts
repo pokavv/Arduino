@@ -65,9 +65,10 @@ export class SimSevenSegment extends SimElement {
     return new Map(pins.map((p, i) => [p, { x: 4 + i * 4, y: 64 }]));
   }
 
-  override setPinState(pin: string, value: number) {
+  override setPinState(pin: string, value: number | string) {
+    const v = typeof value === 'string' ? parseFloat(value) : value;
     if (pin in this.segments) {
-      this.segments = { ...this.segments, [pin]: value > 0 };
+      this.segments = { ...this.segments, [pin]: v > 0 };
     }
   }
 

@@ -38,7 +38,76 @@ export class SimOled extends SimElement {
       ['SDA', { x: 72, y: 80 }],
     ]);
   }
-  override setPinState(_pin: string, _value: number) {}
+  private _textX = 0;
+  private _textY = 0;
+  private _textSize = 1;
+
+  override setPinState(pin: string, value: number | string) {
+    switch (pin) {
+      case 'CLEAR':
+        this.oledClear();
+        break;
+      case 'FILL_WHITE':
+        this._frameBuffer.fill(0xFF);
+        this.oledDisplay();
+        break;
+      case 'CURSOR': {
+        const parts = String(value).split(',').map(Number);
+        if (parts.length >= 2) { this._textX = parts[0]; this._textY = parts[1]; }
+        break;
+      }
+      case 'TEXTSIZE': {
+        this._textSize = Math.max(1, Number(value));
+        break;
+      }
+      case 'PRINT': {
+        const text = String(value);
+        const lines = text.split('\\n');
+        for (let i = 0; i < lines.length; i++) {
+          if (i > 0) { this._textX = 0; this._textY += 8 * this._textSize; }
+          if (lines[i]) {
+            this.oledPrint(lines[i], this._textX, this._textY, this._textSize);
+            this._textX += lines[i].length * 6 * this._textSize;
+          }
+        }
+        this.oledDisplay();
+        break;
+      }
+      case 'PIXEL': {
+        const p = String(value).split(',').map(Number);
+        if (p.length >= 3) this.oledDrawPixel(p[0], p[1], p[2]);
+        this.oledDisplay();
+        break;
+      }
+      case 'FILLRECT': {
+        const p = String(value).split(',').map(Number);
+        if (p.length >= 5) this.oledFillRect(p[0], p[1], p[2], p[3], p[4]);
+        this.oledDisplay();
+        break;
+      }
+      case 'LINE': {
+        const p = String(value).split(',').map(Number);
+        if (p.length >= 5) {
+          this._drawLine(p[0], p[1], p[2], p[3], p[4]);
+          this.oledDisplay();
+        }
+        break;
+      }
+    }
+  }
+
+  private _drawLine(x0: number, y0: number, x1: number, y1: number, color: number) {
+    const dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0);
+    const sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+    let err = dx - dy;
+    while (true) {
+      this.oledDrawPixel(x0, y0, color);
+      if (x0 === x1 && y0 === y1) break;
+      const e2 = 2 * err;
+      if (e2 > -dy) { err -= dy; x0 += sx; }
+      if (e2 <  dx) { err += dx; y0 += sy; }
+    }
+  }
 
   override firstUpdated() {
     this._canvas = this.shadowRoot!.querySelector('canvas')!;

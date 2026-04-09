@@ -46,10 +46,11 @@ export class SimLed extends SimElement {
   override get componentType() { return 'led'; }
   override get pins() { return ['ANODE', 'CATHODE']; }
 
-  override setPinState(pin: string, value: number) {
+  override setPinState(pin: string, value: number | string) {
+    const v = typeof value === 'string' ? parseFloat(value) : value;
     if (pin === 'ANODE') {
-      this.lit = value > 0;
-      this.brightness = value;
+      this.lit = v > 0;
+      this.brightness = v;
     }
   }
 

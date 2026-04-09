@@ -31,11 +31,23 @@ export class SimBuzzer extends SimElement {
     ]);
   }
 
-  override setPinState(pin: string, value: number) {
+  override setPinState(pin: string, value: number | string) {
+    const v = typeof value === 'string' ? parseFloat(value) : value;
     if (pin === 'VCC') {
-      const shouldPlay = value > 0;
+      const shouldPlay = v > 0;
       if (shouldPlay !== this.active) {
         this.active = shouldPlay;
+        this._updateSound();
+      }
+    } else if (pin === 'FREQ') {
+      if (v > 0) {
+        this.setFrequency(v);
+        if (!this.active) {
+          this.active = true;
+          this._updateSound();
+        }
+      } else {
+        this.active = false;
         this._updateSound();
       }
     }

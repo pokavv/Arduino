@@ -42,7 +42,7 @@ export abstract class SimElement extends LitElement {
   abstract get pins(): string[];
 
   /** 시뮬레이션 엔진에서 핀 상태를 업데이트할 때 호출 */
-  abstract setPinState(pin: string, value: number): void;
+  abstract setPinState(pin: string, value: number | string): void;
 
   /**
    * 각 핀의 SVG 좌표(컴포넌트 원점 기준)를 반환합니다.

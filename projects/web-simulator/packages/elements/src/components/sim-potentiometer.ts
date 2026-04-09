@@ -28,7 +28,7 @@ export class SimPotentiometer extends SimElement {
 
   override get componentType() { return 'potentiometer'; }
   override get pins() { return ['VCC', 'GND', 'WIPER']; }
-  override setPinState(_pin: string, _value: number) {}
+  override setPinState(_pin: string, _value: number | string) {}
 
   override getPinPositions() {
     return new Map([
