@@ -56,6 +56,8 @@ export interface ComponentDef {
   category: 'passive' | 'active' | 'sensor' | 'display' | 'actuator' | 'power' | 'mcu';
   tags: string[];
   description: string;
+  /** 팔레트 및 패널에 표시할 이모지 아이콘 */
+  icon: string;
   /** 렌더링에 사용할 Lit custom element 태그 (없으면 svgTemplate 사용) */
   element?: string;
   /** element 없을 때 렌더링할 SVG 마크업 (인라인 SVG 문자열) */
