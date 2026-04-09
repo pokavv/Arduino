@@ -227,24 +227,24 @@ export class SimBoardUno extends SimElement {
         ${d13on ? svg`<circle cx="92" cy="152" r="4.5" fill="#ffcc00" opacity="0.2"/>` : ''}
         <text x="92" y="161" font-size="3.5" fill="#665500" font-family="monospace" text-anchor="middle">L</text>
 
-        <!-- ── RST 버튼 (실물: 빨간 택트 스위치, DC잭 우측) ── -->
+        <!-- ── RST 버튼 (실물: USB-B 포트 바로 우측, 빨간 택트 스위치) ── -->
         <g class="btn-rst"
           @pointerdown="${this._onRstDown}"
           @pointerup="${(e: PointerEvent) => { e.stopPropagation(); }}">
           <!-- 버튼 기판 -->
-          <rect x="30" y="150" width="18" height="14" rx="2"
+          <rect x="30" y="80" width="18" height="14" rx="2"
             fill="#111" stroke="${this.rstPressed ? '#ff6644' : '#222'}" stroke-width="0.8"/>
           <!-- 버튼 돔 (빨간색) -->
-          <circle cx="39" cy="157" r="5.5"
+          <circle cx="39" cy="87" r="5.5"
             fill="${this.rstPressed ? '#dd2200' : '#cc2222'}"
             stroke="${this.rstPressed ? '#ff4422' : '#991111'}"
             stroke-width="0.8"/>
           <!-- 돔 중앙 하이라이트 -->
-          <circle cx="39" cy="157" r="2.5"
+          <circle cx="39" cy="87" r="2.5"
             fill="${this.rstPressed ? '#ff5533' : '#ee4444'}"/>
-          <ellipse cx="37" cy="155" rx="1.5" ry="1"
+          <ellipse cx="37" cy="85" rx="1.5" ry="1"
             fill="white" opacity="${this.rstPressed ? 0.1 : 0.25}"/>
-          <text x="39" y="171" font-size="4" fill="#884444" font-family="monospace"
+          <text x="39" y="100" font-size="4" fill="#884444" font-family="monospace"
             text-anchor="middle">RST</text>
         </g>
 
