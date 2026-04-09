@@ -3,6 +3,7 @@ import { ArduinoTranspiler } from '../runtime/transpiler.js';
 import { SimScheduler } from '../runtime/scheduler.js';
 import { GpioController } from '../runtime/gpio.js';
 import { buildPreamble } from '../runtime/preamble.js';
+import { INPUT_PIN_REGISTRY } from '../runtime/input-pin-registry.js';
 
 function post(msg: WorkerToMain) {
   (self as unknown as Worker).postMessage(msg);
@@ -41,20 +42,16 @@ async function runSimulation(circuit: CircuitSnapshot, code: string) {
     scheduler = new SimScheduler();
     gpio = new GpioController(post);
 
-    // 컴포넌트 입력 콜백 등록
+    // 컴포넌트 입력 콜백 등록 — INPUT_PIN_REGISTRY 기반 일반화
     for (const comp of circuit.components) {
-      if (comp.type === 'button') {
-        for (const [pin, target] of Object.entries(comp.connections)) {
-          if (pin === 'PIN1A' && typeof target === 'number') {
-            gpio.registerInputCallback(target, () => _ctx[`__btn_${comp.id}`] ?? 0);
-          }
-        }
-      }
-      if (comp.type === 'potentiometer') {
-        for (const [pin, target] of Object.entries(comp.connections)) {
-          if (pin === 'WIPER' && typeof target === 'number') {
-            gpio.registerInputCallback(target, () => _ctx[`__pot_${comp.id}`] ?? 512);
-          }
+      const handlers = INPUT_PIN_REGISTRY[comp.type];
+      if (!handlers?.length) continue;
+      for (const [pin, target] of Object.entries(comp.connections)) {
+        const handler = handlers.find(h => h.pin === pin);
+        if (handler && typeof target === 'number') {
+          const ctxKey = `${handler.ctxKey}_${comp.id}`;
+          const defaultValue = handler.defaultValue;
+          gpio.registerInputCallback(target, () => (_ctx[ctxKey] ?? defaultValue) as number);
         }
       }
     }
@@ -123,13 +120,19 @@ while (true) {
       gpio?.injectPinValue(msg.pin, msg.value);
       break;
 
-    case 'SENSOR_UPDATE':
-      _ctx[`__sensor_${msg.componentId}`] = msg.data;
-      if (msg.data.value !== undefined) {
-        _ctx[`__btn_${msg.componentId}`] = msg.data.value;
-        _ctx[`__pot_${msg.componentId}`] = msg.data.value;
+    case 'SENSOR_UPDATE': {
+      const comp = _pendingCircuit?.components.find(c => c.id === msg.componentId);
+      if (comp && msg.data.value !== undefined) {
+        // 레지스트리의 모든 핸들러 ctxKey에 값 저장
+        const handlers = INPUT_PIN_REGISTRY[comp.type] ?? [];
+        for (const h of handlers) {
+          _ctx[`${h.ctxKey}_${comp.id}`] = msg.data.value;
+        }
       }
+      // 범용 센서 데이터도 저장 (preamble에서 직접 참조할 수 있도록)
+      _ctx[`__sensor_${msg.componentId}`] = msg.data;
       break;
+    }
 
     case 'SERIAL_INPUT':
       // 문자열을 바이트 배열로 변환해서 버퍼에 추가

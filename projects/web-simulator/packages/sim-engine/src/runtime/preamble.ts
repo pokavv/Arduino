@@ -1,6 +1,7 @@
 import type { GpioController } from './gpio.js';
 import type { SimScheduler } from './scheduler.js';
 import type { WorkerToMain } from '../types.js';
+import { getBoardConfig } from '../boards.js';
 
 type PostFn = (msg: WorkerToMain) => void;
 
@@ -14,15 +15,14 @@ export function buildPreamble(
   boardType: string,
   serialInputBuffer: number[]
 ): string {
-  // 보드별 ADC 분해능 설정
-  const isEsp32 = boardType.includes('esp32');
-  const adcBits = isEsp32 ? 12 : 10;
-  const adcMax  = (1 << adcBits) - 1; // 4095 or 1023
+  // 보드 레지스트리에서 ADC 분해능 및 LED_BUILTIN 핀 조회
+  const board = getBoardConfig(boardType);
+  const adcMax = (1 << board.adcBits) - 1; // 4095 or 1023
 
   return `
 // ─── Arduino Runtime Preamble ────────────────────────────
 const __ledcPinMap = {};
-const __LED_BUILTIN = ${boardType.includes('esp32c3') ? 8 : boardType.includes('esp32') ? 2 : 13};
+const __LED_BUILTIN = ${board.ledBuiltin};
 const __ADC_MAX = ${adcMax};
 
 function __pinMode(pin, mode) { gpio.pinMode(+pin, mode); }
