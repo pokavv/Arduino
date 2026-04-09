@@ -42,6 +42,20 @@ async function runSimulation(circuit: CircuitSnapshot, code: string) {
     scheduler = new SimScheduler();
     gpio = new GpioController(post);
 
+    // GPIO번호 → 컴포넌트 맵 (preamble에서 _gpioToComp로 참조)
+    const gpioToComp = new Map<number, { id: string; type: string }>();
+    const i2cDevices = new Map<number, { id: string; type: string }>();
+    for (const comp of circuit.components) {
+      for (const [, target] of Object.entries(comp.connections)) {
+        if (typeof target === 'number') gpioToComp.set(target, { id: comp.id, type: comp.type });
+      }
+      const addr = (comp.props as Record<string, unknown>).i2cAddress;
+      if (typeof addr === 'number') i2cDevices.set(addr, { id: comp.id, type: comp.type });
+    }
+    _ctx._gpioToComp = gpioToComp;
+    _ctx._i2cDevices = i2cDevices;
+    _ctx._serialInputBuffer = _serialInputBuffer; // 동일 참조 — message handler의 push()가 반영됨
+
     // 컴포넌트 입력 콜백 등록 — INPUT_PIN_REGISTRY 기반 일반화
     for (const comp of circuit.components) {
       const handlers = INPUT_PIN_REGISTRY[comp.type];
@@ -121,16 +135,22 @@ while (true) {
       break;
 
     case 'SENSOR_UPDATE': {
-      const comp = _pendingCircuit?.components.find(c => c.id === msg.componentId);
-      if (comp && msg.data.value !== undefined) {
-        // 레지스트리의 모든 핸들러 ctxKey에 값 저장
+      const id = msg.componentId;
+      const comp = _pendingCircuit?.components.find(c => c.id === id);
+      // 타입별 특화 ctx 키 업데이트
+      if (comp?.type === 'dht') {
+        if (msg.data.temperature !== undefined) _ctx[`__dht_temp_${id}`] = msg.data.temperature;
+        if (msg.data.humidity    !== undefined) _ctx[`__dht_hum_${id}`]  = msg.data.humidity;
+      } else if (comp?.type === 'ultrasonic') {
+        if (msg.data.distanceCm !== undefined) _ctx[`__ultrasonic_dist_${id}`] = msg.data.distanceCm;
+      } else if (comp?.type === 'servo') {
+        if (msg.data.angle !== undefined) _ctx[`__servo_angle_${id}`] = msg.data.angle;
+      } else if (comp && msg.data.value !== undefined) {
         const handlers = INPUT_PIN_REGISTRY[comp.type] ?? [];
-        for (const h of handlers) {
-          _ctx[`${h.ctxKey}_${comp.id}`] = msg.data.value;
-        }
+        for (const h of handlers) _ctx[`${h.ctxKey}_${comp.id}`] = msg.data.value;
       }
-      // 범용 센서 데이터도 저장 (preamble에서 직접 참조할 수 있도록)
-      _ctx[`__sensor_${msg.componentId}`] = msg.data;
+      // 범용: 항상 전체 데이터 저장
+      _ctx[`__sensor_${id}`] = msg.data;
       break;
     }
 

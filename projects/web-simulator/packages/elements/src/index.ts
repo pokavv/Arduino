@@ -6,6 +6,9 @@ export { SimLed } from './components/sim-led.js';
 export { SimRgbLed } from './components/sim-rgb-led.js';
 export { SimButton } from './components/sim-button.js';
 export { SimResistor } from './components/sim-resistor.js';
+export { SimCapacitor } from './components/sim-capacitor.js';
+export { SimDiode } from './components/sim-diode.js';
+export { SimTransistorNpn } from './components/sim-transistor-npn.js';
 export { SimBuzzer } from './components/sim-buzzer.js';
 export { SimPotentiometer } from './components/sim-potentiometer.js';
 
@@ -17,14 +20,30 @@ export { SimOled } from './components/sim-oled.js';
 // 센서
 export { SimDht } from './components/sim-dht.js';
 export { SimUltrasonic } from './components/sim-ultrasonic.js';
+export { SimIrLed } from './components/sim-ir-led.js';
+export { SimIrReceiver } from './components/sim-ir-receiver.js';
+export { SimHallSensor } from './components/sim-hall-sensor.js';
+export { SimLm35 } from './components/sim-lm35.js';
+export { SimPirSensor } from './components/sim-pir-sensor.js';
+export { SimSoundSensor } from './components/sim-sound-sensor.js';
 
 // 액추에이터
 export { SimServo } from './components/sim-servo.js';
 export { SimNeopixel } from './components/sim-neopixel.js';
+export { SimRelay } from './components/sim-relay.js';
+export { SimDcMotor } from './components/sim-dc-motor.js';
+export { SimStepper } from './components/sim-stepper.js';
+
+// 복합 모듈 / IC
+export { SimJoystick } from './components/sim-joystick.js';
+export { Sim74hc595 } from './components/sim-74hc595.js';
+export { SimL298n } from './components/sim-l298n.js';
 
 // 보드
 export { SimBoardUno } from './components/sim-board-uno.js';
 export { SimBoardEsp32c3 } from './components/sim-board-esp32c3.js';
+export { SimBoardNano } from './components/sim-board-nano.js';
+export { SimBoardEsp32 } from './components/sim-board-esp32.js';
 
 // 범용 (서버 정의 커스텀 컴포넌트)
 export { SimGeneric } from './components/sim-generic.js';

@@ -8,6 +8,7 @@ import { componentEditor } from './panels/component-editor.js';
 import { circuitStore } from './stores/circuit-store.js';
 import { simController } from './stores/sim-controller.js';
 import { circuitValidator } from './stores/circuit-validator.js';
+import { fetchCompDef } from './stores/comp-def-cache.js';
 
 const API_BASE = '/api';
 
@@ -91,6 +92,10 @@ async function loadPalette() {
   try {
     const data = await fetch(`${API_BASE}/components`).then(r => r.json()) as { components: CompSummary[] };
     renderPalette(data.components);
+    // 팔레트 로드 후 모든 컴포넌트 def를 미리 캐시에 저장 → 드래그 시 즉시 올바른 태그 사용
+    for (const comp of data.components) {
+      fetchCompDef(comp.id).catch(() => null);
+    }
   } catch {
     paletteList.innerHTML = `<div style="padding:12px 16px;color:var(--color-error);font-size:11px;">서버에 연결할 수 없습니다.<br>pnpm dev로 서버를 시작하세요.</div>`;
   }
@@ -358,18 +363,78 @@ circuitStore.subscribe(() => {
   if (redoBtn) redoBtn.style.opacity = circuitStore.canRedo ? '1' : '0.3';
 });
 
-// 실행 상태 → 버튼/인디케이터 업데이트
+// 실행 상태 → 버튼/인디케이터/상태 표시줄 업데이트
+const RUN_ICON_PLAY = `<svg id="run-icon" width="11" height="12" viewBox="0 0 11 12" fill="currentColor" style="flex-shrink:0"><path d="M2 1.5l8 4.5-8 4.5V1.5z"/></svg>`;
+const RUN_ICON_STOP = `<svg id="run-icon" width="11" height="11" viewBox="0 0 11 11" fill="currentColor" style="flex-shrink:0"><rect x="2" y="2" width="7" height="7" rx="1.5"/></svg>`;
+
 circuitStore.subscribe(() => {
   const state = circuitStore.simState;
   const runBtn = document.getElementById('btn-run') as HTMLButtonElement | null;
   const statusEl = document.getElementById('status-indicator');
+  const sbStatus = document.getElementById('sb-sim-status');
+  const serialDot = document.getElementById('serial-conn-dot');
+  const serialLabel = document.getElementById('serial-conn-label');
+
   if (runBtn) {
-    runBtn.textContent = state === 'running' ? '⏹ 정지' : '▶ 실행';
-    runBtn.className = `toolbar-btn${state === 'running' ? ' running' : state === 'error' ? ' error' : ''}`;
+    if (state === 'running') {
+      runBtn.innerHTML = `${RUN_ICON_STOP} 정지`;
+      runBtn.className = 'toolbar-btn running';
+    } else if (state === 'error') {
+      runBtn.innerHTML = `${RUN_ICON_PLAY} 실행`;
+      runBtn.className = 'toolbar-btn error';
+    } else {
+      runBtn.innerHTML = `${RUN_ICON_PLAY} 실행`;
+      runBtn.className = 'toolbar-btn';
+    }
   }
+
   if (statusEl) {
+    statusEl.id = 'status-indicator';
     statusEl.className = state === 'running' ? 'running' : state === 'error' ? 'error' : '';
     statusEl.title = state === 'running' ? '실행 중' : state === 'error' ? '오류' : '정지';
+  }
+
+  if (sbStatus) {
+    if (state === 'running') {
+      sbStatus.textContent = '● 실행 중';
+      sbStatus.style.background = 'rgba(52,211,120,0.25)';
+    } else if (state === 'error') {
+      sbStatus.textContent = '✕ 오류';
+      sbStatus.style.background = 'rgba(255,80,80,0.25)';
+    } else {
+      sbStatus.textContent = '준비';
+      sbStatus.style.background = '';
+    }
+  }
+
+  if (serialDot && serialLabel) {
+    if (state === 'running') {
+      serialDot.classList.add('connected');
+      serialLabel.textContent = '연결됨';
+    } else {
+      serialDot.classList.remove('connected');
+      serialLabel.textContent = '연결 대기';
+    }
+  }
+
+  // 상태 표시줄 — 부품/와이어 개수 업데이트
+  const sbComp = document.getElementById('sb-comp-count');
+  const sbWire = document.getElementById('sb-wire-count');
+  if (sbComp) sbComp.innerHTML = sbComp.innerHTML.replace(/부품 \d+개/, `부품 ${circuitStore.components.length}개`);
+  if (sbWire) sbWire.innerHTML = sbWire.innerHTML.replace(/와이어 \d+개/, `와이어 ${circuitStore.wires.length}개`);
+});
+
+// 회로 변경 → 부품/와이어 개수 업데이트
+circuitStore.subscribe(() => {
+  const sbComp = document.getElementById('sb-comp-count');
+  const sbWire = document.getElementById('sb-wire-count');
+  if (sbComp) {
+    const cnt = circuitStore.components.length;
+    sbComp.innerHTML = sbComp.innerHTML.replace(/부품 \d+개/, `부품 ${cnt}개`);
+  }
+  if (sbWire) {
+    const cnt = circuitStore.wires.length;
+    sbWire.innerHTML = sbWire.innerHTML.replace(/와이어 \d+개/, `와이어 ${cnt}개`);
   }
 });
 
@@ -408,14 +473,9 @@ console.log('%c⚡ Arduino Web Simulator 준비 완료', 'color:#4a9eff;font-siz
 
 async function addComponent(type: string, x: number, y: number) {
   const id = `${type}-${Date.now()}`;
-  let serverDefaults: Record<string, unknown> = {};
-  try {
-    const r = await fetch(`${API_BASE}/components/${type}`);
-    if (r.ok) {
-      const def = await r.json() as { defaultProps?: Record<string, unknown> };
-      serverDefaults = def.defaultProps ?? {};
-    }
-  } catch { /* 서버 없으면 무시 */ }
+  // fetchCompDef는 캐시에 저장하므로 이후 _createElement에서 바로 올바른 태그 사용 가능
+  const def = await fetchCompDef(type).catch(() => null);
+  const serverDefaults: Record<string, unknown> = def?.defaultProps ?? {};
 
   circuitStore.addComponent({
     id, type, x, y, rotation: 0,
@@ -444,7 +504,17 @@ async function loadServerData() {
         boardSelect.appendChild(opt);
       }
     }
-    boardSelect.addEventListener('change', () => circuitStore.setBoard(boardSelect.value));
+    boardSelect.addEventListener('change', () => {
+      circuitStore.setBoard(boardSelect.value);
+      const sbBoard = document.getElementById('sb-board');
+      if (sbBoard) {
+        const selected = boardSelect.options[boardSelect.selectedIndex];
+        // SVG 아이콘 유지하고 텍스트만 변경
+        const svg = sbBoard.querySelector('svg');
+        sbBoard.textContent = selected?.textContent ?? boardSelect.value;
+        if (svg) sbBoard.prepend(svg);
+      }
+    });
 
     // 템플릿 — 팔레트 아래에 로드 버튼으로 추가
     if (templates.length > 0) {

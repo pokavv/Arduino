@@ -50,13 +50,9 @@ export class SimGeneric extends SimElement {
 
   override render() {
     if (this.svgTemplate) {
-      return html`
-        <svg xmlns="http://www.w3.org/2000/svg"
-          width="${this.compWidth}" height="${this.compHeight}"
-          viewBox="0 0 ${this.compWidth} ${this.compHeight}">
-          ${unsafeHTML(this.svgTemplate)}
-        </svg>
-      `;
+      // svgTemplate 은 완전한 <svg> 마크업이므로 직접 렌더링
+      // 이중 SVG 래핑 없이 shadow DOM 내 직접 삽입
+      return html`${unsafeHTML(this.svgTemplate)}`;
     }
 
     // svgTemplate 없을 때 기본 플레이스홀더

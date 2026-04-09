@@ -116,6 +116,47 @@ class ComponentStore {
     this._components.clear();
     for (const c of arr) this._components.set(c.id, c);
     console.log(`[ComponentStore] ${this._components.size}개 부품 로드`);
+
+    // ── _builtIn 부품 마이그레이션 ──────────────────────────────
+    // 시드 데이터에 새 필드(svgTemplate, 핀 업데이트 등)가 추가됐을 때
+    // 기존 JSON 파일에 반영되지 않은 _builtIn 부품을 자동으로 업데이트한다.
+    const seedMap = new Map(SEED_COMPONENTS.map(s => [s.id, s]));
+    let migrated = 0;
+
+    for (const [id, stored] of this._components) {
+      if (!stored._builtIn) continue;
+      const seed = seedMap.get(id);
+      if (!seed) continue;
+
+      // svgTemplate, pins, props, electrical, validation, notes 등 시드 기준으로 갱신
+      const needsUpdate =
+        stored.svgTemplate !== seed.svgTemplate ||
+        JSON.stringify(stored.pins) !== JSON.stringify(seed.pins) ||
+        JSON.stringify(stored.props) !== JSON.stringify(seed.props);
+
+      if (needsUpdate) {
+        const updated: ComponentDef = {
+          ...stored,
+          svgTemplate:  seed.svgTemplate,
+          pins:         seed.pins as ComponentDef['pins'],
+          props:        seed.props as ComponentDef['props'],
+          electrical:   seed.electrical as ComponentDef['electrical'],
+          validation:   seed.validation as ComponentDef['validation'],
+          notes:        seed.notes,
+          datasheet:    seed.datasheet,
+          width:        seed.width,
+          height:       seed.height,
+          _updatedAt:   new Date().toISOString(),
+        };
+        this._components.set(id, updated);
+        migrated++;
+      }
+    }
+
+    if (migrated > 0) {
+      this._save();
+      console.log(`[ComponentStore] _builtIn 부품 ${migrated}개 시드 데이터로 마이그레이션 완료`);
+    }
   }
 
   private _save(list?: ComponentDef[]) {

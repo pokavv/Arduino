@@ -3,40 +3,28 @@ import { customElement, property } from 'lit/decorators.js';
 import { SimElement } from './sim-element.js';
 import type { LedColor } from '../types.js';
 
-const COLOR_MAP: Record<LedColor, { off: string; on: string; glow: string }> = {
-  red:    { off: '#5a0000', on: '#ff2020', glow: '#ff000088' },
-  green:  { off: '#004400', on: '#20ff50', glow: '#00ff4488' },
-  blue:   { off: '#000055', on: '#4080ff', glow: '#2060ff88' },
-  yellow: { off: '#555500', on: '#ffee00', glow: '#ffdd0088' },
-  white:  { off: '#444444', on: '#ffffff', glow: '#ffffff88' },
-  orange: { off: '#552200', on: '#ff8800', glow: '#ff770088' },
-  purple: { off: '#330044', on: '#cc44ff', glow: '#aa00ff88' },
+// Wokwi lightColor 기준 (켜졌을 때 글로우 색상)
+// red→#ff8080, green→#80ff80, blue→#8080ff, yellow→#ffff80, orange→#ffcf80, purple→#ff80ff
+const COLOR_MAP: Record<LedColor, { off: string; on: string; glow: string; lens: string }> = {
+  red:    { off: '#330000', on: '#ff4040', glow: '#ff8080', lens: '#ff2020' },
+  green:  { off: '#002200', on: '#40ff60', glow: '#80ff80', lens: '#20cc40' },
+  blue:   { off: '#000033', on: '#6080ff', glow: '#8080ff', lens: '#4060dd' },
+  yellow: { off: '#333300', on: '#ffff40', glow: '#ffff80', lens: '#ddcc00' },
+  white:  { off: '#333333', on: '#ffffff', glow: '#ffffff', lens: '#dddddd' },
+  orange: { off: '#331100', on: '#ffaa40', glow: '#ffcf80', lens: '#ee7700' },
+  purple: { off: '#220033', on: '#ee60ff', glow: '#ff80ff', lens: '#cc00ee' },
 };
 
 /**
- * <sim-led> — LED 컴포넌트
- *
- * Attributes:
- *   color: 'red' | 'green' | 'blue' | 'yellow' | 'white' | 'orange' | 'purple'
- *   lit: boolean (켜짐 여부)
- *   brightness: 0~255
- *
+ * <sim-led> — 5mm through-hole LED (60×90px)
+ * 실물 기준: 투명(또는 착색) 에폭시 렌즈, 캐소드 쪽 평면 구분, 긴 리드=애노드
  * Pins: ANODE(+), CATHODE(-)
- * Connections: ANODE→GPIO, CATHODE→GND
- *
- * @example
- * <sim-led color="red" comp-id="led1"></sim-led>
  */
 @customElement('sim-led')
 export class SimLed extends SimElement {
   static override styles = [
     SimElement.styles,
-    css`
-      :host {
-        width: 40px;
-        height: 60px;
-      }
-    `,
+    css`:host { width: 60px; height: 90px; }`,
   ];
 
   @property({ type: String }) color: LedColor = 'red';
@@ -56,65 +44,91 @@ export class SimLed extends SimElement {
 
   override getPinPositions() {
     return new Map([
-      ['ANODE',   { x: 14, y: 60 }],
-      ['CATHODE', { x: 26, y: 60 }],
+      ['CATHODE', { x: 21, y: 90 }],
+      ['ANODE',   { x: 39, y: 90 }],
     ]);
   }
 
-  private get _colors() {
-    return COLOR_MAP[this.color] ?? COLOR_MAP.red;
-  }
-
-  private get _fillColor() {
-    if (!this.lit) return this._colors.off;
-    if (this.brightness >= 255) return this._colors.on;
-    const alpha = Math.round((this.brightness / 255) * 100);
-    return this._colors.on + alpha.toString(16).padStart(2, '0');
-  }
+  private get _colors() { return COLOR_MAP[this.color] ?? COLOR_MAP.red; }
 
   override render() {
     const c = this._colors;
-    const fill = this._fillColor;
     const glowOpacity = this.lit ? (this.brightness / 255) : 0;
+    // 켜졌을 때: 렌즈 색(밝음), 꺼졌을 때: 암색
+    const lensBody  = this.lit ? c.on   : c.off;
+    const lensStroke = this.lit ? '#fff8' : '#5555';
 
     return html`
-      <svg width="40" height="60" viewBox="0 0 40 60">
+      <svg width="60" height="90" viewBox="0 0 40 60" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <radialGradient id="led-glow-${this.compId}" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stop-color="${c.glow}" stop-opacity="${glowOpacity}"/>
+          <!-- 켜졌을 때 외부 글로우 -->
+          <radialGradient id="led-glow-${this.compId}" cx="50%" cy="40%" r="60%">
+            <stop offset="0%"   stop-color="${c.glow}" stop-opacity="${glowOpacity * 0.85}"/>
             <stop offset="100%" stop-color="${c.glow}" stop-opacity="0"/>
+          </radialGradient>
+          <!-- 렌즈 내부 그라디언트 -->
+          <radialGradient id="led-lens-${this.compId}" cx="38%" cy="32%" r="60%">
+            <stop offset="0%"   stop-color="${this.lit ? '#ffffff' : '#888888'}" stop-opacity="${this.lit ? 0.6 : 0.15}"/>
+            <stop offset="60%"  stop-color="${lensBody}" stop-opacity="1"/>
+            <stop offset="100%" stop-color="${this.lit ? c.lens : '#111111'}" stop-opacity="1"/>
           </radialGradient>
         </defs>
 
-        <!-- 글로우 효과 -->
+        <!-- 외부 글로우 (켜졌을 때) -->
         ${this.lit ? svg`
-          <ellipse cx="20" cy="18" rx="20" ry="20"
-            fill="url(#led-glow-${this.compId})" opacity="${glowOpacity}"/>
+          <ellipse cx="20" cy="16" rx="20" ry="20"
+            fill="url(#led-glow-${this.compId})"/>
         ` : ''}
 
-        <!-- LED 몸체 (반돔 모양) -->
-        <ellipse cx="20" cy="18" rx="14" ry="14" fill="${fill}" stroke="#888" stroke-width="1"/>
-        <path d="M6,18 L6,28 Q6,34 12,36 L28,36 Q34,34 34,28 L34,18" fill="${fill}" stroke="#888" stroke-width="1"/>
-        <line x1="6" y1="18" x2="34" y2="18" stroke="#88888855" stroke-width="1"/>
+        <!-- ── 실물 5mm LED 구조 ── -->
 
-        <!-- 하이라이트 -->
-        <ellipse cx="14" cy="12" rx="5" ry="3" fill="white" opacity="${this.lit ? 0.4 : 0.15}" transform="rotate(-30,14,12)"/>
+        <!-- 리드선 금속 (캐소드=짧은 리드 왼쪽, 아노드=긴 리드 오른쪽) — 몸체 아래에서 나옴 -->
+        <!-- 캐소드 (-) 리드 — 왼쪽(평면 쪽), 약간 짧다 -->
+        <line x1="14" y1="34" x2="14" y2="56" stroke="#bbbbbb" stroke-width="1.8"/>
+        <line x1="14" y1="34" x2="14" y2="56" stroke="white" stroke-width="0.5" opacity="0.3"/>
+        <!-- 아노드 (+) 리드 — 오른쪽, 더 길다 -->
+        <line x1="26" y1="34" x2="26" y2="58" stroke="#bbbbbb" stroke-width="1.8"/>
+        <line x1="26" y1="34" x2="26" y2="58" stroke="white" stroke-width="0.5" opacity="0.3"/>
 
-        <!-- Anode (+) 다리 - 왼쪽, 더 긺 -->
-        <line x1="14" y1="36" x2="14" y2="60" stroke="#aaa" stroke-width="2"/>
-        <!-- Cathode (-) 다리 - 오른쪽 -->
-        <line x1="26" y1="36" x2="26" y2="60" stroke="#aaa" stroke-width="2"/>
+        <!-- 몸체 원통형 하단부 (플랜지) -->
+        <rect x="8" y="22" width="24" height="12" rx="1"
+          fill="${this.lit ? c.lens : '#222222'}"
+          stroke="${this.lit ? c.glow + '88' : '#444444'}" stroke-width="0.8"/>
+        <!-- 플랜지 하이라이트 -->
+        <rect x="8" y="22" width="24" height="3" rx="1"
+          fill="white" opacity="${this.lit ? 0.15 : 0.06}"/>
 
-        <!-- 핀 라벨 -->
-        <text x="9" y="58" font-size="7" fill="#888" font-family="monospace">+</text>
-        <text x="22" y="58" font-size="7" fill="#888" font-family="monospace">−</text>
+        <!-- 캐소드 표시 — 평평한 쪽 (실물: 몸체 한쪽이 평평함) -->
+        <rect x="8" y="22" width="4" height="12"
+          fill="${this.lit ? c.lens : '#1a1a1a'}" opacity="0.6"/>
+        <line x1="8" y1="22" x2="8" y2="34"
+          stroke="${this.lit ? '#fff6' : '#5556'}" stroke-width="0.8"/>
+
+        <!-- 에폭시 렌즈 반구 (실물: 반구형 돔) -->
+        <ellipse cx="20" cy="22" rx="12" ry="12"
+          fill="url(#led-lens-${this.compId})"
+          stroke="${lensStroke}" stroke-width="0.8"/>
+        <!-- 렌즈 정반사 하이라이트 -->
+        <ellipse cx="14" cy="15" rx="3.5" ry="2"
+          fill="white" opacity="${this.lit ? 0.5 : 0.18}"
+          transform="rotate(-30,14,15)"/>
+        <!-- 내부 다이 (발광부) — 실물: 렌즈 안에 작은 칩이 보임 -->
+        <ellipse cx="20" cy="22" rx="4" ry="3"
+          fill="${this.lit ? '#ffffff' : c.off}"
+          opacity="${this.lit ? 0.6 : 0.3}"/>
+
+        <!-- 핀 라벨 존 -->
+        <rect x="0" y="47" width="40" height="13" fill="#0d0d14"/>
+        <line x1="0" y1="47" x2="40" y2="47" stroke="#252535" stroke-width="0.5"/>
+        <text x="14" y="57" font-size="8" fill="#88aaff" font-family="monospace"
+          text-anchor="middle" font-weight="bold">K−</text>
+        <text x="26" y="57" font-size="8" fill="#ff8877" font-family="monospace"
+          text-anchor="middle" font-weight="bold">A+</text>
       </svg>
     `;
   }
 }
 
 declare global {
-  interface HTMLElementTagNameMap {
-    'sim-led': SimLed;
-  }
+  interface HTMLElementTagNameMap { 'sim-led': SimLed; }
 }

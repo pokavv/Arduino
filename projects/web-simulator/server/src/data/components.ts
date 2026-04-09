@@ -16,17 +16,17 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
     description: '발광 다이오드. 반드시 직렬 저항 필요.',
     icon: '💡',
     element: 'sim-led',
-    width: 40, height: 60,
+    width: 60, height: 90,
     defaultProps: { color: 'red' },
     props: [
       { key: 'color', label: '색상', type: 'select', default: 'red',
         options: ['red','green','blue','yellow','white','orange','purple'] },
     ],
     pins: [
-      { name: 'ANODE',   label: '+', x: 14, y: 60, type: 'input',  required: true,
-        description: '양극 (+)', compatibleWith: ['digital','pwm','signal','power'] },
-      { name: 'CATHODE', label: '−', x: 26, y: 60, type: 'ground', required: true,
+      { name: 'CATHODE', label: '−', x: 21, y: 90, type: 'ground', required: true,
         description: '음극 (−)', compatibleWith: ['ground'] },
+      { name: 'ANODE',   label: '+', x: 39, y: 90, type: 'input',  required: true,
+        description: '양극 (+)', compatibleWith: ['digital','pwm','signal','power'] },
     ],
     electrical: {
       vccMin: 1.8, vccMax: 3.5, currentMa: 10, maxCurrentMa: 20,
@@ -53,16 +53,16 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
     description: 'RGB 3색 LED (공통 캐소드).',
     icon: '🌈',
     element: 'sim-rgb-led',
-    width: 44, height: 60,
+    width: 66, height: 96,
     defaultProps: { commonAnode: false },
     props: [
       { key: 'commonAnode', label: '공통 애노드', type: 'boolean', default: false },
     ],
     pins: [
-      { name: 'RED',    label: 'R', x: 12, y: 60, type: 'pwm',   required: true, description: '빨강 채널', compatibleWith: ['digital','pwm','signal'] },
-      { name: 'GREEN',  label: 'G', x: 20, y: 60, type: 'pwm',   required: true, description: '초록 채널', compatibleWith: ['digital','pwm','signal'] },
-      { name: 'COMMON', label: 'C', x: 28, y: 60, type: 'ground',required: true, description: '공통 단자', compatibleWith: ['ground','power'] },
-      { name: 'BLUE',   label: 'B', x: 36, y: 60, type: 'pwm',   required: true, description: '파랑 채널', compatibleWith: ['digital','pwm','signal'] },
+      { name: 'RED',    label: 'R', x: 18, y: 96, type: 'pwm',   required: true, description: '빨강 채널', compatibleWith: ['digital','pwm','signal'] },
+      { name: 'GREEN',  label: 'G', x: 30, y: 96, type: 'pwm',   required: true, description: '초록 채널', compatibleWith: ['digital','pwm','signal'] },
+      { name: 'COMMON', label: 'C', x: 42, y: 96, type: 'ground',required: true, description: '공통 단자', compatibleWith: ['ground','power'] },
+      { name: 'BLUE',   label: 'B', x: 54, y: 96, type: 'pwm',   required: true, description: '파랑 채널', compatibleWith: ['digital','pwm','signal'] },
     ],
     electrical: { currentMa: 20, maxCurrentMa: 60, forwardVoltage: { red:2.0, green:2.2, blue:3.2 } },
     validation: [{ rule: 'requires_series_resistor', message: '각 채널에 직렬 저항 필요', severity: 'error' }],
@@ -78,7 +78,7 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
     description: '탄소 피막 저항. 극성 없음.',
     icon: '〰️',
     element: 'sim-resistor',
-    width: 60, height: 24,
+    width: 118, height: 23,
     defaultProps: { ohms: 220 },
     props: [
       { key: 'ohms',      label: '저항값',   type: 'number', default: 220, min: 1, max: 10000000, unit: 'Ω' },
@@ -86,8 +86,8 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { key: 'wattage',   label: '정격 전력', type: 'select', default: '0.25W', options: ['0.125W','0.25W','0.5W','1W'] },
     ],
     pins: [
-      { name: 'PIN1', label: '1', x: 0,  y: 12, type: 'signal', required: true, description: '리드선 1', compatibleWith: ['digital','analog','pwm','signal','power','ground','output','input'] },
-      { name: 'PIN2', label: '2', x: 60, y: 12, type: 'signal', required: true, description: '리드선 2', compatibleWith: ['digital','analog','pwm','signal','power','ground','output','input'] },
+      { name: 'PIN1', label: '1', x: 0,   y: 12, type: 'signal', required: true, description: '리드선 1', compatibleWith: ['digital','analog','pwm','signal','power','ground','output','input'] },
+      { name: 'PIN2', label: '2', x: 118, y: 12, type: 'signal', required: true, description: '리드선 2', compatibleWith: ['digital','analog','pwm','signal','power','ground','output','input'] },
     ],
     electrical: { resistance: 220 },
     validation: [],
@@ -103,16 +103,16 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
     description: '순간 접촉식 택트 스위치 (SPST-NO).',
     icon: '🔘',
     element: 'sim-button',
-    width: 50, height: 50,
-    defaultProps: { btnColor: '#2244aa' },
+    width: 90, height: 70,
+    defaultProps: { btnColor: '#cc3333' },
     props: [
-      { key: 'btnColor', label: '버튼 색상', type: 'color', default: '#2244aa' },
+      { key: 'btnColor', label: '버튼 색상', type: 'color', default: '#cc3333' },
     ],
     pins: [
-      { name: 'PIN1A', label: '1A', x: 14, y: 50, type: 'signal', required: false, description: '1번쪽 단자 A', compatibleWith: ['digital','signal','input'] },
-      { name: 'PIN1B', label: '1B', x: 20, y: 50, type: 'signal', required: false, description: '1번쪽 단자 B (1A와 내부 연결)', compatibleWith: ['digital','signal'] },
-      { name: 'PIN2A', label: '2A', x: 30, y: 50, type: 'ground', required: false, description: '반대쪽 단자 A', compatibleWith: ['ground','digital','signal'] },
-      { name: 'PIN2B', label: '2B', x: 36, y: 50, type: 'ground', required: false, description: '반대쪽 단자 B (2A와 내부 연결)', compatibleWith: ['ground','digital','signal'] },
+      { name: 'PIN1A', label: '1A', x:  0, y: 17, type: 'signal', required: false, description: '1번쪽 단자 A (좌측 상단)', compatibleWith: ['digital','signal','input'] },
+      { name: 'PIN1B', label: '1B', x:  0, y: 44, type: 'signal', required: false, description: '1번쪽 단자 B (좌측 하단, 1A와 내부 연결)', compatibleWith: ['digital','signal'] },
+      { name: 'PIN2A', label: '2A', x: 90, y: 17, type: 'ground', required: false, description: '반대쪽 단자 A (우측 상단)', compatibleWith: ['ground','digital','signal'] },
+      { name: 'PIN2B', label: '2B', x: 90, y: 44, type: 'ground', required: false, description: '반대쪽 단자 B (우측 하단, 2A와 내부 연결)', compatibleWith: ['ground','digital','signal'] },
     ],
     electrical: { maxCurrentMa: 100, logic: 'both' },
     validation: [],
@@ -128,14 +128,16 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
     description: '패시브 부저. PWM 주파수로 음 출력.',
     icon: '🔊',
     element: 'sim-buzzer',
-    width: 44, height: 44,
+    // Wokwi: viewBox 17×20mm, scale 3.76px/mm → host 64×76px
+    // pinInfo: GND x=27 y=76, VCC x=37 y=76
+    width: 64, height: 76,
     defaultProps: {},
     props: [
       { key: 'type', label: '유형', type: 'select', default: 'passive', options: ['passive','active'] },
     ],
     pins: [
-      { name: 'VCC', label: '+', x: 14, y: 44, type: 'power',  required: true, description: '양극 (+)', compatibleWith: ['digital','pwm','power'] },
-      { name: 'GND', label: '−', x: 30, y: 44, type: 'ground', required: true, description: '음극 (−)', compatibleWith: ['ground'] },
+      { name: 'GND', label: '−', x: 27, y: 76, type: 'ground', required: true, description: '음극 (−) 왼쪽 핀', compatibleWith: ['ground'] },
+      { name: 'VCC', label: '+', x: 37, y: 76, type: 'power',  required: true, description: '양극 (+) 오른쪽 핀', compatibleWith: ['digital','pwm','power'] },
     ],
     electrical: { vccMin: 3.3, vccMax: 5.0, currentMa: 30, maxCurrentMa: 50 },
     validation: [
@@ -153,16 +155,16 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
     description: '가변저항 10kΩ. 아날로그 값 입력.',
     icon: '🎚️',
     element: 'sim-potentiometer',
-    width: 60, height: 60,
-    defaultProps: { value: 512, min: 0, max: 1023 },
+    width: 150, height: 165,
+    defaultProps: { value: 0, min: 0, max: 1023 },
     props: [
-      { key: 'value', label: '초기값', type: 'number', default: 512, min: 0, max: 4095 },
+      { key: 'value', label: '초기값', type: 'number', default: 0, min: 0, max: 4095 },
       { key: 'max',   label: '최댓값', type: 'select', default: 1023, options: ['1023','4095'] },
     ],
     pins: [
-      { name: 'VCC',   label: 'VCC', x: 16, y: 58, type: 'power',  required: true, description: 'VCC',                      compatibleWith: ['power'] },
-      { name: 'WIPER', label: 'W',   x: 30, y: 58, type: 'analog', required: true, description: '와이퍼 출력 — ADC 핀 연결', compatibleWith: ['analog'] },
-      { name: 'GND',   label: 'GND', x: 44, y: 58, type: 'ground', required: true, description: 'GND',                      compatibleWith: ['ground'] },
+      { name: 'GND',   label: 'GND', x:  58, y: 165, type: 'ground', required: true, description: 'GND',                      compatibleWith: ['ground'] },
+      { name: 'WIPER', label: 'SIG', x:  77, y: 165, type: 'analog', required: true, description: '와이퍼 출력 — ADC 핀 연결', compatibleWith: ['analog'] },
+      { name: 'VCC',   label: 'VCC', x:  96, y: 165, type: 'power',  required: true, description: 'VCC',                      compatibleWith: ['power'] },
     ],
     electrical: { vccMin: 0, vccMax: 5.0, resistance: 10000 },
     validation: [{ rule: 'requires_adc_pin', pin: 'WIPER', message: 'WIPER는 ADC 핀에 연결', severity: 'warning' }],
@@ -178,15 +180,15 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
     description: '마이크로 서보 SG90. 0°~180° 각도 제어.',
     icon: '⚙️',
     element: 'sim-servo',
-    width: 60, height: 72,
+    width: 90, height: 114,
     defaultProps: { angle: 90 },
     props: [
       { key: 'angle', label: '초기 각도', type: 'number', default: 90, min: 0, max: 180, unit: '°' },
     ],
     pins: [
-      { name: 'VCC',    label: '빨강', x: 14, y: 72, type: 'power',  required: true, description: '전원 5V',    compatibleWith: ['power'] },
-      { name: 'GND',    label: '갈색', x: 26, y: 72, type: 'ground', required: true, description: 'GND',        compatibleWith: ['ground'] },
-      { name: 'SIGNAL', label: '주황', x: 38, y: 72, type: 'pwm',    required: true, description: 'PWM 제어신호', compatibleWith: ['pwm','digital'] },
+      { name: 'VCC',    label: '빨강', x: 21, y: 114, type: 'power',  required: true, description: '전원 5V',    compatibleWith: ['power'] },
+      { name: 'GND',    label: '갈색', x: 39, y: 114, type: 'ground', required: true, description: 'GND',        compatibleWith: ['ground'] },
+      { name: 'SIGNAL', label: '주황', x: 57, y: 114, type: 'pwm',    required: true, description: 'PWM 제어신호', compatibleWith: ['pwm','digital'] },
     ],
     electrical: { vccMin: 4.8, vccMax: 6.0, currentMa: 150, maxCurrentMa: 650, logic: '5V' },
     validation: [
@@ -206,7 +208,7 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
     description: 'DHT11/DHT22 디지털 온습도 센서.',
     icon: '🌡️',
     element: 'sim-dht',
-    width: 40, height: 56,
+    width: 78, height: 120,
     defaultProps: { model: 'DHT22', temperature: 25, humidity: 60 },
     props: [
       { key: 'model',       label: '모델',    type: 'select', default: 'DHT22', options: ['DHT11','DHT22'] },
@@ -214,9 +216,10 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { key: 'humidity',    label: '습도',    type: 'number', default: 60, min: 0,   max: 100, unit: '%' },
     ],
     pins: [
-      { name: 'VCC',  label: 'VCC',  x: 10, y: 56, type: 'power',   required: true, description: 'VCC (3.3~5V)', compatibleWith: ['power'] },
-      { name: 'DATA', label: 'DATA', x: 20, y: 56, type: 'digital', required: true, description: '데이터 + 4.7kΩ 풀업 필수', compatibleWith: ['digital','signal'] },
-      { name: 'GND',  label: 'GND',  x: 30, y: 56, type: 'ground',  required: true, description: 'GND', compatibleWith: ['ground'] },
+      { name: 'VCC',  label: 'VCC(1)',  x: 18, y: 120, type: 'power',   required: true,  description: 'VCC (3.3~5V)', compatibleWith: ['power'] },
+      { name: 'DATA', label: 'DATA(2)', x: 32, y: 120, type: 'digital', required: true,  description: '데이터 + 4.7kΩ 풀업 필수', compatibleWith: ['digital','signal'] },
+      { name: 'NC',   label: 'NC(3)',   x: 45, y: 120, type: 'signal',  required: false, description: 'Not Connected (미연결)', compatibleWith: [] },
+      { name: 'GND',  label: 'GND(4)',  x: 58, y: 120, type: 'ground',  required: true,  description: 'GND', compatibleWith: ['ground'] },
     ],
     electrical: { vccMin: 3.3, vccMax: 5.5, currentMa: 2.5, maxCurrentMa: 10 },
     validation: [],
@@ -233,16 +236,16 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
     description: 'HC-SR04 초음파 거리 센서. 2~400cm.',
     icon: '📡',
     element: 'sim-ultrasonic',
-    width: 60, height: 50,
+    width: 102, height: 120,
     defaultProps: { distanceCm: 20 },
     props: [
       { key: 'distanceCm', label: '거리', type: 'number', default: 20, min: 2, max: 400, unit: 'cm' },
     ],
     pins: [
-      { name: 'VCC',  label: 'VCC',  x:  8, y: 50, type: 'power',   required: true, description: '5V 전용',        compatibleWith: ['power'] },
-      { name: 'TRIG', label: 'TRIG', x: 23, y: 50, type: 'digital', required: true, description: '트리거 — 10μs HIGH 펄스', compatibleWith: ['digital','signal'] },
-      { name: 'ECHO', label: 'ECHO', x: 38, y: 50, type: 'output',  required: true, description: 'ECHO 출력 (5V!)', compatibleWith: ['digital','signal'] },
-      { name: 'GND',  label: 'GND',  x: 53, y: 50, type: 'ground',  required: true, description: 'GND',             compatibleWith: ['ground'] },
+      { name: 'VCC',  label: 'VCC',  x: 14, y: 120, type: 'power',   required: true, description: '5V 전용',        compatibleWith: ['power'] },
+      { name: 'TRIG', label: 'TRIG', x: 38, y: 120, type: 'digital', required: true, description: '트리거 — 10μs HIGH 펄스', compatibleWith: ['digital','signal'] },
+      { name: 'ECHO', label: 'ECHO', x: 65, y: 120, type: 'output',  required: true, description: 'ECHO 출력 (5V!)', compatibleWith: ['digital','signal'] },
+      { name: 'GND',  label: 'GND',  x: 89, y: 120, type: 'ground',  required: true, description: 'GND',             compatibleWith: ['ground'] },
     ],
     electrical: { vccMin: 5.0, vccMax: 5.0, currentMa: 15, maxCurrentMa: 20, logic: '5V' },
     validation: [{ rule: 'voltage_sensitive_5v', message: 'ECHO 5V 출력 — 3.3V MCU는 분압 회로 필요', severity: 'warning' }],
@@ -259,7 +262,9 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
     description: 'I2C 인터페이스 LCD 16×2.',
     icon: '🖥️',
     element: 'sim-lcd',
-    width: 120, height: 60,
+    // Wokwi: viewBox 80×36mm (1602), scale 3px/mm → host 240×108px
+    // I2C 핀 왼쪽 (x=0): y = mm×3 → GND:25, VCC:33, SDA:40, SCL:48
+    width: 240, height: 108,
     defaultProps: { rows: 2, cols: 16, i2cAddress: 0x27 },
     props: [
       { key: 'rows',       label: '행',       type: 'select', default: 2,    options: ['2','4'] },
@@ -267,10 +272,11 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { key: 'i2cAddress', label: 'I2C 주소', type: 'select', default: 0x27, options: ['0x27','0x3F'] },
     ],
     pins: [
-      { name: 'VCC', label: 'VCC', x:  8, y: 60, type: 'power',    required: true, description: '5V', compatibleWith: ['power'] },
-      { name: 'GND', label: 'GND', x: 22, y: 60, type: 'ground',   required: true, description: 'GND', compatibleWith: ['ground'] },
-      { name: 'SDA', label: 'SDA', x: 36, y: 60, type: 'i2c_sda',  required: true, description: 'I2C SDA', compatibleWith: ['i2c_sda','digital'] },
-      { name: 'SCL', label: 'SCL', x: 50, y: 60, type: 'i2c_scl',  required: true, description: 'I2C SCL', compatibleWith: ['i2c_scl','digital'] },
+      // Wokwi pinInfo (mm→px, scale=3): x=0(왼쪽 리드), y = mm×3
+      { name: 'GND', label: 'GND', x: 0, y: 25, type: 'ground',   required: true, description: 'GND', compatibleWith: ['ground'] },
+      { name: 'VCC', label: 'VCC', x: 0, y: 33, type: 'power',    required: true, description: '5V', compatibleWith: ['power'] },
+      { name: 'SDA', label: 'SDA', x: 0, y: 40, type: 'i2c_sda',  required: true, description: 'I2C SDA', compatibleWith: ['i2c_sda','digital'] },
+      { name: 'SCL', label: 'SCL', x: 0, y: 48, type: 'i2c_scl',  required: true, description: 'I2C SCL', compatibleWith: ['i2c_scl','digital'] },
     ],
     electrical: { vccMin: 5.0, vccMax: 5.0, currentMa: 40, logic: '5V' },
     validation: [],
@@ -286,16 +292,16 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
     description: 'SSD1306 I2C OLED 128×64.',
     icon: '📺',
     element: 'sim-oled',
-    width: 90, height: 80,
+    width: 150, height: 116,
     defaultProps: { i2cAddress: 0x3C },
     props: [
       { key: 'i2cAddress', label: 'I2C 주소', type: 'select', default: 0x3C, options: ['0x3C','0x3D'] },
     ],
     pins: [
-      { name: 'VCC', label: 'VCC', x:  8, y: 90, type: 'power',   required: true, description: '3.3V 또는 5V', compatibleWith: ['power'] },
-      { name: 'GND', label: 'GND', x: 22, y: 90, type: 'ground',  required: true, description: 'GND', compatibleWith: ['ground'] },
-      { name: 'SDA', label: 'SDA', x: 36, y: 90, type: 'i2c_sda', required: true, description: 'I2C SDA', compatibleWith: ['i2c_sda','digital'] },
-      { name: 'SCL', label: 'SCL', x: 50, y: 90, type: 'i2c_scl', required: true, description: 'I2C SCL', compatibleWith: ['i2c_scl','digital'] },
+      { name: 'GND', label: 'GND', x: 57, y: 0, type: 'ground',  required: true, description: 'GND', compatibleWith: ['ground'] },
+      { name: 'VCC', label: 'VCC', x: 69, y: 0, type: 'power',   required: true, description: '3.3V 또는 5V', compatibleWith: ['power'] },
+      { name: 'SCL', label: 'SCL', x: 81, y: 0, type: 'i2c_scl', required: true, description: 'I2C SCL', compatibleWith: ['i2c_scl','digital'] },
+      { name: 'SDA', label: 'SDA', x: 93, y: 0, type: 'i2c_sda', required: true, description: 'I2C SDA', compatibleWith: ['i2c_sda','digital'] },
     ],
     electrical: { vccMin: 3.3, vccMax: 5.0, currentMa: 20, logic: 'both' },
     validation: [],
@@ -312,22 +318,25 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
     tags: ['7segment','세그먼트','display','숫자'],
     description: '공통 캐소드 7-세그먼트.',
     element: 'sim-seven-segment',
-    width: 44, height: 64,
+    // Wokwi: viewBox 12.55×22mm (pins=top), scale 3.74px/mm → host 47×83px
+    // 상단 5핀(y=0): G,F,COM,A,B  /  하단 5핀(y=83): E,D,COM,C,DP
+    // x = mm × 3.74: 1.195→4, 3.735→14, 6.275→23, 8.815→33, 11.355→42
+    width: 47, height: 83,
     defaultProps: { color: '#ff2020' },
     props: [
       { key: 'color', label: '세그먼트 색상', type: 'color', default: '#ff2020' },
       { key: 'type',  label: '공통 단자',     type: 'select', default: 'cathode', options: ['cathode','anode'] },
     ],
     pins: [
-      { name: 'A',   label: 'A',   x:  4, y: 64, type: 'input', required: false, description: '세그먼트 A', compatibleWith: ['digital','signal'] },
-      { name: 'B',   label: 'B',   x:  8, y: 64, type: 'input', required: false, description: '세그먼트 B', compatibleWith: ['digital','signal'] },
-      { name: 'C',   label: 'C',   x: 12, y: 64, type: 'input', required: false, description: '세그먼트 C', compatibleWith: ['digital','signal'] },
-      { name: 'D',   label: 'D',   x: 16, y: 64, type: 'input', required: false, description: '세그먼트 D', compatibleWith: ['digital','signal'] },
-      { name: 'E',   label: 'E',   x: 20, y: 64, type: 'input', required: false, description: '세그먼트 E', compatibleWith: ['digital','signal'] },
-      { name: 'F',   label: 'F',   x: 24, y: 64, type: 'input', required: false, description: '세그먼트 F', compatibleWith: ['digital','signal'] },
-      { name: 'G',   label: 'G',   x: 28, y: 64, type: 'input', required: false, description: '세그먼트 G', compatibleWith: ['digital','signal'] },
-      { name: 'DP',  label: 'DP',  x: 32, y: 64, type: 'input', required: false, description: '소수점',     compatibleWith: ['digital','signal'] },
-      { name: 'COM', label: 'COM', x: 36, y: 64, type: 'ground',required: true,  description: '공통 단자 → GND', compatibleWith: ['ground','power'] },
+      { name: 'G',   label: 'G',   x:  4, y:  0, type: 'input', required: false, description: '세그먼트 G (상단좌)', compatibleWith: ['digital','signal'] },
+      { name: 'F',   label: 'F',   x: 14, y:  0, type: 'input', required: false, description: '세그먼트 F (상단)',    compatibleWith: ['digital','signal'] },
+      { name: 'A',   label: 'A',   x: 33, y:  0, type: 'input', required: false, description: '세그먼트 A (상단)',    compatibleWith: ['digital','signal'] },
+      { name: 'B',   label: 'B',   x: 42, y:  0, type: 'input', required: false, description: '세그먼트 B (상단우)', compatibleWith: ['digital','signal'] },
+      { name: 'E',   label: 'E',   x:  4, y: 83, type: 'input', required: false, description: '세그먼트 E (하단좌)', compatibleWith: ['digital','signal'] },
+      { name: 'D',   label: 'D',   x: 14, y: 83, type: 'input', required: false, description: '세그먼트 D (하단)',    compatibleWith: ['digital','signal'] },
+      { name: 'COM', label: 'COM', x: 23, y: 83, type: 'ground',required: true,  description: '공통 캐소드 → GND',   compatibleWith: ['ground','power'] },
+      { name: 'C',   label: 'C',   x: 33, y: 83, type: 'input', required: false, description: '세그먼트 C (하단)',    compatibleWith: ['digital','signal'] },
+      { name: 'DP',  label: 'DP',  x: 42, y: 83, type: 'input', required: false, description: '소수점 (하단우)',      compatibleWith: ['digital','signal'] },
     ],
     electrical: { vccMin: 1.8, vccMax: 3.3, currentMa: 10, maxCurrentMa: 15 },
     validation: [{ rule: 'requires_series_resistor', message: '각 세그먼트에 330Ω 저항 필요', severity: 'error' }],
@@ -343,15 +352,15 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
     description: 'WS2812B 주소 지정 RGB LED.',
     icon: '✨',
     element: 'sim-neopixel',
-    width: 200, height: 44,
+    width: 120, height: 78,
     defaultProps: { count: 8 },
     props: [
       { key: 'count', label: 'LED 개수', type: 'number', default: 8, min: 1, max: 64 },
     ],
     pins: [
-      { name: 'VCC', label: '5V',  x:  8, y: 44, type: 'power',   required: true, description: '5V 전원',     compatibleWith: ['power'] },
-      { name: 'GND', label: 'GND', x: 22, y: 44, type: 'ground',  required: true, description: 'GND',         compatibleWith: ['ground'] },
-      { name: 'DIN', label: 'DIN', x: 36, y: 44, type: 'digital', required: true, description: '데이터 입력', compatibleWith: ['digital','signal'] },
+      { name: 'VCC', label: '5V',  x: 12, y: 78, type: 'power',   required: true, description: '5V 전원',     compatibleWith: ['power'] },
+      { name: 'GND', label: 'GND', x: 33, y: 78, type: 'ground',  required: true, description: 'GND',         compatibleWith: ['ground'] },
+      { name: 'DIN', label: 'DIN', x: 54, y: 78, type: 'digital', required: true, description: '데이터 입력', compatibleWith: ['digital','signal'] },
     ],
     electrical: { vccMin: 4.5, vccMax: 5.5, currentMa: 60, maxCurrentMa: 60, logic: '5V' },
     validation: [{ rule: 'high_current', message: '1개당 60mA. 10개 이상은 외부 전원 필수', severity: 'warning' }],
@@ -410,30 +419,32 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
     description: 'ESP32-C3 RISC-V Wi-Fi/BLE 보드. 3.3V 동작.',
     icon: '🔵',
     element: 'sim-board-esp32c3',
-    width: 120, height: 160,
+    width: 126, height: 172,
     defaultProps: {},
     props: [],
     pins: [
-      { name: 'G0',  label: 'G0',  x:   8, y:  32, type: 'analog',   required: false, description: 'GPIO 0 / ADC / ⚠️ 부팅 핀', compatibleWith: ['digital','analog','signal'] },
-      { name: 'G1',  label: 'G1',  x:   8, y:  46, type: 'analog',   required: false, description: 'GPIO 1 / ADC', compatibleWith: ['digital','analog','signal'] },
-      { name: 'G2',  label: 'G2',  x:   8, y:  60, type: 'analog',   required: false, description: 'GPIO 2 / ADC', compatibleWith: ['digital','analog','signal'] },
-      { name: 'G3',  label: 'G3',  x:   8, y:  74, type: 'analog',   required: false, description: 'GPIO 3 / ADC', compatibleWith: ['digital','analog','signal'] },
-      { name: 'G4',  label: 'G4',  x:   8, y:  88, type: 'uart_tx',  required: false, description: 'GPIO 4 / UART TX', compatibleWith: ['digital','uart_tx','signal'] },
-      { name: 'G5',  label: 'G5',  x:   8, y: 102, type: 'uart_rx',  required: false, description: 'GPIO 5 / UART RX', compatibleWith: ['digital','uart_rx','signal'] },
-      { name: 'G6',  label: 'G6',  x:   8, y: 116, type: 'spi_sck',  required: false, description: 'GPIO 6 / SPI SCK', compatibleWith: ['digital','spi_sck','signal'] },
-      { name: 'G7',  label: 'G7',  x:   8, y: 130, type: 'spi_mosi', required: false, description: 'GPIO 7 / SPI MOSI', compatibleWith: ['digital','spi_mosi','signal'] },
-      { name: '5V',  label: '5V',  x: 112, y:  32, type: 'power',    required: false, description: 'USB 5V 출력', compatibleWith: ['power'] },
-      { name: 'GND', label: 'GND', x: 112, y:  46, type: 'ground',   required: false, description: 'GND', compatibleWith: ['ground'] },
-      { name: '3V3', label: '3.3V',x: 112, y:  60, type: 'power',    required: false, description: '3.3V 출력', compatibleWith: ['power'] },
-      { name: 'G8',  label: 'G8',  x: 112, y:  74, type: 'digital',  required: false, description: 'GPIO 8 / 내장 LED (Active LOW)', compatibleWith: ['digital','signal'] },
-      { name: 'G9',  label: 'G9',  x: 112, y:  88, type: 'digital',  required: false, description: 'GPIO 9 / ⚠️ 부팅 핀', compatibleWith: ['digital','signal'] },
-      { name: 'G10', label: 'G10', x: 112, y: 102, type: 'spi_ss',   required: false, description: 'GPIO 10 / SPI SS', compatibleWith: ['digital','spi_ss','signal'] },
-      { name: 'G20', label: 'G20', x: 112, y: 116, type: 'i2c_sda',  required: false, description: 'GPIO 20 / I2C SDA / SPI MISO', compatibleWith: ['digital','i2c_sda','spi_miso'] },
-      { name: 'G21', label: 'G21', x: 112, y: 130, type: 'i2c_scl',  required: false, description: 'GPIO 21 / I2C SCL', compatibleWith: ['digital','i2c_scl'] },
+      // ── 왼쪽 핀 (위→아래, Wokwi board.json 기준): G5~G10, RX, TX ──
+      { name: 'G5',  label: 'G5',  x:   0, y:  23, type: 'digital',  required: false, description: 'GPIO 5', compatibleWith: ['digital','signal'] },
+      { name: 'G6',  label: 'G6',  x:   0, y:  40, type: 'digital',  required: false, description: 'GPIO 6', compatibleWith: ['digital','signal'] },
+      { name: 'G7',  label: 'G7',  x:   0, y:  58, type: 'digital',  required: false, description: 'GPIO 7', compatibleWith: ['digital','signal'] },
+      { name: 'G8',  label: 'G8',  x:   0, y:  76, type: 'digital',  required: false, description: 'GPIO 8 / 내장 LED (Active LOW)', compatibleWith: ['digital','signal'] },
+      { name: 'G9',  label: 'G9',  x:   0, y:  94, type: 'digital',  required: false, description: 'GPIO 9 / ⚠️ BOOT 핀', compatibleWith: ['digital','signal'] },
+      { name: 'G10', label: 'G10', x:   0, y: 112, type: 'digital',  required: false, description: 'GPIO 10', compatibleWith: ['digital','signal'] },
+      { name: 'RX',  label: 'RX',  x:   0, y: 129, type: 'uart_rx',  required: false, description: 'GPIO 20 / UART RX', compatibleWith: ['digital','uart_rx','signal'] },
+      { name: 'TX',  label: 'TX',  x:   0, y: 147, type: 'uart_tx',  required: false, description: 'GPIO 21 / UART TX', compatibleWith: ['digital','uart_tx','signal'] },
+      // ── 오른쪽 핀 (위→아래, Wokwi board.json 기준): 5V, GND, 3V3, G4~G0 ──
+      { name: '5V',  label: '5V',  x: 126, y:  23, type: 'power',    required: false, description: 'USB 5V 출력', compatibleWith: ['power'] },
+      { name: 'GND', label: 'GND', x: 126, y:  40, type: 'ground',   required: false, description: 'GND', compatibleWith: ['ground'] },
+      { name: '3V3', label: '3.3V',x: 126, y:  58, type: 'power',    required: false, description: '3.3V 출력', compatibleWith: ['power'] },
+      { name: 'G4',  label: 'G4',  x: 126, y:  76, type: 'analog',   required: false, description: 'GPIO 4 / ADC', compatibleWith: ['digital','analog','signal'] },
+      { name: 'G3',  label: 'G3',  x: 126, y:  94, type: 'analog',   required: false, description: 'GPIO 3 / ADC', compatibleWith: ['digital','analog','signal'] },
+      { name: 'G2',  label: 'G2',  x: 126, y: 112, type: 'analog',   required: false, description: 'GPIO 2 / ADC', compatibleWith: ['digital','analog','signal'] },
+      { name: 'G1',  label: 'G1',  x: 126, y: 129, type: 'analog',   required: false, description: 'GPIO 1 / ADC', compatibleWith: ['digital','analog','signal'] },
+      { name: 'G0',  label: 'G0',  x: 126, y: 147, type: 'analog',   required: false, description: 'GPIO 0 / ADC / ⚠️ 부팅 핀', compatibleWith: ['digital','analog','signal'] },
     ],
     electrical: { vccMin: 3.0, vccMax: 3.6, currentMa: 80, maxCurrentMa: 600, pinMaxCurrentMa: 40, logic: '3.3V' },
     validation: [{ rule: 'voltage_sensitive_3v3', message: '3.3V 보드 — 5V GPIO 연결 절대 금지', severity: 'error' }],
-    notes: ['⚠️ GPIO 5V 연결 금지', 'PWM: ledcWrite()', 'ADC 12bit (G0~G5)', '내장 LED G8: LOW=켜짐'],
+    notes: ['⚠️ GPIO 5V 연결 금지', 'PWM: ledcWrite()', 'ADC 12bit (G0~G4)', '내장 LED G8: LOW=켜짐'],
     datasheet: 'https://www.espressif.com/sites/default/files/documentation/esp32-c3_datasheet_en.pdf',
   },
 
@@ -457,41 +468,37 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { name: 'MINUS', label: '−', x: 28, y: 60, type: 'ground', required: true, description: '음극 (−)', compatibleWith: ['ground'] },
     ],
     svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="60" viewBox="0 0 40 60">
-  <defs>
-    <linearGradient id="capBody" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#1a2a3a"/>
-      <stop offset="30%" stop-color="#243648"/>
-      <stop offset="100%" stop-color="#1a2a3a"/>
-    </linearGradient>
-    <linearGradient id="capTop" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#9aa8b0"/>
-      <stop offset="50%" stop-color="#c8d4d8"/>
-      <stop offset="100%" stop-color="#9aa8b0"/>
-    </linearGradient>
-  </defs>
-  <!-- 몸체 (알루미늄 원통형) -->
-  <rect x="5" y="12" width="30" height="40" rx="5" ry="5" fill="url(#capBody)" stroke="#2a4050" stroke-width="1.2"/>
-  <!-- 왼쪽 흰색 스트라이프 (음극 마커) -->
-  <rect x="5" y="12" width="7" height="40" rx="5" ry="2" fill="#c8d8e0" opacity="0.85"/>
-  <!-- 마이너스 기호들 -->
-  <text x="8.5" y="26" font-family="sans-serif" font-size="6" fill="#334455" text-anchor="middle">−</text>
-  <text x="8.5" y="36" font-family="sans-serif" font-size="6" fill="#334455" text-anchor="middle">−</text>
-  <text x="8.5" y="46" font-family="sans-serif" font-size="6" fill="#334455" text-anchor="middle">−</text>
-  <!-- 용량 텍스트 -->
-  <text x="22" y="33" font-family="monospace" font-size="5.5" fill="#8ab4cc" text-anchor="middle">100µF</text>
-  <text x="22" y="43" font-family="monospace" font-size="4.5" fill="#6a8a9a" text-anchor="middle">25V</text>
-  <!-- 상단 캡 (알루미늄) -->
-  <rect x="5" y="8" width="30" height="7" rx="3" fill="url(#capTop)" stroke="#8899a8" stroke-width="0.8"/>
-  <!-- X자 벤트 라인 -->
-  <line x1="14" y1="9.5" x2="26" y2="14" stroke="#7a8a94" stroke-width="0.8"/>
-  <line x1="26" y1="9.5" x2="14" y2="14" stroke="#7a8a94" stroke-width="0.8"/>
-  <!-- 리드선 + (길다) -->
-  <line x1="12" y1="52" x2="12" y2="60" stroke="#c0c8d0" stroke-width="1.5"/>
-  <!-- 리드선 - (짧다) -->
-  <line x1="28" y1="52" x2="28" y2="60" stroke="#c0c8d0" stroke-width="1.5"/>
-  <!-- 핀 표시 -->
-  <text x="12" y="58" font-family="monospace" font-size="4" fill="#e8e8e8" text-anchor="middle" dominant-baseline="middle">+</text>
-</svg>`,
+  <!-- 리드선 -->
+  <line x1="12" y1="53" x2="12" y2="60" stroke="#c8c8c8" stroke-width="1.8"/>
+  <line x1="28" y1="53" x2="28" y2="60" stroke="#c8c8c8" stroke-width="1.8"/>
+  <!-- 몸체 그림자 -->
+  <rect x="6" y="9" width="30" height="44" rx="6" fill="#0a1520"/>
+  <!-- 몸체 메인 (짙은 파란 알루미늄) -->
+  <rect x="5" y="8" width="30" height="44" rx="6" fill="#1c4a7c"/>
+  <!-- 음극 흰 스트라이프 (왼쪽) -->
+  <rect x="5" y="8" width="9" height="44" rx="5" fill="#e8eef2"/>
+  <rect x="11" y="8" width="3" height="44" fill="#e8eef2"/>
+  <!-- 흰 스트라이프 위 음극 기호들 -->
+  <text x="9" y="22" font-family="Arial,sans-serif" font-size="7" fill="#4a5a6a" text-anchor="middle" font-weight="bold">−</text>
+  <text x="9" y="34" font-family="Arial,sans-serif" font-size="7" fill="#4a5a6a" text-anchor="middle" font-weight="bold">−</text>
+  <text x="9" y="46" font-family="Arial,sans-serif" font-size="7" fill="#4a5a6a" text-anchor="middle" font-weight="bold">−</text>
+  <!-- 오른쪽 어두운 면 (입체감) -->
+  <rect x="30" y="8" width="5" height="44" rx="4" fill="#0a1a30" opacity="0.45"/>
+  <!-- 중앙 밝은 면 (하이라이트) -->
+  <rect x="16" y="10" width="10" height="40" rx="3" fill="#4a8abf" opacity="0.35"/>
+  <!-- 용량/전압 텍스트 -->
+  <text x="23" y="30" font-family="monospace" font-size="5.5" fill="#b8d8f0" text-anchor="middle" font-weight="bold">100µF</text>
+  <text x="23" y="40" font-family="monospace" font-size="5" fill="#88aacc" text-anchor="middle">25V</text>
+  <!-- 상단 알루미늄 캡 -->
+  <rect x="5" y="4" width="30" height="7" rx="3" fill="#8899aa"/>
+  <rect x="8" y="5" width="22" height="3" rx="2" fill="#c0ccd8" opacity="0.6"/>
+  <!-- 벤트 크로스 (알루미늄 캡 안전밸브) -->
+  <line x1="20" y1="5" x2="20" y2="10" stroke="#6a7a88" stroke-width="0.9"/>
+  <line x1="15" y1="7.5" x2="25" y2="7.5" stroke="#6a7a88" stroke-width="0.9"/>
+  <!-- 핀 라벨 -->
+  <text x="12" y="59" font-family="monospace" font-size="5" fill="#f0a030" text-anchor="middle">+</text>
+  <text x="28" y="59" font-family="monospace" font-size="5" fill="#88bbdd" text-anchor="middle">−</text>
+</svg></svg>`,
     electrical: { vccMin: 0, vccMax: 25 },
     validation: [{ rule: 'polarity_sensitive', message: '극성 주의 — 반대 연결 시 파손', severity: 'error' }],
     notes: ['양극(+)을 전원 쪽에 연결', '디커플링용: VCC와 GND 사이에 배치', '내압 이상의 전압 연결 금지'],
@@ -516,34 +523,34 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { name: 'CATHODE', label: 'K', x: 28, y: 60, type: 'output', required: true, description: '캐소드 (−) — 띠 표시', compatibleWith: ['power','ground','signal'] },
     ],
     svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="60" viewBox="0 0 40 60">
-  <defs>
-    <linearGradient id="diodeBody" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#2a2a2a"/>
-      <stop offset="50%" stop-color="#111111"/>
-      <stop offset="100%" stop-color="#1e1e1e"/>
-    </linearGradient>
-  </defs>
   <!-- 리드선 왼쪽 (애노드) -->
-  <line x1="0" y1="30" x2="8" y2="30" stroke="#b0b8c0" stroke-width="1.5"/>
-  <!-- 몸체 (검은 원통형) -->
-  <rect x="8" y="20" width="24" height="20" rx="3" fill="url(#diodeBody)" stroke="#444444" stroke-width="1"/>
-  <!-- 왼쪽 끝 타원 (몸체 입체감) -->
-  <ellipse cx="8" cy="30" rx="2" ry="10" fill="#333333" stroke="#555" stroke-width="0.5"/>
-  <!-- 오른쪽 캐소드 흰색 링 -->
-  <rect x="27" y="20" width="5" height="20" rx="1" fill="#e0e8ec" stroke="#aab8c0" stroke-width="0.5"/>
-  <!-- 오른쪽 끝 타원 -->
-  <ellipse cx="32" cy="30" rx="2" ry="10" fill="#d0dce4" stroke="#aab8c0" stroke-width="0.5"/>
-  <!-- 모델명 텍스트 -->
-  <text x="19" y="28" font-family="monospace" font-size="4.5" fill="#8ab0c0" text-anchor="middle">1N4007</text>
+  <line x1="0" y1="14" x2="8" y2="14" stroke="#c8c8c8" stroke-width="1.8"/>
   <!-- 리드선 오른쪽 (캐소드) -->
-  <line x1="32" y1="30" x2="40" y2="30" stroke="#b0b8c0" stroke-width="1.5"/>
+  <line x1="32" y1="14" x2="40" y2="14" stroke="#c8c8c8" stroke-width="1.8"/>
   <!-- 아래로 내려오는 리드선 -->
-  <line x1="12" y1="30" x2="12" y2="60" stroke="#b0b8c0" stroke-width="1.5"/>
-  <line x1="28" y1="30" x2="28" y2="60" stroke="#b0b8c0" stroke-width="1.5"/>
-  <!-- 핀 레이블 -->
-  <text x="12" y="57" font-family="monospace" font-size="4" fill="#aaaaaa" text-anchor="middle">A</text>
-  <text x="28" y="57" font-family="monospace" font-size="4" fill="#cccccc" text-anchor="middle">K</text>
-</svg>`,
+  <line x1="12" y1="14" x2="12" y2="60" stroke="#c8c8c8" stroke-width="1.8"/>
+  <line x1="28" y1="14" x2="28" y2="60" stroke="#c8c8c8" stroke-width="1.8"/>
+  <!-- 유리 몸체 그림자 -->
+  <rect x="9" y="6" width="24" height="18" rx="9" fill="#111"/>
+  <!-- 유리 몸체 (짙은 회색/검정 도자기 느낌) -->
+  <rect x="8" y="5" width="24" height="18" rx="9" fill="#2a2a2a"/>
+  <!-- 몸체 왼쪽 어두운 면 -->
+  <rect x="8" y="5" width="5" height="18" rx="4" fill="#111" opacity="0.6"/>
+  <!-- 몸체 중앙 밝은 면 (원통 하이라이트) -->
+  <rect x="14" y="6" width="10" height="6" rx="3" fill="#555" opacity="0.5"/>
+  <!-- 캐소드 흰 띠 -->
+  <rect x="27" y="5" width="5" height="18" rx="3" fill="#e0e8ec"/>
+  <rect x="30" y="5" width="2" height="18" rx="1" fill="#f0f0f0"/>
+  <!-- 왼쪽 끝 타원 (입체감) -->
+  <ellipse cx="8" cy="14" rx="2.5" ry="9" fill="#3a3a3a" stroke="#555" stroke-width="0.5"/>
+  <!-- 오른쪽 캐소드 끝 타원 -->
+  <ellipse cx="32" cy="14" rx="2.5" ry="9" fill="#d0dce4" stroke="#aabac4" stroke-width="0.5"/>
+  <!-- 모델명 -->
+  <text x="19" y="12" font-family="monospace" font-size="4.5" fill="#a0c8d8" text-anchor="middle">1N4007</text>
+  <!-- 핀 라벨 -->
+  <text x="12" y="57" font-family="monospace" font-size="4.5" fill="#aaaaaa" text-anchor="middle">A</text>
+  <text x="28" y="57" font-family="monospace" font-size="4.5" fill="#cccccc" text-anchor="middle">K</text>
+</svg></svg>`,
     electrical: { vccMin: 0, vccMax: 1000, currentMa: 1000, maxCurrentMa: 1000 },
     validation: [],
     notes: ['캐소드(띠 쪽)가 출력', '순방향 전압강하 약 0.7V', '역방향 전압 최대 1000V (1N4007)'],
@@ -570,38 +577,35 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { name: 'EMITTER',  label: 'E', x: 40, y: 70, type: 'ground', required: true, description: '이미터 — GND 연결',     compatibleWith: ['ground'] },
     ],
     svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="50" height="70" viewBox="0 0 50 70">
-  <defs>
-    <linearGradient id="to92Body" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#222222"/>
-      <stop offset="40%" stop-color="#3a3a3a"/>
-      <stop offset="100%" stop-color="#1a1a1a"/>
-    </linearGradient>
-  </defs>
-  <!-- TO-92 D자형 몸체: 반원(위) + 평면(아래) -->
-  <!-- 상단 반원 -->
-  <path d="M10,42 A15,22 0 0,1 40,42 Z" fill="url(#to92Body)" stroke="#444" stroke-width="1"/>
-  <!-- 하단 평면 직사각형 -->
-  <rect x="10" y="28" width="30" height="14" fill="url(#to92Body)" stroke="#444" stroke-width="1"/>
-  <!-- 평면 아래쪽 선 -->
-  <line x1="10" y1="42" x2="40" y2="42" stroke="#555" stroke-width="0.8"/>
-  <!-- 모델명 -->
-  <text x="25" y="23" font-family="monospace" font-size="5" fill="#8ab0c8" text-anchor="middle">2N2222</text>
-  <text x="25" y="37" font-family="monospace" font-size="4.5" fill="#7090a0" text-anchor="middle">NPN</text>
-  <!-- 1번 핀 dot (왼쪽 아래 모서리) -->
-  <circle cx="12" cy="40" r="1.5" fill="#aabbcc"/>
-  <!-- 3개 리드선 -->
-  <line x1="10" y1="56" x2="10" y2="70" stroke="#b0b8c0" stroke-width="1.5"/>
-  <line x1="25" y1="56" x2="25" y2="70" stroke="#b0b8c0" stroke-width="1.5"/>
-  <line x1="40" y1="56" x2="40" y2="70" stroke="#b0b8c0" stroke-width="1.5"/>
-  <!-- 리드선 연결부 (하단) -->
-  <rect x="8" y="42" width="4" height="14" fill="#3a3a3a"/>
-  <rect x="23" y="42" width="4" height="14" fill="#3a3a3a"/>
-  <rect x="38" y="42" width="4" height="14" fill="#3a3a3a"/>
-  <!-- 핀 레이블 -->
+  <!-- TO-92: 반원 위 + 평면 아래 구조 -->
+  <!-- 그림자 -->
+  <path d="M11,43 A14,18 0 0,1 39,43 L39,55 L11,55 Z" fill="#111"/>
+  <!-- 반원 몸체 (검은 플라스틱) -->
+  <path d="M10,42 A15,19 0 0,1 40,42 Z" fill="#1e1e1e" stroke="#3a3a3a" stroke-width="0.8"/>
+  <!-- 평면 직사각형 아랫부분 -->
+  <rect x="10" y="30" width="30" height="13" fill="#1e1e1e" stroke="#3a3a3a" stroke-width="0.8"/>
+  <!-- 상단 반원 안쪽 밝은 영역 (입체감) -->
+  <path d="M17,37 A8,10 0 0,1 33,37 Z" fill="#333" opacity="0.7"/>
+  <!-- 평면 아래 경계선 -->
+  <line x1="10" y1="43" x2="40" y2="43" stroke="#404040" stroke-width="0.8"/>
+  <!-- 1번 핀 인디케이터 dot (왼쪽 아래) -->
+  <circle cx="13" cy="41" r="1.8" fill="#aabbcc"/>
+  <!-- 모델 텍스트 -->
+  <text x="25" y="26" font-family="monospace" font-size="5.5" fill="#90b8d0" text-anchor="middle">2N2222</text>
+  <text x="25" y="38" font-family="monospace" font-size="4.5" fill="#6080a0" text-anchor="middle">NPN</text>
+  <!-- 리드선 연결 스텁 -->
+  <rect x="8"  y="43" width="4" height="9" fill="#2a2a2a"/>
+  <rect x="23" y="43" width="4" height="9" fill="#2a2a2a"/>
+  <rect x="38" y="43" width="4" height="9" fill="#2a2a2a"/>
+  <!-- 리드선 -->
+  <line x1="10" y1="52" x2="10" y2="70" stroke="#c0c8d0" stroke-width="1.8"/>
+  <line x1="25" y1="52" x2="25" y2="70" stroke="#c0c8d0" stroke-width="1.8"/>
+  <line x1="40" y1="52" x2="40" y2="70" stroke="#c0c8d0" stroke-width="1.8"/>
+  <!-- 핀 라벨 -->
   <text x="10" y="68" font-family="monospace" font-size="4" fill="#aaaaaa" text-anchor="middle">B</text>
   <text x="25" y="68" font-family="monospace" font-size="4" fill="#aaaaaa" text-anchor="middle">C</text>
   <text x="40" y="68" font-family="monospace" font-size="4" fill="#aaaaaa" text-anchor="middle">E</text>
-</svg>`,
+</svg></svg>`,
     electrical: { vccMin: 0, vccMax: 40, currentMa: 600, maxCurrentMa: 600 },
     validation: [
       { rule: 'requires_series_resistor', pin: 'BASE', message: 'BASE와 GPIO 사이에 직렬 저항 필요 (1kΩ)', severity: 'error' },
@@ -632,48 +636,55 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { name: 'COM', label: 'COM', x: 56, y: 80, type: 'output', required: false, description: '공통 단자',          compatibleWith: ['signal','power'] },
     ],
     svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="60" height="80" viewBox="0 0 60 80">
-  <defs>
-    <linearGradient id="relayPcb" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#1a4a2a"/>
-      <stop offset="100%" stop-color="#0e3018"/>
-    </linearGradient>
-  </defs>
-  <!-- PCB 기판 (진한 파란색) -->
-  <rect x="1" y="4" width="58" height="70" rx="3" fill="#1a3a6a" stroke="#0a2050" stroke-width="1.2"/>
-  <!-- 검은 릴레이 블록 (상단 절반) -->
-  <rect x="6" y="8" width="48" height="36" rx="3" fill="#1a1a1a" stroke="#333333" stroke-width="1.2"/>
-  <!-- 릴레이 블록 내부 코일 심볼 -->
-  <rect x="10" y="13" width="20" height="12" rx="1" fill="#0a0a0a" stroke="#3a3a3a" stroke-width="0.8"/>
-  <path d="M11,19 Q13,15 15,19 Q17,23 19,19 Q21,15 23,19 Q25,23 27,19 Q29,15 30,19" fill="none" stroke="#5a7a5a" stroke-width="1"/>
-  <!-- 접점 표시 -->
-  <rect x="34" y="13" width="16" height="12" rx="1" fill="#0a0a0a" stroke="#3a3a3a" stroke-width="0.8"/>
-  <line x1="36" y1="16" x2="48" y2="16" stroke="#888" stroke-width="0.8"/>
-  <line x1="36" y1="22" x2="44" y2="22" stroke="#888" stroke-width="0.8"/>
-  <line x1="44" y1="16" x2="44" y2="22" stroke="#888" stroke-width="0.8"/>
+  <!-- PCB 기판 그림자 -->
+  <rect x="2" y="5" width="58" height="68" rx="3" fill="#0a1530"/>
+  <!-- PCB 기판 (진한 파란) -->
+  <rect x="1" y="4" width="58" height="68" rx="3" fill="#1a3a6a"/>
+  <!-- PCB 위 구멍 (모서리) -->
+  <circle cx="6"  cy="9"  r="2" fill="#0a2050"/>
+  <circle cx="54" cy="9"  r="2" fill="#0a2050"/>
+  <circle cx="6"  cy="67" r="2" fill="#0a2050"/>
+  <circle cx="54" cy="67" r="2" fill="#0a2050"/>
+  <!-- 검은 릴레이 블록 -->
+  <rect x="5" y="8" width="50" height="36" rx="3" fill="#111111" stroke="#2a2a2a" stroke-width="1"/>
+  <!-- 릴레이 블록 하이라이트 -->
+  <rect x="5" y="8" width="50" height="6" rx="3" fill="#2a2a2a" opacity="0.7"/>
+  <!-- 코일 심볼 (왼쪽) -->
+  <rect x="9" y="13" width="22" height="14" rx="1" fill="#0a0a0a" stroke="#2a2a2a" stroke-width="0.8"/>
+  <path d="M11,20 Q13,15 15,20 Q17,25 19,20 Q21,15 23,20 Q25,25 27,20 Q29,15 30,20" fill="none" stroke="#3a6a3a" stroke-width="1.2"/>
+  <!-- 접점 심볼 (오른쪽) -->
+  <rect x="34" y="13" width="18" height="14" rx="1" fill="#0a0a0a" stroke="#2a2a2a" stroke-width="0.8"/>
+  <circle cx="38" cy="17" r="2" fill="#555" stroke="#888" stroke-width="0.8"/>
+  <circle cx="38" cy="24" r="2" fill="#555" stroke="#888" stroke-width="0.8"/>
+  <line x1="38" y1="17" x2="48" y2="14" stroke="#888" stroke-width="0.8"/>
   <!-- RELAY 텍스트 -->
-  <text x="30" y="34" font-family="monospace" font-size="5.5" fill="#8aaad0" text-anchor="middle">RELAY</text>
-  <text x="30" y="42" font-family="monospace" font-size="4.5" fill="#5a7a9a" text-anchor="middle">5V 10A</text>
-  <!-- LED 표시 (좌측 하단) -->
-  <circle cx="9" cy="52" r="4" fill="#0000ff" opacity="0.7" stroke="#4488ff" stroke-width="0.8"/>
-  <circle cx="9" cy="52" r="2" fill="#4488ff" opacity="0.9"/>
-  <!-- 스크루 터미널 블록 (오른쪽) -->
-  <rect x="38" y="48" width="18" height="14" rx="2" fill="#888888" stroke="#666" stroke-width="0.8"/>
-  <rect x="39" y="50" width="5" height="10" rx="1" fill="#555"/>
-  <rect x="45" y="50" width="5" height="10" rx="1" fill="#555"/>
-  <rect x="50" y="50" width="5" height="10" rx="1" fill="#555"/>
-  <!-- 핀 레이블 행 -->
-  <text x="8"  y="72" font-family="monospace" font-size="4" fill="#90b0d0" text-anchor="middle">IN</text>
-  <text x="20" y="72" font-family="monospace" font-size="4" fill="#90b0d0" text-anchor="middle">VCC</text>
-  <text x="32" y="72" font-family="monospace" font-size="4" fill="#90b0d0" text-anchor="middle">GND</text>
-  <text x="44" y="72" font-family="monospace" font-size="4" fill="#90b0d0" text-anchor="middle">NO</text>
-  <text x="56" y="72" font-family="monospace" font-size="4" fill="#90b0d0" text-anchor="middle">COM</text>
+  <text x="30" y="34" font-family="monospace" font-size="6" fill="#8ab0d8" text-anchor="middle" font-weight="bold">RELAY</text>
+  <text x="30" y="43" font-family="monospace" font-size="4.5" fill="#5a8aaa" text-anchor="middle">5V 10A 250VAC</text>
+  <!-- 파란 LED 인디케이터 -->
+  <circle cx="8"  cy="51" r="3.5" fill="#002288"/>
+  <circle cx="8"  cy="51" r="2"   fill="#2255ff" opacity="0.9"/>
+  <circle cx="7"  cy="50" r="0.8" fill="#88aaff" opacity="0.7"/>
+  <!-- 나사 터미널 블록 (오른쪽 3개) -->
+  <rect x="38" y="47" width="18" height="14" rx="2" fill="#999" stroke="#777" stroke-width="0.8"/>
+  <rect x="39" y="49" width="4"  height="10" rx="1" fill="#666"/>
+  <rect x="44" y="49" width="4"  height="10" rx="1" fill="#666"/>
+  <rect x="49" y="49" width="4"  height="10" rx="1" fill="#666"/>
+  <circle cx="41" cy="54" r="1.5" fill="#aaa"/>
+  <circle cx="46" cy="54" r="1.5" fill="#aaa"/>
+  <circle cx="51" cy="54" r="1.5" fill="#aaa"/>
+  <!-- 핀 라벨 -->
+  <text x="8"  y="72" font-family="monospace" font-size="3.5" fill="#88aad0" text-anchor="middle">IN</text>
+  <text x="20" y="72" font-family="monospace" font-size="3.5" fill="#88aad0" text-anchor="middle">VCC</text>
+  <text x="32" y="72" font-family="monospace" font-size="3.5" fill="#88aad0" text-anchor="middle">GND</text>
+  <text x="44" y="72" font-family="monospace" font-size="3.5" fill="#88aad0" text-anchor="middle">NO</text>
+  <text x="56" y="72" font-family="monospace" font-size="3.5" fill="#88aad0" text-anchor="middle">COM</text>
   <!-- 핀 리드선 -->
-  <line x1="8"  y1="74" x2="8"  y2="80" stroke="#b0b8c0" stroke-width="1.5"/>
-  <line x1="20" y1="74" x2="20" y2="80" stroke="#b0b8c0" stroke-width="1.5"/>
-  <line x1="32" y1="74" x2="32" y2="80" stroke="#b0b8c0" stroke-width="1.5"/>
-  <line x1="44" y1="74" x2="44" y2="80" stroke="#b0b8c0" stroke-width="1.5"/>
-  <line x1="56" y1="74" x2="56" y2="80" stroke="#b0b8c0" stroke-width="1.5"/>
-</svg>`,
+  <line x1="8"  y1="72" x2="8"  y2="80" stroke="#b0b8c0" stroke-width="1.5"/>
+  <line x1="20" y1="72" x2="20" y2="80" stroke="#b0b8c0" stroke-width="1.5"/>
+  <line x1="32" y1="72" x2="32" y2="80" stroke="#b0b8c0" stroke-width="1.5"/>
+  <line x1="44" y1="72" x2="44" y2="80" stroke="#b0b8c0" stroke-width="1.5"/>
+  <line x1="56" y1="72" x2="56" y2="80" stroke="#b0b8c0" stroke-width="1.5"/>
+</svg></svg>`,
     electrical: { vccMin: 5.0, vccMax: 5.0, currentMa: 70, maxCurrentMa: 100 },
     validation: [{ rule: 'high_voltage_warning', message: 'COM/NO/NC 단자에 고전압 주의', severity: 'warning' }],
     notes: ['코일 5V / 접점 250VAC 10A', '릴레이 코일 역기전력 → 프리휠링 다이오드 권장', 'LOW 트리거 모듈 일반적'],
@@ -698,40 +709,32 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { name: 'MINUS', label: '−', x: 28, y: 60, type: 'ground', required: true, description: '음극 (−)', compatibleWith: ['ground','output'] },
     ],
     svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="60" viewBox="0 0 40 60">
-  <defs>
-    <linearGradient id="motorBody" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#484848"/>
-      <stop offset="30%" stop-color="#888888"/>
-      <stop offset="70%" stop-color="#707070"/>
-      <stop offset="100%" stop-color="#484848"/>
-    </linearGradient>
-    <linearGradient id="motorCap" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#606060"/>
-      <stop offset="50%" stop-color="#aaaaaa"/>
-      <stop offset="100%" stop-color="#606060"/>
-    </linearGradient>
-  </defs>
-  <!-- 모터 원통형 몸체 (측면) -->
-  <rect x="3" y="10" width="30" height="34" rx="4" fill="url(#motorBody)" stroke="#444" stroke-width="1"/>
-  <!-- 모터 좌측 엔드캡 -->
-  <ellipse cx="3" cy="27" rx="3" ry="17" fill="url(#motorCap)" stroke="#555" stroke-width="0.8"/>
-  <!-- 모터 우측 엔드캡 -->
-  <ellipse cx="33" cy="27" rx="3" ry="17" fill="url(#motorCap)" stroke="#555" stroke-width="0.8"/>
-  <!-- 샤프트 (오른쪽 돌출) -->
-  <rect x="33" y="24" width="7" height="6" rx="1" fill="#c0c0c0" stroke="#999" stroke-width="0.8"/>
-  <!-- 모터 내부 코어 -->
-  <ellipse cx="18" cy="27" rx="9" ry="9" fill="#383838" stroke="#505050" stroke-width="0.8"/>
-  <ellipse cx="18" cy="27" rx="5" ry="5" fill="#282828" stroke="#484848" stroke-width="0.6"/>
+  <!-- 원통 그림자 -->
+  <ellipse cx="21" cy="27" rx="17" ry="18" fill="#1a1a1a"/>
+  <!-- 모터 원통 몸체 (파란 알루미늄) -->
+  <ellipse cx="20" cy="26" rx="17" ry="18" fill="#1e4a7a"/>
+  <!-- 원통 하이라이트 (밝은 파란 위쪽) -->
+  <ellipse cx="15" cy="18" rx="9" ry="6" fill="#4a8abf" opacity="0.4"/>
+  <!-- 모터 전면 원형 -->
+  <circle cx="20" cy="26" r="13" fill="#163a60"/>
+  <!-- 전면 원 안쪽 회색 링 -->
+  <circle cx="20" cy="26" r="11" fill="#0e2a48" stroke="#2a5a8a" stroke-width="0.8"/>
+  <!-- 환기 슬롯 -->
+  <line x1="20" y1="15" x2="20" y2="37" stroke="#2a5a8a" stroke-width="0.6"/>
+  <line x1="9"  y1="26" x2="31" y2="26" stroke="#2a5a8a" stroke-width="0.6"/>
+  <circle cx="20" cy="26" r="7" fill="#0a1e38" stroke="#1a4a6a" stroke-width="0.6"/>
+  <!-- 샤프트 (중앙) -->
+  <circle cx="20" cy="26" r="3.5" fill="#888"/>
+  <circle cx="20" cy="26" r="1.8" fill="#aaa"/>
   <!-- DC MOTOR 텍스트 -->
-  <text x="18" y="25" font-family="monospace" font-size="4" fill="#dddddd" text-anchor="middle">DC</text>
-  <text x="18" y="31" font-family="monospace" font-size="3.5" fill="#bbbbbb" text-anchor="middle">MOTOR</text>
-  <!-- 터미널 리드선 -->
-  <line x1="12" y1="44" x2="12" y2="60" stroke="#e03030" stroke-width="1.8"/>
-  <line x1="28" y1="44" x2="28" y2="60" stroke="#303080" stroke-width="1.8"/>
-  <!-- 터미널 표시 -->
-  <text x="12" y="57" font-family="monospace" font-size="4.5" fill="#ff6060" text-anchor="middle">+</text>
-  <text x="28" y="57" font-family="monospace" font-size="4.5" fill="#6060ff" text-anchor="middle">−</text>
-</svg>`,
+  <text x="20" y="48" font-family="monospace" font-size="4.5" fill="#88bbdd" text-anchor="middle">DC MOTOR</text>
+  <!-- 와이어 리드선 (빨강/검정) -->
+  <line x1="12" y1="44" x2="12" y2="60" stroke="#e03030" stroke-width="2"/>
+  <line x1="28" y1="44" x2="28" y2="60" stroke="#1a1a1a" stroke-width="2"/>
+  <!-- 와이어 라벨 -->
+  <text x="12" y="58" font-family="monospace" font-size="5" fill="#ff6060" text-anchor="middle">+</text>
+  <text x="28" y="58" font-family="monospace" font-size="5" fill="#888888" text-anchor="middle">−</text>
+</svg></svg>`,
     electrical: { vccMin: 3.0, vccMax: 12.0, currentMa: 200, maxCurrentMa: 1000 },
     validation: [{ rule: 'requires_driver', message: 'GPIO 직결 금지 — L298N/L9110S 드라이버 사용', severity: 'error' }],
     notes: ['GPIO 직결 절대 금지', 'L298N 또는 L9110S 드라이버 사용', '역기전력 보호 다이오드 권장'],
@@ -754,34 +757,33 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { name: 'CATHODE', label: '−', x: 26, y: 60, type: 'ground', required: true, description: '음극 (−)', compatibleWith: ['ground'] },
     ],
     svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="60" viewBox="0 0 40 60">
-  <defs>
-    <radialGradient id="irLedDome" cx="40%" cy="35%" r="60%">
-      <stop offset="0%" stop-color="#dde8f0"/>
-      <stop offset="60%" stop-color="#8090a8"/>
-      <stop offset="100%" stop-color="#404858"/>
-    </radialGradient>
-  </defs>
-  <!-- 실린더 몸체 -->
-  <rect x="12" y="26" width="16" height="16" fill="#606878" stroke="#404858" stroke-width="0.8"/>
-  <!-- 플랫 사이드 (극성 구분) - 오른쪽이 평평한 면 (캐소드) -->
-  <rect x="25" y="26" width="3" height="16" fill="#404858"/>
-  <!-- 돔형 상단 -->
-  <ellipse cx="20" cy="26" rx="8" ry="8" fill="url(#irLedDome)" stroke="#505868" stroke-width="0.8"/>
-  <!-- 렌즈 하이라이트 -->
-  <ellipse cx="17" cy="23" rx="3" ry="2.5" fill="white" opacity="0.3"/>
   <!-- IR 방출 파선 (위쪽) -->
-  <path d="M14,16 Q16,13 18,16" fill="none" stroke="#9090c0" stroke-width="1" stroke-dasharray="2,1.5" opacity="0.8"/>
-  <path d="M19,13 Q21,10 23,13" fill="none" stroke="#9090c0" stroke-width="1" stroke-dasharray="2,1.5" opacity="0.8"/>
-  <path d="M11,12 Q13,9 15,12" fill="none" stroke="#9090c0" stroke-width="0.8" stroke-dasharray="1.5,1.5" opacity="0.6"/>
-  <!-- 리드선 (+ 길게, - 짧게) -->
-  <line x1="14" y1="42" x2="14" y2="60" stroke="#c0c8d0" stroke-width="1.5"/>
-  <line x1="26" y1="42" x2="26" y2="60" stroke="#c0c8d0" stroke-width="1.5"/>
-  <!-- 플러스 기호 표시 (긴 리드) -->
-  <text x="14" y="57" font-family="monospace" font-size="4" fill="#88aacc" text-anchor="middle">+</text>
-  <text x="26" y="57" font-family="monospace" font-size="4" fill="#aaaaaa" text-anchor="middle">−</text>
-  <!-- IR 레이블 -->
-  <text x="20" y="35" font-family="monospace" font-size="3.5" fill="#c0c8d8" text-anchor="middle">IR</text>
-</svg>`,
+  <path d="M15,14 Q17,10 19,14" fill="none" stroke="#aa4444" stroke-width="1.2" stroke-dasharray="2,1.5"/>
+  <path d="M20,11 Q22,7  24,11" fill="none" stroke="#aa4444" stroke-width="1.2" stroke-dasharray="2,1.5"/>
+  <path d="M25,14 Q27,10 29,14" fill="none" stroke="#aa4444" stroke-width="1" stroke-dasharray="1.5,1.5" opacity="0.7"/>
+  <!-- 실린더 몸체 그림자 -->
+  <rect x="13" y="24" width="17" height="18" rx="2" fill="#111"/>
+  <!-- 실린더 몸체 -->
+  <rect x="12" y="23" width="17" height="18" rx="2" fill="#404858" stroke="#303848" stroke-width="0.8"/>
+  <!-- 캐소드 플랫 사이드 마커 -->
+  <rect x="26" y="23" width="3" height="18" fill="#252d38"/>
+  <!-- 돔 그림자 -->
+  <ellipse cx="21" cy="24" rx="9" ry="9" fill="#252d38"/>
+  <!-- 돔 (짙은 IR 렌즈) -->
+  <ellipse cx="20" cy="23" rx="9" ry="9" fill="#303848" stroke="#404858" stroke-width="1"/>
+  <!-- 돔 내부 (더 어두운 렌즈 표면) -->
+  <ellipse cx="20" cy="23" rx="6" ry="6" fill="#1a2030"/>
+  <!-- 돔 반사광 -->
+  <ellipse cx="17" cy="20" rx="3" ry="2" fill="#8090a8" opacity="0.3"/>
+  <!-- 리드선 -->
+  <line x1="14" y1="41" x2="14" y2="60" stroke="#c8c8c8" stroke-width="1.8"/>
+  <line x1="26" y1="41" x2="26" y2="60" stroke="#c8c8c8" stroke-width="1.8"/>
+  <!-- 라벨 -->
+  <text x="14" y="58" font-family="monospace" font-size="4.5" fill="#f0a030" text-anchor="middle">+</text>
+  <text x="26" y="58" font-family="monospace" font-size="4.5" fill="#888888" text-anchor="middle">−</text>
+  <!-- IR 텍스트 -->
+  <text x="20" y="36" font-family="monospace" font-size="4" fill="#9090b8" text-anchor="middle">IR</text>
+</svg></svg>`,
     electrical: { vccMin: 1.2, vccMax: 1.6, currentMa: 20, maxCurrentMa: 100 },
     validation: [{ rule: 'requires_series_resistor', pin: 'ANODE', message: 'ANODE와 GPIO 사이에 직렬 저항 필요', severity: 'error' }],
     notes: ['38kHz 캐리어 필요 (IRremote 라이브러리)', '저항: (Vcc - 1.4) / 0.02 Ω', '라이브러리: IRremote'],
@@ -805,33 +807,31 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { name: 'GND', label: 'GND', x: 40, y: 70, type: 'ground',  required: true, description: 'GND',                     compatibleWith: ['ground'] },
     ],
     svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="50" height="70" viewBox="0 0 50 70">
-  <defs>
-    <radialGradient id="irRxLens" cx="45%" cy="40%" r="55%">
-      <stop offset="0%" stop-color="#2a1a0a"/>
-      <stop offset="70%" stop-color="#0a0808"/>
-      <stop offset="100%" stop-color="#000000"/>
-    </radialGradient>
-  </defs>
-  <!-- 몸체 직사각형 (검은) -->
-  <rect x="7" y="16" width="36" height="40" rx="2" fill="#111111" stroke="#333333" stroke-width="1"/>
-  <!-- 앞면 둥근 감지 렌즈 (볼록한 전면) -->
-  <rect x="7" y="16" width="36" height="18" rx="2" fill="#0a0808" stroke="#2a2020" stroke-width="0.8"/>
-  <ellipse cx="25" cy="25" rx="13" ry="8" fill="url(#irRxLens)" stroke="#1a1010" stroke-width="0.6"/>
-  <!-- 렌즈 반사광 -->
-  <ellipse cx="21" cy="22" rx="4" ry="3" fill="#1a0808" opacity="0.7"/>
-  <ellipse cx="19" cy="21" rx="1.5" ry="1" fill="#333322" opacity="0.5"/>
-  <!-- VS1838 텍스트 -->
-  <text x="25" y="42" font-family="monospace" font-size="5" fill="#7090a8" text-anchor="middle">VS1838</text>
-  <text x="25" y="52" font-family="monospace" font-size="4" fill="#506878" text-anchor="middle">IR RX</text>
+  <!-- 몸체 그림자 -->
+  <rect x="8" y="14" width="36" height="42" rx="3" fill="#080808"/>
+  <!-- 검은 직사각 몸체 -->
+  <rect x="7" y="13" width="36" height="42" rx="3" fill="#111111" stroke="#2a2a2a" stroke-width="1"/>
+  <!-- 전면 렌즈 영역 (볼록한 수신 창) -->
+  <rect x="7" y="13" width="36" height="20" rx="3" fill="#0a0a0a" stroke="#1a1a1a" stroke-width="0.8"/>
+  <!-- 렌즈 볼록면 그림자 -->
+  <ellipse cx="26" cy="24" rx="14" ry="9" fill="#050505"/>
+  <!-- 렌즈 볼록면 (짙은 IR 필터) -->
+  <ellipse cx="25" cy="23" rx="14" ry="9" fill="#100808" stroke="#200808" stroke-width="0.8"/>
+  <!-- 렌즈 내부 약한 반사 -->
+  <ellipse cx="21" cy="20" rx="5" ry="3" fill="#1a0808" opacity="0.6"/>
+  <ellipse cx="19" cy="19" rx="2" ry="1.2" fill="#2a1010" opacity="0.5"/>
+  <!-- VS1838 / TSOP 텍스트 -->
+  <text x="25" y="44" font-family="monospace" font-size="5.5" fill="#7090aa" text-anchor="middle">VS1838</text>
+  <text x="25" y="52" font-family="monospace" font-size="4" fill="#4a6878" text-anchor="middle">38kHz IR RX</text>
   <!-- 3개 리드선 -->
-  <line x1="10" y1="56" x2="10" y2="70" stroke="#b0b8c0" stroke-width="1.5"/>
-  <line x1="25" y1="56" x2="25" y2="70" stroke="#b0b8c0" stroke-width="1.5"/>
-  <line x1="40" y1="56" x2="40" y2="70" stroke="#b0b8c0" stroke-width="1.5"/>
-  <!-- 핀 레이블 -->
-  <text x="10" y="67" font-family="monospace" font-size="3.5" fill="#aaaaaa" text-anchor="middle">OUT</text>
-  <text x="25" y="67" font-family="monospace" font-size="3.5" fill="#aaaaaa" text-anchor="middle">VCC</text>
-  <text x="40" y="67" font-family="monospace" font-size="3.5" fill="#aaaaaa" text-anchor="middle">GND</text>
-</svg>`,
+  <line x1="10" y1="55" x2="10" y2="70" stroke="#c8c8c8" stroke-width="1.8"/>
+  <line x1="25" y1="55" x2="25" y2="70" stroke="#c8c8c8" stroke-width="1.8"/>
+  <line x1="40" y1="55" x2="40" y2="70" stroke="#c8c8c8" stroke-width="1.8"/>
+  <!-- 핀 라벨 -->
+  <text x="10" y="68" font-family="monospace" font-size="3.5" fill="#aaaaaa" text-anchor="middle">OUT</text>
+  <text x="25" y="68" font-family="monospace" font-size="3.5" fill="#aaaaaa" text-anchor="middle">VCC</text>
+  <text x="40" y="68" font-family="monospace" font-size="3.5" fill="#aaaaaa" text-anchor="middle">GND</text>
+</svg></svg>`,
     electrical: { vccMin: 2.5, vccMax: 5.5, currentMa: 5, maxCurrentMa: 10 },
     validation: [],
     notes: ['라이브러리: IRremote', 'OUT 핀 → GPIO 디지털 입력', '수신 거리 최대 15m'],
@@ -856,40 +856,41 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { name: 'OUT', label: 'OUT', x: 40, y: 70, type: 'output',  required: true, description: '오픈 컬렉터 출력 (풀업 필요)', compatibleWith: ['digital','signal'] },
     ],
     svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="50" height="70" viewBox="0 0 50 70">
-  <defs>
-    <linearGradient id="hallBody" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#222222"/>
-      <stop offset="40%" stop-color="#3a3a3a"/>
-      <stop offset="100%" stop-color="#1a1a1a"/>
-    </linearGradient>
-  </defs>
-  <!-- TO-92 D자형 몸체 -->
-  <path d="M10,48 A20,22 0 0,1 40,48 Z" fill="url(#hallBody)" stroke="#444" stroke-width="1"/>
-  <rect x="10" y="34" width="30" height="14" fill="url(#hallBody)" stroke="#444" stroke-width="1"/>
-  <line x1="10" y1="48" x2="40" y2="48" stroke="#555" stroke-width="0.8"/>
-  <!-- 1번 핀 dot -->
-  <circle cx="12" cy="46" r="1.5" fill="#aabbcc"/>
+  <!-- TO-92 그림자 -->
+  <path d="M11,44 A20,22 0 0,1 41,44 Z" fill="#0a0a0a"/>
+  <rect x="11" y="32" width="30" height="13" fill="#0a0a0a"/>
+  <!-- TO-92 반원 상단 -->
+  <path d="M10,43 A20,22 0 0,1 40,43 Z" fill="#1e1e1e" stroke="#333" stroke-width="0.8"/>
+  <!-- TO-92 직사각 하단 -->
+  <rect x="10" y="31" width="30" height="13" fill="#1e1e1e" stroke="#333" stroke-width="0.8"/>
+  <!-- 상단 반원 하이라이트 -->
+  <path d="M17,38 A11,12 0 0,1 33,38 Z" fill="#383838" opacity="0.6"/>
+  <!-- 하단 경계선 -->
+  <line x1="10" y1="44" x2="40" y2="44" stroke="#3a3a3a" stroke-width="0.8"/>
+  <!-- 핀 1 인디케이터 -->
+  <circle cx="13" cy="42" r="1.8" fill="#aabbcc"/>
+  <!-- N/S 자석 아이콘 -->
+  <rect x="10" y="12" width="12" height="10" rx="2" fill="#cc2222" stroke="#aa1111" stroke-width="0.8"/>
+  <text x="16" y="20" font-family="Arial,sans-serif" font-size="7" fill="white" text-anchor="middle" font-weight="bold">N</text>
+  <rect x="28" y="12" width="12" height="10" rx="2" fill="#2255cc" stroke="#1133aa" stroke-width="0.8"/>
+  <text x="34" y="20" font-family="Arial,sans-serif" font-size="7" fill="white" text-anchor="middle" font-weight="bold">S</text>
+  <!-- 자력선 -->
+  <path d="M22,17 Q25,13 28,17" fill="none" stroke="#8888aa" stroke-width="0.8" stroke-dasharray="1.5,1"/>
   <!-- A3144 텍스트 -->
-  <text x="25" y="27" font-family="monospace" font-size="5" fill="#8ab0c8" text-anchor="middle">A3144</text>
-  <!-- 자석 N/S 아이콘 -->
-  <rect x="10" y="12" width="12" height="9" rx="2" fill="#cc2222" stroke="#aa1111" stroke-width="0.8"/>
-  <text x="16" y="19.5" font-family="monospace" font-size="6" fill="white" text-anchor="middle" font-weight="bold">N</text>
-  <rect x="28" y="12" width="12" height="9" rx="2" fill="#2255cc" stroke="#1133aa" stroke-width="0.8"/>
-  <text x="34" y="19.5" font-family="monospace" font-size="6" fill="white" text-anchor="middle" font-weight="bold">S</text>
-  <!-- 자력선 표시 -->
-  <path d="M22,16.5 Q25,13 28,16.5" fill="none" stroke="#888" stroke-width="0.8" stroke-dasharray="1.5,1"/>
-  <!-- 3개 리드선 -->
-  <line x1="10" y1="56" x2="10" y2="70" stroke="#b0b8c0" stroke-width="1.5"/>
-  <line x1="25" y1="56" x2="25" y2="70" stroke="#b0b8c0" stroke-width="1.5"/>
-  <line x1="40" y1="56" x2="40" y2="70" stroke="#b0b8c0" stroke-width="1.5"/>
-  <rect x="8" y="48" width="4" height="8" fill="#3a3a3a"/>
-  <rect x="23" y="48" width="4" height="8" fill="#3a3a3a"/>
-  <rect x="38" y="48" width="4" height="8" fill="#3a3a3a"/>
-  <!-- 핀 레이블 -->
+  <text x="25" y="28" font-family="monospace" font-size="5.5" fill="#90b0c8" text-anchor="middle">A3144</text>
+  <!-- 리드선 연결 스텁 -->
+  <rect x="8"  y="44" width="4" height="8" fill="#2a2a2a"/>
+  <rect x="23" y="44" width="4" height="8" fill="#2a2a2a"/>
+  <rect x="38" y="44" width="4" height="8" fill="#2a2a2a"/>
+  <!-- 리드선 -->
+  <line x1="10" y1="52" x2="10" y2="70" stroke="#c8c8c8" stroke-width="1.8"/>
+  <line x1="25" y1="52" x2="25" y2="70" stroke="#c8c8c8" stroke-width="1.8"/>
+  <line x1="40" y1="52" x2="40" y2="70" stroke="#c8c8c8" stroke-width="1.8"/>
+  <!-- 핀 라벨 -->
   <text x="10" y="68" font-family="monospace" font-size="3.5" fill="#aaaaaa" text-anchor="middle">VCC</text>
   <text x="25" y="68" font-family="monospace" font-size="3.5" fill="#aaaaaa" text-anchor="middle">GND</text>
   <text x="40" y="68" font-family="monospace" font-size="3.5" fill="#aaaaaa" text-anchor="middle">OUT</text>
-</svg>`,
+</svg></svg>`,
     electrical: { vccMin: 4.5, vccMax: 24.0, currentMa: 10, maxCurrentMa: 25 },
     validation: [{ rule: 'requires_pullup', pin: 'OUT', message: 'OUT 핀에 10kΩ 풀업 저항 필요', severity: 'warning' }],
     notes: ['OUT 핀에 10kΩ 풀업 저항 필요', '오픈 컬렉터 출력 (Active LOW)', '자석 S극 감지'],
@@ -916,44 +917,41 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { name: 'GND', label: 'GND', x: 40, y: 70, type: 'ground', required: true, description: 'GND',                    compatibleWith: ['ground'] },
     ],
     svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="50" height="70" viewBox="0 0 50 70">
-  <defs>
-    <linearGradient id="lm35Body" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#222222"/>
-      <stop offset="40%" stop-color="#3a3a3a"/>
-      <stop offset="100%" stop-color="#1a1a1a"/>
-    </linearGradient>
-  </defs>
-  <!-- TO-92 D자형 몸체 -->
-  <path d="M10,48 A20,22 0 0,1 40,48 Z" fill="url(#lm35Body)" stroke="#444" stroke-width="1"/>
-  <rect x="10" y="34" width="30" height="14" fill="url(#lm35Body)" stroke="#444" stroke-width="1"/>
-  <line x1="10" y1="48" x2="40" y2="48" stroke="#555" stroke-width="0.8"/>
-  <!-- 1번 핀 dot -->
-  <circle cx="12" cy="46" r="1.5" fill="#aabbcc"/>
-  <!-- LM35 텍스트 -->
-  <text x="25" y="44" font-family="monospace" font-size="5.5" fill="#8ab0c8" text-anchor="middle">LM35</text>
+  <!-- TO-92 그림자 -->
+  <path d="M11,44 A20,22 0 0,1 41,44 Z" fill="#0a0a0a"/>
+  <rect x="11" y="32" width="30" height="13" fill="#0a0a0a"/>
+  <!-- TO-92 반원 상단 -->
+  <path d="M10,43 A20,22 0 0,1 40,43 Z" fill="#1e1e1e" stroke="#333" stroke-width="0.8"/>
+  <!-- TO-92 직사각 하단 -->
+  <rect x="10" y="31" width="30" height="13" fill="#1e1e1e" stroke="#333" stroke-width="0.8"/>
+  <!-- 상단 반원 하이라이트 -->
+  <path d="M17,38 A11,12 0 0,1 33,38 Z" fill="#383838" opacity="0.6"/>
+  <line x1="10" y1="44" x2="40" y2="44" stroke="#3a3a3a" stroke-width="0.8"/>
+  <!-- 핀 1 인디케이터 -->
+  <circle cx="13" cy="42" r="1.8" fill="#aabbcc"/>
   <!-- 온도계 아이콘 (상단) -->
-  <!-- 온도계 기둥 -->
-  <rect x="22" y="10" width="6" height="18" rx="3" fill="#dddddd" stroke="#999" stroke-width="0.8"/>
-  <!-- 온도계 구체 (하단 빨간) -->
-  <circle cx="25" cy="28" r="5" fill="#cc2222" stroke="#aa0000" stroke-width="0.8"/>
-  <!-- 온도계 수은 표시 -->
-  <rect x="23.5" y="18" width="3" height="10" fill="#cc2222"/>
-  <!-- 눈금 선들 -->
-  <line x1="28" y1="14" x2="30" y2="14" stroke="#888" stroke-width="0.8"/>
-  <line x1="28" y1="18" x2="30" y2="18" stroke="#888" stroke-width="0.8"/>
-  <line x1="28" y1="22" x2="30" y2="22" stroke="#888" stroke-width="0.8"/>
-  <!-- 3개 리드선 -->
-  <line x1="10" y1="56" x2="10" y2="70" stroke="#b0b8c0" stroke-width="1.5"/>
-  <line x1="25" y1="56" x2="25" y2="70" stroke="#b0b8c0" stroke-width="1.5"/>
-  <line x1="40" y1="56" x2="40" y2="70" stroke="#b0b8c0" stroke-width="1.5"/>
-  <rect x="8" y="48" width="4" height="8" fill="#3a3a3a"/>
-  <rect x="23" y="48" width="4" height="8" fill="#3a3a3a"/>
-  <rect x="38" y="48" width="4" height="8" fill="#3a3a3a"/>
-  <!-- 핀 레이블 -->
+  <rect x="22" y="7" width="6" height="18" rx="3" fill="#cccccc" stroke="#888" stroke-width="0.8"/>
+  <circle cx="25" cy="25" r="5" fill="#dd2222" stroke="#aa0000" stroke-width="0.8"/>
+  <rect x="23.5" y="14" width="3" height="11" fill="#dd2222"/>
+  <line x1="28" y1="11" x2="30" y2="11" stroke="#888" stroke-width="0.8"/>
+  <line x1="28" y1="15" x2="30" y2="15" stroke="#888" stroke-width="0.8"/>
+  <line x1="28" y1="19" x2="30" y2="19" stroke="#888" stroke-width="0.8"/>
+  <!-- LM35 텍스트 -->
+  <text x="16" y="38" font-family="monospace" font-size="5.5" fill="#90b0c8" text-anchor="middle">LM35</text>
+  <text x="38" y="38" font-family="monospace" font-size="3.5" fill="#6a90aa" text-anchor="middle">°C</text>
+  <!-- 리드선 스텁 -->
+  <rect x="8"  y="44" width="4" height="8" fill="#2a2a2a"/>
+  <rect x="23" y="44" width="4" height="8" fill="#2a2a2a"/>
+  <rect x="38" y="44" width="4" height="8" fill="#2a2a2a"/>
+  <!-- 리드선 -->
+  <line x1="10" y1="52" x2="10" y2="70" stroke="#c8c8c8" stroke-width="1.8"/>
+  <line x1="25" y1="52" x2="25" y2="70" stroke="#c8c8c8" stroke-width="1.8"/>
+  <line x1="40" y1="52" x2="40" y2="70" stroke="#c8c8c8" stroke-width="1.8"/>
+  <!-- 핀 라벨 -->
   <text x="10" y="68" font-family="monospace" font-size="3.5" fill="#aaaaaa" text-anchor="middle">VCC</text>
   <text x="25" y="68" font-family="monospace" font-size="3.5" fill="#aaaaaa" text-anchor="middle">OUT</text>
   <text x="40" y="68" font-family="monospace" font-size="3.5" fill="#aaaaaa" text-anchor="middle">GND</text>
-</svg>`,
+</svg></svg>`,
     electrical: { vccMin: 4.0, vccMax: 30.0, currentMa: 0.06, maxCurrentMa: 10 },
     validation: [{ rule: 'requires_adc_pin', pin: 'OUT', message: 'OUT는 ADC 핀에 연결', severity: 'warning' }],
     notes: ['출력: 온도(°C) × 10mV', '25°C → 250mV', 'analogRead 변환: Vout × (Vref/ADCmax) / 0.01'],
@@ -984,49 +982,49 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { name: 'SW',  label: 'SW',  x: 56, y: 80, type: 'digital', required: false, description: '버튼 (Active LOW)', compatibleWith: ['digital','signal'] },
     ],
     svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="60" height="80" viewBox="0 0 60 80">
-  <defs>
-    <radialGradient id="joyStick" cx="40%" cy="35%" r="60%">
-      <stop offset="0%" stop-color="#555566"/>
-      <stop offset="100%" stop-color="#222233"/>
-    </radialGradient>
-    <radialGradient id="joyTop" cx="35%" cy="30%" r="65%">
-      <stop offset="0%" stop-color="#6a6a7a"/>
-      <stop offset="100%" stop-color="#333340"/>
-    </radialGradient>
-  </defs>
-  <!-- PCB 기판 (짙은 검은) -->
-  <rect x="2" y="6" width="56" height="62" rx="4" fill="#1a1a2a" stroke="#2a2a3a" stroke-width="1.2"/>
-  <!-- PCB 구멍들 (모서리) -->
-  <circle cx="8" cy="12" r="2" fill="#0a0a18" stroke="#333" stroke-width="0.5"/>
-  <circle cx="52" cy="12" r="2" fill="#0a0a18" stroke="#333" stroke-width="0.5"/>
-  <circle cx="8" cy="62" r="2" fill="#0a0a18" stroke="#333" stroke-width="0.5"/>
-  <circle cx="52" cy="62" r="2" fill="#0a0a18" stroke="#333" stroke-width="0.5"/>
-  <!-- 조이스틱 베이스 원형 -->
-  <circle cx="30" cy="34" r="20" fill="#2a2a3a" stroke="#3a3a4a" stroke-width="1"/>
-  <!-- 조이스틱 기둥 -->
-  <rect x="26" y="24" width="8" height="14" rx="3" fill="url(#joyStick)" stroke="#404050" stroke-width="0.8"/>
-  <!-- 조이스틱 탑 (원형 손잡이) -->
-  <circle cx="30" cy="22" r="9" fill="url(#joyTop)" stroke="#505060" stroke-width="1"/>
-  <!-- 탑 하이라이트 -->
-  <ellipse cx="27" cy="19" rx="4" ry="3" fill="#6a6a7a" opacity="0.5"/>
-  <!-- 방향 표시 (십자형 점선) -->
-  <line x1="30" y1="16" x2="30" y2="12" stroke="#8888aa" stroke-width="0.8" stroke-dasharray="1.5,1"/>
-  <line x1="30" y1="28" x2="30" y2="32" stroke="#8888aa" stroke-width="0.8" stroke-dasharray="1.5,1"/>
-  <line x1="24" y1="22" x2="20" y2="22" stroke="#8888aa" stroke-width="0.8" stroke-dasharray="1.5,1"/>
-  <line x1="36" y1="22" x2="40" y2="22" stroke="#8888aa" stroke-width="0.8" stroke-dasharray="1.5,1"/>
-  <!-- 핀 레이블 -->
-  <text x="8"  y="72" font-family="monospace" font-size="3.5" fill="#8090a8" text-anchor="middle">VCC</text>
-  <text x="20" y="72" font-family="monospace" font-size="3.5" fill="#8090a8" text-anchor="middle">GND</text>
-  <text x="32" y="72" font-family="monospace" font-size="3.5" fill="#8090a8" text-anchor="middle">VRX</text>
-  <text x="44" y="72" font-family="monospace" font-size="3.5" fill="#8090a8" text-anchor="middle">VRY</text>
-  <text x="56" y="72" font-family="monospace" font-size="3.5" fill="#8090a8" text-anchor="middle">SW</text>
+  <!-- PCB 그림자 -->
+  <rect x="3" y="7" width="56" height="62" rx="4" fill="#060608"/>
+  <!-- PCB 기판 (짙은 네이비) -->
+  <rect x="2" y="6" width="56" height="62" rx="4" fill="#1a1a2a" stroke="#282838" stroke-width="1"/>
+  <!-- PCB 구멍 -->
+  <circle cx="8"  cy="12" r="2.2" fill="#0a0a18"/>
+  <circle cx="52" cy="12" r="2.2" fill="#0a0a18"/>
+  <circle cx="8"  cy="62" r="2.2" fill="#0a0a18"/>
+  <circle cx="52" cy="62" r="2.2" fill="#0a0a18"/>
+  <!-- 조이스틱 베이스 (회색 원형 플랫폼) -->
+  <circle cx="30" cy="33" r="22" fill="#252535" stroke="#353545" stroke-width="1"/>
+  <!-- 베이스 내부 링 -->
+  <circle cx="30" cy="33" r="16" fill="#1e1e2e" stroke="#2a2a3a" stroke-width="0.8"/>
+  <!-- 조이스틱 스틱 기둥 그림자 -->
+  <ellipse cx="31" cy="30" rx="5" ry="7" fill="#111"/>
+  <!-- 조이스틱 스틱 기둥 -->
+  <rect x="26" y="22" width="9" height="14" rx="4" fill="#4a4a5a" stroke="#3a3a4a" stroke-width="0.8"/>
+  <!-- 스틱 기둥 하이라이트 -->
+  <rect x="27" y="23" width="4" height="5" rx="2" fill="#6a6a7a" opacity="0.6"/>
+  <!-- 조이스틱 탑 캡 그림자 -->
+  <circle cx="31" cy="21" r="11" fill="#222"/>
+  <!-- 조이스틱 탑 캡 -->
+  <circle cx="30" cy="20" r="11" fill="#505060" stroke="#404050" stroke-width="1"/>
+  <!-- 탑 캡 하이라이트 -->
+  <ellipse cx="26" cy="16" rx="5" ry="3.5" fill="#7a7a8a" opacity="0.5"/>
+  <!-- 방향 십자 표시 -->
+  <line x1="30" y1="13" x2="30" y2="10" stroke="#9090aa" stroke-width="0.8" stroke-dasharray="1.5,1"/>
+  <line x1="30" y1="27" x2="30" y2="30" stroke="#9090aa" stroke-width="0.8" stroke-dasharray="1.5,1"/>
+  <line x1="23" y1="20" x2="20" y2="20" stroke="#9090aa" stroke-width="0.8" stroke-dasharray="1.5,1"/>
+  <line x1="37" y1="20" x2="40" y2="20" stroke="#9090aa" stroke-width="0.8" stroke-dasharray="1.5,1"/>
+  <!-- 핀 라벨 -->
+  <text x="8"  y="72" font-family="monospace" font-size="3.5" fill="#7a90a8" text-anchor="middle">VCC</text>
+  <text x="20" y="72" font-family="monospace" font-size="3.5" fill="#7a90a8" text-anchor="middle">GND</text>
+  <text x="32" y="72" font-family="monospace" font-size="3.5" fill="#7a90a8" text-anchor="middle">VRX</text>
+  <text x="44" y="72" font-family="monospace" font-size="3.5" fill="#7a90a8" text-anchor="middle">VRY</text>
+  <text x="56" y="72" font-family="monospace" font-size="3.5" fill="#7a90a8" text-anchor="middle">SW</text>
   <!-- 핀 리드선 -->
   <line x1="8"  y1="68" x2="8"  y2="80" stroke="#b0b8c0" stroke-width="1.5"/>
   <line x1="20" y1="68" x2="20" y2="80" stroke="#b0b8c0" stroke-width="1.5"/>
   <line x1="32" y1="68" x2="32" y2="80" stroke="#b0b8c0" stroke-width="1.5"/>
   <line x1="44" y1="68" x2="44" y2="80" stroke="#b0b8c0" stroke-width="1.5"/>
   <line x1="56" y1="68" x2="56" y2="80" stroke="#b0b8c0" stroke-width="1.5"/>
-</svg>`,
+</svg></svg>`,
     electrical: { vccMin: 3.3, vccMax: 5.0 },
     validation: [],
     notes: ['VRX/VRY: ADC 핀 연결', 'SW: INPUT_PULLUP 사용', '중립 위치: 약 ADCmax/2'],
@@ -1054,40 +1052,47 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { name: 'GND',   label: 'GND',   x: 68, y: 80, type: 'ground', required: true,  description: 'GND',                   compatibleWith: ['ground'] },
     ],
     svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="60" height="80" viewBox="0 0 60 80">
-  <!-- DIP-16 검은 IC 패키지 몸체 -->
-  <rect x="10" y="8" width="40" height="62" rx="2" fill="#111111" stroke="#333333" stroke-width="1.2"/>
+  <!-- DIP IC 몸체 그림자 -->
+  <rect x="11" y="7" width="40" height="66" rx="3" fill="#0a0a0a"/>
+  <!-- DIP IC 몸체 (검은 에폭시) -->
+  <rect x="10" y="6" width="40" height="66" rx="3" fill="#111111" stroke="#2a2a2a" stroke-width="1.2"/>
   <!-- 상단 중앙 반원 노치 -->
-  <path d="M25,8 A5,5 0 0,1 35,8" fill="#222222" stroke="#444" stroke-width="0.8"/>
-  <!-- 1번 핀 dot (왼쪽 아래 모서리) -->
-  <circle cx="13" cy="65" r="2" fill="#556677"/>
+  <path d="M25,6 A5,5 0 0,1 35,6" fill="#1e1e1e" stroke="#3a3a3a" stroke-width="0.8"/>
+  <!-- 노치 내부 채움 -->
+  <ellipse cx="30" cy="7" rx="5" ry="3" fill="#1e1e1e"/>
+  <!-- 1번 핀 인디케이터 (왼쪽 위) -->
+  <circle cx="13" cy="14" r="2" fill="#445566"/>
+  <!-- IC 상단 하이라이트 -->
+  <rect x="12" y="7" width="36" height="5" rx="2" fill="#1e1e1e" opacity="0.8"/>
   <!-- IC 텍스트 -->
-  <text x="30" y="36" font-family="monospace" font-size="7" fill="#aaccdd" text-anchor="middle" font-weight="bold">74HC</text>
-  <text x="30" y="48" font-family="monospace" font-size="7" fill="#aaccdd" text-anchor="middle" font-weight="bold">595</text>
-  <text x="30" y="62" font-family="monospace" font-size="4" fill="#6688aa" text-anchor="middle">SHIFT REG</text>
-  <!-- 왼쪽 핀선 (8개) -->
-  <line x1="10" y1="16" x2="0" y2="16" stroke="#8899aa" stroke-width="1.2"/>
-  <line x1="10" y1="24" x2="0" y2="24" stroke="#8899aa" stroke-width="1.2"/>
-  <line x1="10" y1="32" x2="0" y2="32" stroke="#8899aa" stroke-width="1.2"/>
-  <line x1="10" y1="40" x2="0" y2="40" stroke="#8899aa" stroke-width="1.2"/>
-  <line x1="10" y1="48" x2="0" y2="48" stroke="#8899aa" stroke-width="1.2"/>
-  <line x1="10" y1="56" x2="0" y2="56" stroke="#8899aa" stroke-width="1.2"/>
-  <line x1="10" y1="64" x2="0" y2="64" stroke="#8899aa" stroke-width="1.2"/>
-  <!-- 오른쪽 핀선 (8개) -->
-  <line x1="50" y1="16" x2="60" y2="16" stroke="#8899aa" stroke-width="1.2"/>
-  <line x1="50" y1="24" x2="60" y2="24" stroke="#8899aa" stroke-width="1.2"/>
-  <line x1="50" y1="32" x2="60" y2="32" stroke="#8899aa" stroke-width="1.2"/>
-  <line x1="50" y1="40" x2="60" y2="40" stroke="#8899aa" stroke-width="1.2"/>
-  <line x1="50" y1="48" x2="60" y2="48" stroke="#8899aa" stroke-width="1.2"/>
-  <line x1="50" y1="56" x2="60" y2="56" stroke="#8899aa" stroke-width="1.2"/>
-  <line x1="50" y1="64" x2="60" y2="64" stroke="#8899aa" stroke-width="1.2"/>
-  <!-- 핀 레이블 (하단 연결핀: DS, SHCP, STCP, MR, OE, VCC, GND) -->
+  <text x="30" y="34" font-family="monospace" font-size="8" fill="#aaccdd" text-anchor="middle" font-weight="bold">74HC</text>
+  <text x="30" y="46" font-family="monospace" font-size="8" fill="#aaccdd" text-anchor="middle" font-weight="bold">595</text>
+  <text x="30" y="58" font-family="monospace" font-size="4" fill="#5a8899" text-anchor="middle">SHIFT REG</text>
+  <text x="30" y="66" font-family="monospace" font-size="3.5" fill="#3a5868" text-anchor="middle">SN74HC595N</text>
+  <!-- 왼쪽 핀 (8개, 1번 위부터) -->
+  <line x1="10" y1="14" x2="0" y2="14" stroke="#9aacb8" stroke-width="1.5"/>
+  <line x1="10" y1="22" x2="0" y2="22" stroke="#9aacb8" stroke-width="1.5"/>
+  <line x1="10" y1="30" x2="0" y2="30" stroke="#9aacb8" stroke-width="1.5"/>
+  <line x1="10" y1="38" x2="0" y2="38" stroke="#9aacb8" stroke-width="1.5"/>
+  <line x1="10" y1="46" x2="0" y2="46" stroke="#9aacb8" stroke-width="1.5"/>
+  <line x1="10" y1="54" x2="0" y2="54" stroke="#9aacb8" stroke-width="1.5"/>
+  <line x1="10" y1="62" x2="0" y2="62" stroke="#9aacb8" stroke-width="1.5"/>
+  <!-- 오른쪽 핀 (8개, 16번 위부터) -->
+  <line x1="50" y1="14" x2="60" y2="14" stroke="#9aacb8" stroke-width="1.5"/>
+  <line x1="50" y1="22" x2="60" y2="22" stroke="#9aacb8" stroke-width="1.5"/>
+  <line x1="50" y1="30" x2="60" y2="30" stroke="#9aacb8" stroke-width="1.5"/>
+  <line x1="50" y1="38" x2="60" y2="38" stroke="#9aacb8" stroke-width="1.5"/>
+  <line x1="50" y1="46" x2="60" y2="46" stroke="#9aacb8" stroke-width="1.5"/>
+  <line x1="50" y1="54" x2="60" y2="54" stroke="#9aacb8" stroke-width="1.5"/>
+  <line x1="50" y1="62" x2="60" y2="62" stroke="#9aacb8" stroke-width="1.5"/>
+  <!-- 하단 연결 핀 (DS, SHCP, STCP, MR, OE, VCC) -->
   <line x1="8"  y1="70" x2="8"  y2="80" stroke="#b0b8c0" stroke-width="1.5"/>
   <line x1="18" y1="70" x2="18" y2="80" stroke="#b0b8c0" stroke-width="1.5"/>
   <line x1="28" y1="70" x2="28" y2="80" stroke="#b0b8c0" stroke-width="1.5"/>
   <line x1="38" y1="70" x2="38" y2="80" stroke="#b0b8c0" stroke-width="1.5"/>
   <line x1="48" y1="70" x2="48" y2="80" stroke="#b0b8c0" stroke-width="1.5"/>
   <line x1="58" y1="70" x2="58" y2="80" stroke="#b0b8c0" stroke-width="1.5"/>
-</svg>`,
+</svg></svg>`,
     electrical: { vccMin: 2.0, vccMax: 6.0, currentMa: 70, maxCurrentMa: 70 },
     validation: [],
     notes: ['DS→SH_CP 클럭→ST_CP 래치 순서', 'MR은 VCC에, OE는 GND에 연결', '라이브러리 없이 shiftOut() 사용'],
@@ -1117,67 +1122,74 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { name: 'GND', label: 'GND', x: 68, y: 8,   type: 'ground', required: true,  description: 'GND',               compatibleWith: ['ground'] },
     ],
     svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="100" viewBox="0 0 80 100">
-  <defs>
-    <linearGradient id="l298nPcb" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#cc2222"/>
-      <stop offset="100%" stop-color="#881111"/>
-    </linearGradient>
-    <linearGradient id="l298nIc" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#222222"/>
-      <stop offset="50%" stop-color="#3a3a3a"/>
-      <stop offset="100%" stop-color="#222222"/>
-    </linearGradient>
-  </defs>
-  <!-- 빨간 PCB 기판 -->
-  <rect x="1" y="4" width="78" height="86" rx="3" fill="url(#l298nPcb)" stroke="#661111" stroke-width="1.2"/>
+  <!-- 빨간 PCB 그림자 -->
+  <rect x="2" y="5" width="78" height="86" rx="3" fill="#3a0808"/>
+  <!-- 빨간 PCB -->
+  <rect x="1" y="4" width="78" height="86" rx="3" fill="#c01010" stroke="#881010" stroke-width="1.2"/>
+  <!-- PCB 하이라이트 -->
+  <rect x="3" y="6" width="74" height="10" rx="2" fill="#d83030" opacity="0.4"/>
+  <!-- PCB 구멍 (모서리) -->
+  <circle cx="6"  cy="9"  r="2.5" fill="#880808"/>
+  <circle cx="74" cy="9"  r="2.5" fill="#880808"/>
+  <circle cx="6"  cy="85" r="2.5" fill="#880808"/>
+  <circle cx="74" cy="85" r="2.5" fill="#880808"/>
   <!-- 히트싱크 핀들 (상단) -->
-  <rect x="18" y="4" width="4" height="8" rx="1" fill="#888888" stroke="#666" stroke-width="0.5"/>
-  <rect x="24" y="4" width="4" height="8" rx="1" fill="#888888" stroke="#666" stroke-width="0.5"/>
-  <rect x="30" y="4" width="4" height="8" rx="1" fill="#888888" stroke="#666" stroke-width="0.5"/>
-  <rect x="36" y="4" width="4" height="8" rx="1" fill="#888888" stroke="#666" stroke-width="0.5"/>
-  <rect x="42" y="4" width="4" height="8" rx="1" fill="#888888" stroke="#666" stroke-width="0.5"/>
-  <rect x="48" y="4" width="4" height="8" rx="1" fill="#888888" stroke="#666" stroke-width="0.5"/>
-  <rect x="54" y="4" width="4" height="8" rx="1" fill="#888888" stroke="#666" stroke-width="0.5"/>
+  <rect x="17" y="4" width="5" height="9" rx="1" fill="#999" stroke="#777" stroke-width="0.5"/>
+  <rect x="23" y="4" width="5" height="9" rx="1" fill="#999" stroke="#777" stroke-width="0.5"/>
+  <rect x="29" y="4" width="5" height="9" rx="1" fill="#999" stroke="#777" stroke-width="0.5"/>
+  <rect x="35" y="4" width="5" height="9" rx="1" fill="#999" stroke="#777" stroke-width="0.5"/>
+  <rect x="41" y="4" width="5" height="9" rx="1" fill="#999" stroke="#777" stroke-width="0.5"/>
+  <rect x="47" y="4" width="5" height="9" rx="1" fill="#999" stroke="#777" stroke-width="0.5"/>
+  <rect x="53" y="4" width="5" height="9" rx="1" fill="#999" stroke="#777" stroke-width="0.5"/>
   <!-- 히트싱크 베이스 -->
-  <rect x="15" y="10" width="46" height="6" fill="#999999" stroke="#777" stroke-width="0.8"/>
-  <!-- 중앙 L298N IC 칩 -->
-  <rect x="20" y="22" width="40" height="46" rx="2" fill="url(#l298nIc)" stroke="#444" stroke-width="1.2"/>
-  <!-- IC 상단 노치 -->
-  <path d="M35,22 A5,5 0 0,1 45,22" fill="#333" stroke="#555" stroke-width="0.8"/>
+  <rect x="14" y="10" width="50" height="8" fill="#aaa" stroke="#888" stroke-width="0.8"/>
+  <!-- L298N IC 그림자 -->
+  <rect x="21" y="20" width="40" height="50" rx="2" fill="#080808"/>
+  <!-- L298N IC 칩 (검은 에폭시) -->
+  <rect x="20" y="19" width="40" height="50" rx="2" fill="#181818" stroke="#333" stroke-width="1.2"/>
+  <!-- IC 노치 -->
+  <path d="M35,19 A5,5 0 0,1 45,19" fill="#252525" stroke="#404040" stroke-width="0.8"/>
+  <!-- IC 하이라이트 -->
+  <rect x="22" y="20" width="36" height="8" rx="1" fill="#282828" opacity="0.7"/>
   <!-- L298N 텍스트 -->
-  <text x="40" y="42" font-family="monospace" font-size="8" fill="#dddddd" text-anchor="middle" font-weight="bold">L298N</text>
-  <text x="40" y="54" font-family="monospace" font-size="4.5" fill="#8899aa" text-anchor="middle">DUAL H-BRIDGE</text>
-  <text x="40" y="62" font-family="monospace" font-size="4" fill="#667788" text-anchor="middle">MOTOR DRIVER</text>
-  <!-- 왼쪽 스크루 터미널 (파란색) -->
-  <rect x="2" y="26" width="16" height="34" rx="2" fill="#2244aa" stroke="#1133aa" stroke-width="0.8"/>
-  <rect x="4" y="28" width="12" height="8" rx="1" fill="#1a33aa"/>
-  <rect x="4" y="38" width="12" height="8" rx="1" fill="#1a33aa"/>
-  <rect x="4" y="48" width="12" height="8" rx="1" fill="#1a33aa"/>
-  <!-- 오른쪽 스크루 터미널 (파란색) -->
-  <rect x="62" y="26" width="16" height="26" rx="2" fill="#2244aa" stroke="#1133aa" stroke-width="0.8"/>
-  <rect x="64" y="28" width="12" height="8" rx="1" fill="#1a33aa"/>
-  <rect x="64" y="38" width="12" height="8" rx="1" fill="#1a33aa"/>
+  <text x="40" y="42" font-family="monospace" font-size="9" fill="#e0e0e0" text-anchor="middle" font-weight="bold">L298N</text>
+  <text x="40" y="55" font-family="monospace" font-size="4.5" fill="#8899aa" text-anchor="middle">DUAL H-BRIDGE</text>
+  <text x="40" y="63" font-family="monospace" font-size="4" fill="#5a6a7a" text-anchor="middle">MOTOR DRIVER</text>
+  <!-- 왼쪽 파란 나사 터미널 (3개) -->
+  <rect x="2" y="25" width="16" height="36" rx="2" fill="#1a3a8a" stroke="#0a2a7a" stroke-width="0.8"/>
+  <rect x="3" y="27" width="14" height="9"  rx="1" fill="#152e78"/>
+  <rect x="3" y="38" width="14" height="9"  rx="1" fill="#152e78"/>
+  <rect x="3" y="49" width="14" height="9"  rx="1" fill="#152e78"/>
+  <circle cx="10" cy="31.5" r="2" fill="#3355aa"/>
+  <circle cx="10" cy="42.5" r="2" fill="#3355aa"/>
+  <circle cx="10" cy="53.5" r="2" fill="#3355aa"/>
+  <!-- 오른쪽 파란 나사 터미널 (2개) -->
+  <rect x="62" y="25" width="16" height="26" rx="2" fill="#1a3a8a" stroke="#0a2a7a" stroke-width="0.8"/>
+  <rect x="63" y="27" width="14" height="9"  rx="1" fill="#152e78"/>
+  <rect x="63" y="38" width="14" height="9"  rx="1" fill="#152e78"/>
+  <circle cx="70" cy="31.5" r="2" fill="#3355aa"/>
+  <circle cx="70" cy="42.5" r="2" fill="#3355aa"/>
   <!-- 전원 핀 표시 (상단 우측) -->
-  <text x="56" y="20" font-family="monospace" font-size="4" fill="#ffccaa" text-anchor="middle">VCC</text>
-  <text x="68" y="20" font-family="monospace" font-size="4" fill="#aaccff" text-anchor="middle">GND</text>
-  <!-- 하단 제어핀 레이블 -->
-  <text x="8"  y="94" font-family="monospace" font-size="3.5" fill="#cc9988" text-anchor="middle">IN1</text>
-  <text x="20" y="94" font-family="monospace" font-size="3.5" fill="#cc9988" text-anchor="middle">IN2</text>
-  <text x="32" y="94" font-family="monospace" font-size="3.5" fill="#cc9988" text-anchor="middle">IN3</text>
-  <text x="44" y="94" font-family="monospace" font-size="3.5" fill="#cc9988" text-anchor="middle">IN4</text>
-  <text x="56" y="94" font-family="monospace" font-size="3.5" fill="#88aacc" text-anchor="middle">ENA</text>
-  <text x="68" y="94" font-family="monospace" font-size="3.5" fill="#88aacc" text-anchor="middle">ENB</text>
+  <text x="56" y="18" font-family="monospace" font-size="4" fill="#ffbb88" text-anchor="middle">VCC</text>
+  <text x="68" y="18" font-family="monospace" font-size="4" fill="#88aaff" text-anchor="middle">GND</text>
+  <!-- 하단 제어 핀 라벨 -->
+  <text x="8"  y="93" font-family="monospace" font-size="3.5" fill="#dd9988" text-anchor="middle">IN1</text>
+  <text x="20" y="93" font-family="monospace" font-size="3.5" fill="#dd9988" text-anchor="middle">IN2</text>
+  <text x="32" y="93" font-family="monospace" font-size="3.5" fill="#dd9988" text-anchor="middle">IN3</text>
+  <text x="44" y="93" font-family="monospace" font-size="3.5" fill="#dd9988" text-anchor="middle">IN4</text>
+  <text x="56" y="93" font-family="monospace" font-size="3.5" fill="#88aacc" text-anchor="middle">ENA</text>
+  <text x="68" y="93" font-family="monospace" font-size="3.5" fill="#88aacc" text-anchor="middle">ENB</text>
   <!-- 하단 핀 리드선 -->
-  <line x1="8"  y1="90" x2="8"  y2="100" stroke="#b0b8c0" stroke-width="1.5"/>
-  <line x1="20" y1="90" x2="20" y2="100" stroke="#b0b8c0" stroke-width="1.5"/>
-  <line x1="32" y1="90" x2="32" y2="100" stroke="#b0b8c0" stroke-width="1.5"/>
-  <line x1="44" y1="90" x2="44" y2="100" stroke="#b0b8c0" stroke-width="1.5"/>
-  <line x1="56" y1="90" x2="56" y2="100" stroke="#b0b8c0" stroke-width="1.5"/>
-  <line x1="68" y1="90" x2="68" y2="100" stroke="#b0b8c0" stroke-width="1.5"/>
+  <line x1="8"  y1="90" x2="8"  y2="100" stroke="#c0b8b0" stroke-width="1.5"/>
+  <line x1="20" y1="90" x2="20" y2="100" stroke="#c0b8b0" stroke-width="1.5"/>
+  <line x1="32" y1="90" x2="32" y2="100" stroke="#c0b8b0" stroke-width="1.5"/>
+  <line x1="44" y1="90" x2="44" y2="100" stroke="#c0b8b0" stroke-width="1.5"/>
+  <line x1="56" y1="90" x2="56" y2="100" stroke="#c0b8b0" stroke-width="1.5"/>
+  <line x1="68" y1="90" x2="68" y2="100" stroke="#c0b8b0" stroke-width="1.5"/>
   <!-- 상단 전원 핀 리드선 -->
   <line x1="56" y1="4" x2="56" y2="8" stroke="#ffaa88" stroke-width="1.5"/>
   <line x1="68" y1="4" x2="68" y2="8" stroke="#88aaff" stroke-width="1.5"/>
-</svg>`,
+</svg></svg>`,
     electrical: { vccMin: 5.0, vccMax: 35.0, currentMa: 2000, maxCurrentMa: 4000 },
     validation: [],
     notes: ['모터 전원 5~35V', '채널당 최대 2A', 'ENA/ENB 점퍼 제거 후 PWM 연결', 'IN1=H, IN2=L → 정방향'],
@@ -1205,39 +1217,40 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { name: 'GND', label: 'GND', x: 40, y: 70, type: 'ground',  required: true, description: 'GND',                 compatibleWith: ['ground'] },
     ],
     svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="50" height="70" viewBox="0 0 50 70">
-  <defs>
-    <radialGradient id="pirDome" cx="50%" cy="45%" r="55%">
-      <stop offset="0%" stop-color="#f0eedd"/>
-      <stop offset="70%" stop-color="#d4c8a0"/>
-      <stop offset="100%" stop-color="#b0a070"/>
-    </radialGradient>
-    <linearGradient id="pirPcb" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#2a5a2a"/>
-      <stop offset="100%" stop-color="#164016"/>
-    </linearGradient>
-  </defs>
-  <!-- 초록 PCB 기판 -->
-  <rect x="3" y="30" width="44" height="30" rx="3" fill="url(#pirPcb)" stroke="#1a4a1a" stroke-width="1"/>
-  <!-- 흰색/크림색 돔형 프레넬 렌즈 반구 -->
-  <ellipse cx="25" cy="30" rx="22" ry="22" fill="url(#pirDome)" stroke="#c8b888" stroke-width="1"/>
+  <!-- 초록 PCB 그림자 -->
+  <rect x="4" y="36" width="44" height="28" rx="3" fill="#061206"/>
+  <!-- 초록 PCB -->
+  <rect x="3" y="35" width="44" height="28" rx="3" fill="#1e5a1e" stroke="#154a15" stroke-width="1"/>
+  <!-- PCB 하이라이트 -->
+  <rect x="5" y="37" width="40" height="6" rx="2" fill="#2a6a2a" opacity="0.4"/>
+  <!-- 흰 돔 그림자 (프레넬 렌즈) -->
+  <ellipse cx="26" cy="32" rx="22" ry="23" fill="#b0a060"/>
+  <!-- 흰 돔 (크림색/아이보리) -->
+  <ellipse cx="25" cy="31" rx="22" ry="23" fill="#e8dda8" stroke="#d0c888" stroke-width="1"/>
+  <!-- 돔 하이라이트 (상단 밝은 부분) -->
+  <ellipse cx="19" cy="20" rx="10" ry="7" fill="#f8f0cc" opacity="0.5"/>
   <!-- 프레넬 렌즈 격자 패턴 -->
-  <line x1="25" y1="8" x2="25" y2="52" stroke="#c0aa70" stroke-width="0.6" opacity="0.6"/>
-  <line x1="3" y1="30" x2="47" y2="30" stroke="#c0aa70" stroke-width="0.6" opacity="0.6"/>
-  <ellipse cx="25" cy="30" rx="14" ry="14" fill="none" stroke="#c0aa70" stroke-width="0.6" opacity="0.5"/>
-  <ellipse cx="25" cy="30" rx="8" ry="8" fill="none" stroke="#c0aa70" stroke-width="0.6" opacity="0.5"/>
-  <!-- 중앙 감지 소자 (약간 어둡게) -->
-  <ellipse cx="25" cy="30" rx="4" ry="4" fill="#b8a868" opacity="0.8"/>
-  <!-- HC-SR501 텍스트 -->
-  <text x="25" y="48" font-family="monospace" font-size="4.5" fill="#90c090" text-anchor="middle">HC-SR501</text>
+  <line x1="25" y1="8"  x2="25" y2="54" stroke="#c8b878" stroke-width="0.7" opacity="0.7"/>
+  <line x1="3"  y1="31" x2="47" y2="31" stroke="#c8b878" stroke-width="0.7" opacity="0.7"/>
+  <ellipse cx="25" cy="31" rx="14" ry="14" fill="none" stroke="#c8b878" stroke-width="0.7" opacity="0.6"/>
+  <ellipse cx="25" cy="31" rx="8"  ry="8"  fill="none" stroke="#c8b878" stroke-width="0.7" opacity="0.6"/>
+  <ellipse cx="25" cy="31" rx="3"  ry="3"  fill="none" stroke="#c8b878" stroke-width="0.7" opacity="0.5"/>
+  <!-- 중앙 감지 소자 -->
+  <ellipse cx="25" cy="31" rx="2.5" ry="2.5" fill="#b8a860" opacity="0.9"/>
+  <!-- HC-SR501 텍스트 (PCB 위) -->
+  <text x="25" y="51" font-family="monospace" font-size="4.5" fill="#80cc80" text-anchor="middle">HC-SR501</text>
+  <!-- 트리머 가변저항 (PCB 오른쪽) -->
+  <circle cx="42" cy="44" r="4" fill="#2a4a2a" stroke="#336633" stroke-width="0.8"/>
+  <circle cx="42" cy="44" r="2" fill="#1a3a1a"/>
   <!-- 핀 리드선 -->
-  <line x1="10" y1="60" x2="10" y2="70" stroke="#b0b8c0" stroke-width="1.5"/>
-  <line x1="25" y1="60" x2="25" y2="70" stroke="#b0b8c0" stroke-width="1.5"/>
-  <line x1="40" y1="60" x2="40" y2="70" stroke="#b0b8c0" stroke-width="1.5"/>
-  <!-- 핀 레이블 -->
-  <text x="10" y="67" font-family="monospace" font-size="3.5" fill="#aaaaaa" text-anchor="middle">VCC</text>
-  <text x="25" y="67" font-family="monospace" font-size="3.5" fill="#aaaaaa" text-anchor="middle">OUT</text>
-  <text x="40" y="67" font-family="monospace" font-size="3.5" fill="#aaaaaa" text-anchor="middle">GND</text>
-</svg>`,
+  <line x1="10" y1="63" x2="10" y2="70" stroke="#c8c8c8" stroke-width="1.8"/>
+  <line x1="25" y1="63" x2="25" y2="70" stroke="#c8c8c8" stroke-width="1.8"/>
+  <line x1="40" y1="63" x2="40" y2="70" stroke="#c8c8c8" stroke-width="1.8"/>
+  <!-- 핀 라벨 -->
+  <text x="10" y="68" font-family="monospace" font-size="3.5" fill="#aaaaaa" text-anchor="middle">VCC</text>
+  <text x="25" y="68" font-family="monospace" font-size="3.5" fill="#aaaaaa" text-anchor="middle">OUT</text>
+  <text x="40" y="68" font-family="monospace" font-size="3.5" fill="#aaaaaa" text-anchor="middle">GND</text>
+</svg></svg>`,
     electrical: { vccMin: 5.0, vccMax: 20.0, currentMa: 65, maxCurrentMa: 65 },
     validation: [],
     notes: ['감지 범위 120도 / 최대 7m', '전원 인가 후 약 60초 안정화 시간 필요', 'OUT HIGH = 인체 감지'],
@@ -1263,48 +1276,50 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { name: 'DOUT', label: 'DOUT', x: 40, y: 70, type: 'output',  required: false, description: '디지털 출력 (임계 초과 시 HIGH)', compatibleWith: ['digital','signal'] },
     ],
     svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="50" height="70" viewBox="0 0 50 70">
-  <defs>
-    <linearGradient id="soundPcb" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#2a5a2a"/>
-      <stop offset="100%" stop-color="#164016"/>
-    </linearGradient>
-    <radialGradient id="micBody" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#444444"/>
-      <stop offset="100%" stop-color="#111111"/>
-    </radialGradient>
-  </defs>
-  <!-- 초록 PCB 기판 -->
-  <rect x="3" y="8" width="44" height="52" rx="3" fill="url(#soundPcb)" stroke="#1a4a1a" stroke-width="1"/>
-  <!-- 마이크 원형 (왼쪽 배치) -->
-  <circle cx="18" cy="32" r="14" fill="url(#micBody)" stroke="#333333" stroke-width="1.2"/>
-  <!-- 마이크 금속 외관 링 -->
-  <circle cx="18" cy="32" r="14" fill="none" stroke="#555555" stroke-width="1.5"/>
-  <circle cx="18" cy="32" r="11" fill="none" stroke="#3a3a3a" stroke-width="0.8"/>
-  <!-- 마이크 구멍 패턴 (dot pattern) -->
-  <circle cx="14" cy="28" r="1.2" fill="#2a2a2a"/>
-  <circle cx="18" cy="28" r="1.2" fill="#2a2a2a"/>
-  <circle cx="22" cy="28" r="1.2" fill="#2a2a2a"/>
-  <circle cx="14" cy="32" r="1.2" fill="#2a2a2a"/>
-  <circle cx="18" cy="32" r="1.2" fill="#2a2a2a"/>
-  <circle cx="22" cy="32" r="1.2" fill="#2a2a2a"/>
-  <circle cx="14" cy="36" r="1.2" fill="#2a2a2a"/>
-  <circle cx="18" cy="36" r="1.2" fill="#2a2a2a"/>
-  <circle cx="22" cy="36" r="1.2" fill="#2a2a2a"/>
-  <!-- 오른쪽 가변저항 (감도 조정) -->
-  <circle cx="37" cy="28" r="6" fill="#224422" stroke="#336633" stroke-width="0.8"/>
-  <circle cx="37" cy="28" r="3" fill="#1a331a"/>
-  <line x1="37" y1="22" x2="40" y2="25" stroke="#88aa88" stroke-width="0.8"/>
+  <!-- 초록 PCB 그림자 -->
+  <rect x="4" y="9" width="44" height="52" rx="3" fill="#061206"/>
+  <!-- 초록 PCB -->
+  <rect x="3" y="8" width="44" height="52" rx="3" fill="#1e5a1e" stroke="#154a15" stroke-width="1"/>
+  <!-- PCB 하이라이트 -->
+  <rect x="5" y="10" width="40" height="6" rx="2" fill="#2a6a2a" opacity="0.4"/>
+  <!-- 전해 마이크 그림자 (은색 원통) -->
+  <circle cx="19" cy="32" r="14" fill="#0a0a0a"/>
+  <!-- 전해 마이크 (은색 금속 원통) -->
+  <circle cx="18" cy="31" r="14" fill="#444444" stroke="#2a2a2a" stroke-width="1.2"/>
+  <!-- 마이크 외곽 링 -->
+  <circle cx="18" cy="31" r="14" fill="none" stroke="#666666" stroke-width="1.5"/>
+  <!-- 마이크 내부 링 -->
+  <circle cx="18" cy="31" r="11" fill="#333333" stroke="#3a3a3a" stroke-width="0.8"/>
+  <!-- 마이크 하이라이트 -->
+  <ellipse cx="13" cy="26" rx="5" ry="4" fill="#777777" opacity="0.4"/>
+  <!-- 구멍 패턴 (3×3) -->
+  <circle cx="14" cy="27" r="1.3" fill="#1a1a1a"/>
+  <circle cx="18" cy="27" r="1.3" fill="#1a1a1a"/>
+  <circle cx="22" cy="27" r="1.3" fill="#1a1a1a"/>
+  <circle cx="14" cy="31" r="1.3" fill="#1a1a1a"/>
+  <circle cx="18" cy="31" r="1.3" fill="#1a1a1a"/>
+  <circle cx="22" cy="31" r="1.3" fill="#1a1a1a"/>
+  <circle cx="14" cy="35" r="1.3" fill="#1a1a1a"/>
+  <circle cx="18" cy="35" r="1.3" fill="#1a1a1a"/>
+  <circle cx="22" cy="35" r="1.3" fill="#1a1a1a"/>
+  <!-- 가변저항 (오른쪽, 감도 조정) -->
+  <circle cx="38" cy="28" r="6" fill="#224422" stroke="#336633" stroke-width="0.8"/>
+  <circle cx="38" cy="28" r="3" fill="#1a3a1a"/>
+  <line x1="38" y1="22" x2="41" y2="25" stroke="#88aa88" stroke-width="0.9"/>
+  <!-- 비교기 IC (오른쪽 작은 칩) -->
+  <rect x="34" y="36" width="10" height="8" rx="1" fill="#1a1a1a" stroke="#2a2a2a" stroke-width="0.6"/>
+  <text x="39" y="42" font-family="monospace" font-size="3" fill="#5a7a5a" text-anchor="middle">LM393</text>
   <!-- KY-037 텍스트 -->
-  <text x="37" y="46" font-family="monospace" font-size="4.5" fill="#90c090" text-anchor="middle">KY-037</text>
+  <text x="38" y="52" font-family="monospace" font-size="4.5" fill="#80cc80" text-anchor="middle">KY-037</text>
   <!-- 핀 리드선 -->
-  <line x1="10" y1="60" x2="10" y2="70" stroke="#b0b8c0" stroke-width="1.5"/>
-  <line x1="25" y1="60" x2="25" y2="70" stroke="#b0b8c0" stroke-width="1.5"/>
-  <line x1="40" y1="60" x2="40" y2="70" stroke="#b0b8c0" stroke-width="1.5"/>
-  <!-- 핀 레이블 -->
-  <text x="10" y="67" font-family="monospace" font-size="3.5" fill="#aaaaaa" text-anchor="middle">VCC</text>
-  <text x="25" y="67" font-family="monospace" font-size="3.5" fill="#aaaaaa" text-anchor="middle">GND</text>
-  <text x="40" y="67" font-family="monospace" font-size="3.5" fill="#aaaaaa" text-anchor="middle">DOUT</text>
-</svg>`,
+  <line x1="10" y1="60" x2="10" y2="70" stroke="#c8c8c8" stroke-width="1.8"/>
+  <line x1="25" y1="60" x2="25" y2="70" stroke="#c8c8c8" stroke-width="1.8"/>
+  <line x1="40" y1="60" x2="40" y2="70" stroke="#c8c8c8" stroke-width="1.8"/>
+  <!-- 핀 라벨 -->
+  <text x="10" y="68" font-family="monospace" font-size="3.5" fill="#aaaaaa" text-anchor="middle">VCC</text>
+  <text x="25" y="68" font-family="monospace" font-size="3.5" fill="#aaaaaa" text-anchor="middle">GND</text>
+  <text x="40" y="68" font-family="monospace" font-size="3.5" fill="#aaaaaa" text-anchor="middle">DOUT</text>
+</svg></svg>`,
     electrical: { vccMin: 3.3, vccMax: 5.0, currentMa: 15, maxCurrentMa: 20 },
     validation: [],
     notes: ['가변저항으로 임계값 조정', 'DOUT: 소리 감지 시 HIGH (모듈에 따라 반전)', '민감도: 모듈 위 트리머 조정'],
@@ -1332,46 +1347,43 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
       { name: 'VCC', label: 'VCC', x: 56, y: 80, type: 'power', required: true, description: '전원 5V',       compatibleWith: ['power'] },
     ],
     svgTemplate: `<svg xmlns="http://www.w3.org/2000/svg" width="60" height="80" viewBox="0 0 60 80">
-  <defs>
-    <radialGradient id="stepperFace" cx="45%" cy="40%" r="60%">
-      <stop offset="0%" stop-color="#4466aa"/>
-      <stop offset="60%" stop-color="#1a3a7a"/>
-      <stop offset="100%" stop-color="#0a1a4a"/>
-    </radialGradient>
-    <radialGradient id="stepperShaft" cx="40%" cy="35%" r="60%">
-      <stop offset="0%" stop-color="#aaaaaa"/>
-      <stop offset="100%" stop-color="#666666"/>
-    </radialGradient>
-  </defs>
-  <!-- 파란 원형 모터 본체 (정면) -->
-  <circle cx="30" cy="34" r="28" fill="url(#stepperFace)" stroke="#1a3060" stroke-width="1.5"/>
-  <!-- 외부 테두리 링 (알루미늄) -->
-  <circle cx="30" cy="34" r="28" fill="none" stroke="#3a5a9a" stroke-width="2"/>
+  <!-- 모터 몸체 그림자 -->
+  <circle cx="31" cy="35" r="28" fill="#060a18"/>
+  <!-- 파란 원형 모터 (28BYJ-48 특징: 파란색) -->
+  <circle cx="30" cy="34" r="28" fill="#1a3a7a" stroke="#102860" stroke-width="1.5"/>
+  <!-- 외부 알루미늄 링 -->
+  <circle cx="30" cy="34" r="28" fill="none" stroke="#2a5090" stroke-width="2"/>
+  <!-- 상단 하이라이트 -->
+  <ellipse cx="20" cy="20" rx="16" ry="10" fill="#4a6aaa" opacity="0.3"/>
   <!-- 내부 기어박스 원 -->
-  <circle cx="30" cy="34" r="18" fill="#142a5a" stroke="#2a4a7a" stroke-width="1"/>
-  <!-- 기어 이빨 패턴 -->
-  <circle cx="30" cy="34" r="18" fill="none" stroke="#3a5a8a" stroke-width="0.5" stroke-dasharray="3,2"/>
-  <!-- 중앙 샤프트/기어 -->
-  <circle cx="30" cy="34" r="8" fill="url(#stepperShaft)" stroke="#888888" stroke-width="1"/>
+  <circle cx="30" cy="34" r="20" fill="#0e2258" stroke="#1a3a6a" stroke-width="1"/>
+  <!-- 기어 이빨 패턴 (점선 원) -->
+  <circle cx="30" cy="34" r="20" fill="none" stroke="#2a508a" stroke-width="0.6" stroke-dasharray="3,2"/>
+  <!-- 나사 구멍 (4개 모서리) -->
+  <circle cx="11" cy="15" r="2.8" fill="#080f28" stroke="#1a3060" stroke-width="0.8"/>
+  <circle cx="49" cy="15" r="2.8" fill="#080f28" stroke="#1a3060" stroke-width="0.8"/>
+  <circle cx="11" cy="53" r="2.8" fill="#080f28" stroke="#1a3060" stroke-width="0.8"/>
+  <circle cx="49" cy="53" r="2.8" fill="#080f28" stroke="#1a3060" stroke-width="0.8"/>
+  <!-- 중앙 샤프트 그림자 -->
+  <circle cx="31" cy="35" r="9" fill="#444"/>
+  <!-- 중앙 샤프트 (금속) -->
+  <circle cx="30" cy="34" r="9" fill="#888"/>
+  <!-- 샤프트 하이라이트 -->
+  <circle cx="27" cy="31" r="3.5" fill="#bbbbbb" opacity="0.5"/>
   <!-- 샤프트 십자 슬롯 -->
-  <line x1="30" y1="27" x2="30" y2="41" stroke="#555" stroke-width="1.5"/>
-  <line x1="23" y1="34" x2="37" y2="34" stroke="#555" stroke-width="1.5"/>
-  <!-- 고정 나사 구멍 (4개) -->
-  <circle cx="12" cy="16" r="2.5" fill="#0a1a3a" stroke="#2a3a6a" stroke-width="0.8"/>
-  <circle cx="48" cy="16" r="2.5" fill="#0a1a3a" stroke="#2a3a6a" stroke-width="0.8"/>
-  <circle cx="12" cy="52" r="2.5" fill="#0a1a3a" stroke="#2a3a6a" stroke-width="0.8"/>
-  <circle cx="48" cy="52" r="2.5" fill="#0a1a3a" stroke="#2a3a6a" stroke-width="0.8"/>
+  <line x1="30" y1="27" x2="30" y2="41" stroke="#555" stroke-width="1.8"/>
+  <line x1="23" y1="34" x2="37" y2="34" stroke="#555" stroke-width="1.8"/>
+  <!-- 커넥터 (오른쪽 하단) -->
+  <rect x="39" y="58" width="20" height="10" rx="2" fill="#f0f0f0" stroke="#cccccc" stroke-width="0.8"/>
+  <rect x="40" y="59" width="3" height="8" rx="0.5" fill="#d8d8d8"/>
+  <rect x="44" y="59" width="3" height="8" rx="0.5" fill="#d8d8d8"/>
+  <rect x="48" y="59" width="3" height="8" rx="0.5" fill="#d8d8d8"/>
+  <rect x="52" y="59" width="3" height="8" rx="0.5" fill="#d8d8d8"/>
+  <rect x="56" y="59" width="2" height="8" rx="0.5" fill="#d8d8d8"/>
   <!-- 28BYJ-48 텍스트 -->
-  <text x="30" y="32" font-family="monospace" font-size="4" fill="#aaccee" text-anchor="middle">28BYJ</text>
-  <text x="30" y="39" font-family="monospace" font-size="4" fill="#aaccee" text-anchor="middle">-48</text>
-  <!-- 5핀 커넥터 표시 (오른쪽 하단) -->
-  <rect x="38" y="58" width="20" height="10" rx="2" fill="#ffffff" stroke="#cccccc" stroke-width="0.8"/>
-  <rect x="39" y="59" width="3" height="8" rx="0.5" fill="#e0e0e0"/>
-  <rect x="43" y="59" width="3" height="8" rx="0.5" fill="#e0e0e0"/>
-  <rect x="47" y="59" width="3" height="8" rx="0.5" fill="#e0e0e0"/>
-  <rect x="51" y="59" width="3" height="8" rx="0.5" fill="#e0e0e0"/>
-  <rect x="55" y="59" width="2" height="8" rx="0.5" fill="#e0e0e0"/>
-  <!-- 핀 레이블 -->
+  <text x="30" y="31" font-family="monospace" font-size="4" fill="#aaccee" text-anchor="middle">28BYJ</text>
+  <text x="30" y="38" font-family="monospace" font-size="4" fill="#aaccee" text-anchor="middle">-48</text>
+  <!-- 핀 라벨 -->
   <text x="8"  y="74" font-family="monospace" font-size="3.5" fill="#8899bb" text-anchor="middle">IN1</text>
   <text x="20" y="74" font-family="monospace" font-size="3.5" fill="#8899bb" text-anchor="middle">IN2</text>
   <text x="32" y="74" font-family="monospace" font-size="3.5" fill="#8899bb" text-anchor="middle">IN3</text>
@@ -1383,9 +1395,413 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
   <line x1="32" y1="62" x2="32" y2="80" stroke="#b0b8c0" stroke-width="1.5"/>
   <line x1="44" y1="62" x2="44" y2="80" stroke="#b0b8c0" stroke-width="1.5"/>
   <line x1="56" y1="62" x2="56" y2="80" stroke="#ffaa88" stroke-width="1.5"/>
-</svg>`,
+</svg></svg>`,
     electrical: { vccMin: 5.0, vccMax: 5.0, currentMa: 240, maxCurrentMa: 500 },
     validation: [{ rule: 'requires_driver', message: 'ULN2003 드라이버 IC 또는 별도 드라이버 필수', severity: 'error' }],
     notes: ['ULN2003 드라이버 모듈 사용 권장', '스텝 각도: 5.625° / 64 스텝 = 1회전', '라이브러리: Stepper 또는 AccelStepper'],
+  },
+
+  // ── MPU-6050 ──────────────────────────────────────────────────────────────
+  {
+    id: 'mpu6050',
+    name: 'MPU-6050 IMU',
+    category: 'sensor',
+    tags: ['mpu6050','imu','gyro','accelerometer','i2c','자이로','가속도'],
+    description: 'MPU-6050 6축 IMU (3축 가속도 + 3축 자이로스코프). I2C 통신.',
+    icon: '🔄',
+    element: 'sim-generic',
+    width: 76, height: 60,
+    defaultProps: {},
+    props: [],
+    pins: [
+      { name: 'VCC', label: 'VCC', x: 10, y: 0, type: 'power',   required: true,  description: '3.3V 또는 5V', compatibleWith: ['power'] },
+      { name: 'GND', label: 'GND', x: 22, y: 0, type: 'ground',  required: true,  description: 'GND',          compatibleWith: ['ground'] },
+      { name: 'SCL', label: 'SCL', x: 34, y: 0, type: 'i2c_scl', required: true,  description: 'I2C SCL',      compatibleWith: ['i2c_scl','digital'] },
+      { name: 'SDA', label: 'SDA', x: 46, y: 0, type: 'i2c_sda', required: true,  description: 'I2C SDA',      compatibleWith: ['i2c_sda','digital'] },
+      { name: 'INT', label: 'INT', x: 58, y: 0, type: 'digital',  required: false, description: '인터럽트 출력', compatibleWith: ['digital','signal'] },
+    ],
+    electrical: { vccMin: 3.3, vccMax: 5.0, currentMa: 3.9 },
+    validation: [],
+    notes: ['I2C 주소: 0x68 (AD0=LOW), 0x69 (AD0=HIGH)', '라이브러리: MPU6050 by Electronic Cats', '가속도: ±2/4/8/16g, 자이로: ±250/500/1000/2000°/s'],
+  },
+
+  // ── BMP280 ────────────────────────────────────────────────────────────────
+  {
+    id: 'bmp280',
+    name: 'BMP280 기압/온도',
+    category: 'sensor',
+    tags: ['bmp280','pressure','temperature','i2c','기압','고도','온도'],
+    description: 'BMP280 기압/온도 센서. I2C/SPI 인터페이스. 고도 계산 가능.',
+    icon: '🌡️',
+    element: 'sim-generic',
+    width: 60, height: 50,
+    defaultProps: {},
+    props: [],
+    pins: [
+      { name: 'VCC', label: 'VCC', x:  8, y: 50, type: 'power',   required: true, description: '3.3V',    compatibleWith: ['power'] },
+      { name: 'GND', label: 'GND', x: 20, y: 50, type: 'ground',  required: true, description: 'GND',     compatibleWith: ['ground'] },
+      { name: 'SCL', label: 'SCL', x: 32, y: 50, type: 'i2c_scl', required: true, description: 'I2C SCL', compatibleWith: ['i2c_scl'] },
+      { name: 'SDA', label: 'SDA', x: 44, y: 50, type: 'i2c_sda', required: true, description: 'I2C SDA', compatibleWith: ['i2c_sda'] },
+    ],
+    electrical: { vccMin: 3.3, vccMax: 3.6, currentMa: 2.7 },
+    validation: [],
+    notes: ['I2C 주소: 0x76 (SDO=GND), 0x77 (SDO=VCC)', '라이브러리: Adafruit_BMP280', '기압: 300~1100hPa, 온도: -40~85°C'],
+  },
+
+  // ── MQ-2 가스 센서 ────────────────────────────────────────────────────────
+  {
+    id: 'mq2',
+    name: 'MQ-2 가스 센서',
+    category: 'sensor',
+    tags: ['mq2','gas','smoke','lpg','연기','가스'],
+    description: 'MQ-2 연기/가스/LPG 감지 모듈. 디지털+아날로그 출력.',
+    icon: '💨',
+    element: 'sim-generic',
+    width: 76, height: 76,
+    defaultProps: {},
+    props: [],
+    pins: [
+      { name: 'VCC',  label: 'VCC',  x: 10, y: 76, type: 'power',   required: true,  description: '5V',              compatibleWith: ['power'] },
+      { name: 'GND',  label: 'GND',  x: 28, y: 76, type: 'ground',  required: true,  description: 'GND',             compatibleWith: ['ground'] },
+      { name: 'DOUT', label: 'DOUT', x: 46, y: 76, type: 'digital', required: false, description: '디지털 출력 (임계값)', compatibleWith: ['digital','signal'] },
+      { name: 'AOUT', label: 'AOUT', x: 64, y: 76, type: 'analog',  required: false, description: '아날로그 출력 (0~5V)', compatibleWith: ['analog'] },
+    ],
+    electrical: { vccMin: 5.0, vccMax: 5.0, currentMa: 150 },
+    validation: [],
+    notes: ['예열 20초 필요', '감지: LPG, 메탄, 수소, 프로판, 알코올, 연기', 'AOUT으로 농도 측정'],
+  },
+
+  // ── 토양 수분 센서 ────────────────────────────────────────────────────────
+  {
+    id: 'soil-moisture',
+    name: '토양 수분 센서',
+    category: 'sensor',
+    tags: ['soil','moisture','수분','토양','식물'],
+    description: '저항식 토양 수분 감지 센서. 건조할수록 ADC 높음.',
+    icon: '🌱',
+    element: 'sim-generic',
+    width: 60, height: 50,
+    defaultProps: {},
+    props: [],
+    pins: [
+      { name: 'VCC',  label: 'VCC',  x:  8, y: 50, type: 'power',   required: true,  description: '3.3V~5V',          compatibleWith: ['power'] },
+      { name: 'GND',  label: 'GND',  x: 20, y: 50, type: 'ground',  required: true,  description: 'GND',              compatibleWith: ['ground'] },
+      { name: 'AOUT', label: 'AOUT', x: 32, y: 50, type: 'analog',  required: true,  description: '아날로그 출력 (건조=HIGH)', compatibleWith: ['analog'] },
+      { name: 'DOUT', label: 'DOUT', x: 44, y: 50, type: 'digital', required: false, description: '디지털 출력 (트리머 기준)', compatibleWith: ['digital','signal'] },
+    ],
+    electrical: { vccMin: 3.3, vccMax: 5.0, currentMa: 35 },
+    validation: [],
+    notes: ['건조: ADC 높음 / 습윤: ADC 낮음', '장기 사용 시 전극 부식 주의', '3.3V/5V 겸용'],
+  },
+
+  // ── 빗물 감지 센서 ────────────────────────────────────────────────────────
+  {
+    id: 'rain-sensor',
+    name: '빗물 감지 센서',
+    category: 'sensor',
+    tags: ['rain','water','빗물','물방울','감지'],
+    description: '빗물/물방울 감지 센서. 저항식, 디지털+아날로그 출력.',
+    icon: '🌧️',
+    element: 'sim-generic',
+    width: 60, height: 50,
+    defaultProps: {},
+    props: [],
+    pins: [
+      { name: 'VCC',  label: 'VCC',  x:  8, y: 50, type: 'power',   required: true,  description: '3.3V~5V',    compatibleWith: ['power'] },
+      { name: 'GND',  label: 'GND',  x: 20, y: 50, type: 'ground',  required: true,  description: 'GND',        compatibleWith: ['ground'] },
+      { name: 'AOUT', label: 'AOUT', x: 32, y: 50, type: 'analog',  required: true,  description: '아날로그 출력', compatibleWith: ['analog'] },
+      { name: 'DOUT', label: 'DOUT', x: 44, y: 50, type: 'digital', required: false, description: '디지털 출력 (물 감지=LOW)', compatibleWith: ['digital','signal'] },
+    ],
+    electrical: { vccMin: 3.3, vccMax: 5.0, currentMa: 20 },
+    validation: [],
+    notes: ['물 감지시 DOUT=LOW', '가변저항으로 감도 조절', '3.3V/5V 겸용'],
+  },
+
+  // ── 로터리 인코더 KY-040 ──────────────────────────────────────────────────
+  {
+    id: 'rotary-encoder',
+    name: '로터리 인코더 KY-040',
+    category: 'passive',
+    tags: ['encoder','rotary','KY-040','로터리','회전'],
+    description: 'KY-040 증분형 로터리 인코더 + 푸시 버튼.',
+    icon: '🔁',
+    element: 'sim-generic',
+    width: 60, height: 76,
+    defaultProps: {},
+    props: [],
+    pins: [
+      { name: 'GND', label: 'GND', x: 10, y: 76, type: 'ground',  required: true,  description: 'GND',            compatibleWith: ['ground'] },
+      { name: 'VCC', label: 'VCC', x: 22, y: 76, type: 'power',   required: true,  description: '3.3V~5V',        compatibleWith: ['power'] },
+      { name: 'SW',  label: 'SW',  x: 34, y: 76, type: 'digital', required: false, description: '푸시 버튼 (LOW=눌림)', compatibleWith: ['digital','signal'] },
+      { name: 'DT',  label: 'DT',  x: 46, y: 76, type: 'digital', required: true,  description: '데이터 B상',      compatibleWith: ['digital','signal'] },
+      { name: 'CLK', label: 'CLK', x: 58, y: 76, type: 'digital', required: true,  description: '클록 A상',        compatibleWith: ['digital','signal'] },
+    ],
+    electrical: { vccMin: 3.3, vccMax: 5.0, currentMa: 10 },
+    validation: [],
+    notes: ['CLK+DT 조합으로 방향 판단', '인터럽트 사용 권장', '내부 풀업 저항 활성화'],
+  },
+
+  // ── 4×4 매트릭스 키패드 ───────────────────────────────────────────────────
+  {
+    id: 'keypad-4x4',
+    name: '4×4 매트릭스 키패드',
+    category: 'passive',
+    tags: ['keypad','matrix','4x4','멤브레인','키패드'],
+    description: '4×4 멤브레인 매트릭스 키패드 (16키).',
+    icon: '⌨️',
+    element: 'sim-generic',
+    width: 100, height: 114,
+    defaultProps: {},
+    props: [],
+    pins: [
+      { name: 'R1', label: 'R1', x:  12, y:   0, type: 'digital', required: true, description: '행 1', compatibleWith: ['digital'] },
+      { name: 'R2', label: 'R2', x:  36, y:   0, type: 'digital', required: true, description: '행 2', compatibleWith: ['digital'] },
+      { name: 'R3', label: 'R3', x:  60, y:   0, type: 'digital', required: true, description: '행 3', compatibleWith: ['digital'] },
+      { name: 'R4', label: 'R4', x:  84, y:   0, type: 'digital', required: true, description: '행 4', compatibleWith: ['digital'] },
+      { name: 'C1', label: 'C1', x:  12, y: 114, type: 'digital', required: true, description: '열 1', compatibleWith: ['digital'] },
+      { name: 'C2', label: 'C2', x:  36, y: 114, type: 'digital', required: true, description: '열 2', compatibleWith: ['digital'] },
+      { name: 'C3', label: 'C3', x:  60, y: 114, type: 'digital', required: true, description: '열 3', compatibleWith: ['digital'] },
+      { name: 'C4', label: 'C4', x:  84, y: 114, type: 'digital', required: true, description: '열 4', compatibleWith: ['digital'] },
+    ],
+    electrical: { vccMin: 3.3, vccMax: 5.0, currentMa: 1 },
+    validation: [],
+    notes: ['라이브러리: Keypad by Mark Stanley', '행 출력 → 열 입력 스캔 방식', '키 레이아웃: 1234 5678 9*0# ABCD'],
+  },
+
+  // ── HC-05 블루투스 ────────────────────────────────────────────────────────
+  {
+    id: 'hc05',
+    name: 'HC-05 블루투스',
+    category: 'active',
+    tags: ['bluetooth','hc05','hc-05','serial','bt','무선'],
+    description: 'HC-05 블루투스 2.0 시리얼 모듈 (마스터/슬레이브).',
+    icon: '📡',
+    element: 'sim-generic',
+    width: 76, height: 60,
+    defaultProps: {},
+    props: [],
+    pins: [
+      { name: 'STATE', label: 'STATE', x:  8, y:  0, type: 'digital', required: false, description: '연결 상태 표시',      compatibleWith: ['digital'] },
+      { name: 'RXD',   label: 'RXD',   x: 20, y:  0, type: 'uart_rx', required: true,  description: 'UART RX (⚠️ 3.3V!)', compatibleWith: ['uart_tx'] },
+      { name: 'TXD',   label: 'TXD',   x: 32, y:  0, type: 'uart_tx', required: true,  description: 'UART TX',             compatibleWith: ['uart_rx'] },
+      { name: 'GND',   label: 'GND',   x: 44, y:  0, type: 'ground',  required: true,  description: 'GND',                 compatibleWith: ['ground'] },
+      { name: 'VCC',   label: 'VCC',   x: 56, y:  0, type: 'power',   required: true,  description: '3.6~6V',              compatibleWith: ['power'] },
+      { name: 'KEY',   label: 'KEY',   x: 68, y:  0, type: 'digital', required: false, description: 'AT 명령 모드',         compatibleWith: ['digital'] },
+    ],
+    electrical: { vccMin: 3.6, vccMax: 6.0, currentMa: 35, maxCurrentMa: 50 },
+    validation: [],
+    notes: ['⚠️ RXD: 5V보드는 전압분배 필수 (5V→3.3V)', '기본 보레이트 38400 (AT모드) / 9600 (통신)', 'AT+NAME, AT+PSWD, AT+BAUD 명령'],
+  },
+
+  // ── RFID RC522 ────────────────────────────────────────────────────────────
+  {
+    id: 'rfid-rc522',
+    name: 'RFID RC522',
+    category: 'active',
+    tags: ['rfid','rc522','nfc','spi','카드리더'],
+    description: 'MFRC522 13.56MHz RFID 카드/태그 리더. SPI 인터페이스.',
+    icon: '🔏',
+    element: 'sim-generic',
+    width: 95, height: 76,
+    defaultProps: {},
+    props: [],
+    pins: [
+      { name: 'SDA',  label: 'SDA/SS', x: 10, y: 76, type: 'spi_ss',   required: true,  description: 'SPI SS (Slave Select)', compatibleWith: ['spi_ss','digital'] },
+      { name: 'SCK',  label: 'SCK',    x: 24, y: 76, type: 'spi_sck',  required: true,  description: 'SPI 클록',              compatibleWith: ['spi_sck'] },
+      { name: 'MOSI', label: 'MOSI',   x: 38, y: 76, type: 'spi_mosi', required: true,  description: 'SPI MOSI',              compatibleWith: ['spi_mosi'] },
+      { name: 'MISO', label: 'MISO',   x: 52, y: 76, type: 'spi_miso', required: true,  description: 'SPI MISO',              compatibleWith: ['spi_miso'] },
+      { name: 'IRQ',  label: 'IRQ',    x: 66, y: 76, type: 'digital',  required: false, description: '인터럽트 출력 (미사용 가능)', compatibleWith: ['digital'] },
+      { name: 'GND',  label: 'GND',    x: 76, y: 76, type: 'ground',   required: true,  description: 'GND',                   compatibleWith: ['ground'] },
+      { name: 'RST',  label: 'RST',    x: 86, y: 76, type: 'digital',  required: true,  description: '리셋 핀',               compatibleWith: ['digital'] },
+      { name: 'VCC',  label: '3.3V',   x: 96, y: 76, type: 'power',    required: true,  description: '⚠️ 3.3V 전용',         compatibleWith: ['power'] },
+    ],
+    electrical: { vccMin: 3.3, vccMax: 3.3, currentMa: 13, logic: '3.3V' },
+    validation: [{ rule: 'voltage_3v3_only', message: '⚠️ 3.3V 전용 — 5V 연결 시 즉시 파손', severity: 'error' }],
+    notes: ['⚠️ 3.3V 전용 — 5V 절대 금지', '라이브러리: MFRC522 by GithubCommunity', 'MIFARE Classic 1K/4K, MIFARE Ultralight 지원'],
+  },
+
+  // ── TM1637 4자리 디스플레이 ───────────────────────────────────────────────
+  {
+    id: 'tm1637',
+    name: 'TM1637 4자리 디스플레이',
+    category: 'display',
+    tags: ['tm1637','7segment','4digit','시계','숫자'],
+    description: 'TM1637 드라이버 4자리 7-세그먼트 디스플레이 (콜론 포함).',
+    icon: '🔢',
+    element: 'sim-generic',
+    width: 114, height: 60,
+    defaultProps: {},
+    props: [
+      { key: 'value',      label: '표시값', type: 'string', default: '0000' },
+      { key: 'brightness', label: '밝기',   type: 'number', default: 7, min: 0, max: 7 },
+    ],
+    pins: [
+      { name: 'CLK', label: 'CLK', x: 20, y: 60, type: 'digital', required: true,  description: '클록 신호',    compatibleWith: ['digital','signal'] },
+      { name: 'DIO', label: 'DIO', x: 40, y: 60, type: 'digital', required: true,  description: '데이터 I/O',   compatibleWith: ['digital','signal'] },
+      { name: 'VCC', label: 'VCC', x: 70, y: 60, type: 'power',   required: true,  description: '3.3V~5V',      compatibleWith: ['power'] },
+      { name: 'GND', label: 'GND', x: 90, y: 60, type: 'ground',  required: true,  description: 'GND',          compatibleWith: ['ground'] },
+    ],
+    electrical: { vccMin: 3.3, vccMax: 5.0, currentMa: 80 },
+    validation: [],
+    notes: ['라이브러리: TM1637Display', '밝기: 0(최소)~7(최대)', '콜론: showNumberDecEx()'],
+  },
+
+  // ── MAX7219 LED 매트릭스 ──────────────────────────────────────────────────
+  {
+    id: 'max7219',
+    name: 'MAX7219 LED 매트릭스',
+    category: 'display',
+    tags: ['max7219','led matrix','8x8','dot','spi','도트'],
+    description: 'MAX7219 드라이버 8×8 LED 도트 매트릭스 모듈. SPI 인터페이스.',
+    icon: '⬛',
+    element: 'sim-generic',
+    width: 95, height: 95,
+    defaultProps: {},
+    props: [],
+    pins: [
+      { name: 'VCC',  label: 'VCC',  x: 10, y: 95, type: 'power',    required: true, description: '5V',       compatibleWith: ['power'] },
+      { name: 'GND',  label: 'GND',  x: 28, y: 95, type: 'ground',   required: true, description: 'GND',      compatibleWith: ['ground'] },
+      { name: 'DIN',  label: 'DIN',  x: 46, y: 95, type: 'spi_mosi', required: true, description: 'SPI MOSI', compatibleWith: ['spi_mosi','digital'] },
+      { name: 'CS',   label: 'CS',   x: 64, y: 95, type: 'spi_ss',   required: true, description: 'SPI SS',   compatibleWith: ['spi_ss','digital'] },
+      { name: 'CLK',  label: 'CLK',  x: 82, y: 95, type: 'spi_sck',  required: true, description: 'SPI 클록', compatibleWith: ['spi_sck','digital'] },
+    ],
+    electrical: { vccMin: 4.0, vccMax: 5.5, currentMa: 330 },
+    validation: [],
+    notes: ['라이브러리: LedControl 또는 MD_MAX72xx', '5V/3.3V 겸용', '최대 8개 매트릭스 체인 연결'],
+  },
+
+  // ── SD 카드 모듈 ──────────────────────────────────────────────────────────
+  {
+    id: 'sd-card',
+    name: 'SD 카드 모듈',
+    category: 'passive',
+    tags: ['sd','card','spi','파일','저장'],
+    description: 'SPI 마이크로 SD 카드 모듈 (FAT16/FAT32).',
+    icon: '💾',
+    element: 'sim-generic',
+    width: 60, height: 76,
+    defaultProps: {},
+    props: [],
+    pins: [
+      { name: 'GND',  label: 'GND',  x:  8, y: 76, type: 'ground',   required: true, description: 'GND',              compatibleWith: ['ground'] },
+      { name: 'VCC',  label: 'VCC',  x: 20, y: 76, type: 'power',    required: true, description: '3.3V~5V',          compatibleWith: ['power'] },
+      { name: 'MISO', label: 'MISO', x: 32, y: 76, type: 'spi_miso', required: true, description: 'SPI MISO',         compatibleWith: ['spi_miso'] },
+      { name: 'MOSI', label: 'MOSI', x: 44, y: 76, type: 'spi_mosi', required: true, description: 'SPI MOSI',         compatibleWith: ['spi_mosi'] },
+      { name: 'SCK',  label: 'SCK',  x: 56, y: 76, type: 'spi_sck',  required: true, description: 'SPI 클록',         compatibleWith: ['spi_sck'] },
+      { name: 'CS',   label: 'CS',   x: 68, y: 76, type: 'spi_ss',   required: true, description: '임의 GPIO 사용 가능', compatibleWith: ['spi_ss','digital'] },
+    ],
+    electrical: { vccMin: 3.3, vccMax: 5.0, currentMa: 100 },
+    validation: [],
+    notes: ['라이브러리: SD.h (내장)', 'FAT16/FAT32 포맷만 지원', '3.3V 레벨 변환 내장 (5V 사용 가능)'],
+  },
+
+  // ── Arduino Nano ──────────────────────────────────────────────────────────
+  {
+    id: 'board-nano',
+    name: 'Arduino Nano',
+    category: 'mcu',
+    tags: ['arduino','nano','atmega328p','컴팩트','나노'],
+    description: 'ATmega328P Arduino Nano. USB Mini-B. 14디지털+8아날로그핀.',
+    icon: '🔵',
+    element: 'sim-board-nano',
+    width: 76, height: 190,
+    defaultProps: {},
+    props: [],
+    pins: [
+      { name: 'D0',   label: 'D0/RX',  x:  0, y:  28, type: 'uart_rx',  required: false, description: 'UART RX (Serial)',        compatibleWith: ['digital','uart_rx'] },
+      { name: 'D1',   label: 'D1/TX',  x:  0, y:  46, type: 'uart_tx',  required: false, description: 'UART TX (Serial)',        compatibleWith: ['digital','uart_tx'] },
+      { name: 'D2',   label: 'D2',     x:  0, y:  64, type: 'digital',  required: false, description: 'GPIO 2 / INT0',           compatibleWith: ['digital'] },
+      { name: 'D3~',  label: 'D3~',    x:  0, y:  82, type: 'pwm',      required: false, description: 'GPIO 3 / PWM / INT1',     compatibleWith: ['digital','pwm'] },
+      { name: 'D4',   label: 'D4',     x:  0, y: 100, type: 'digital',  required: false, description: 'GPIO 4',                  compatibleWith: ['digital'] },
+      { name: 'D5~',  label: 'D5~',    x:  0, y: 118, type: 'pwm',      required: false, description: 'GPIO 5 / PWM',            compatibleWith: ['digital','pwm'] },
+      { name: 'D6~',  label: 'D6~',    x:  0, y: 136, type: 'pwm',      required: false, description: 'GPIO 6 / PWM',            compatibleWith: ['digital','pwm'] },
+      { name: 'D7',   label: 'D7',     x:  0, y: 154, type: 'digital',  required: false, description: 'GPIO 7',                  compatibleWith: ['digital'] },
+      { name: 'D8',   label: 'D8',     x: 76, y:  28, type: 'digital',  required: false, description: 'GPIO 8',                  compatibleWith: ['digital'] },
+      { name: 'D9~',  label: 'D9~',    x: 76, y:  46, type: 'pwm',      required: false, description: 'GPIO 9 / PWM',            compatibleWith: ['digital','pwm'] },
+      { name: 'D10~', label: 'D10~',   x: 76, y:  64, type: 'spi_ss',   required: false, description: 'GPIO 10 / PWM / SPI SS',  compatibleWith: ['digital','pwm','spi_ss'] },
+      { name: 'D11~', label: 'D11~',   x: 76, y:  82, type: 'spi_mosi', required: false, description: 'GPIO 11 / SPI MOSI',      compatibleWith: ['digital','spi_mosi'] },
+      { name: 'D12',  label: 'D12',    x: 76, y: 100, type: 'spi_miso', required: false, description: 'GPIO 12 / SPI MISO',      compatibleWith: ['digital','spi_miso'] },
+      { name: 'D13',  label: 'D13',    x: 76, y: 118, type: 'spi_sck',  required: false, description: 'GPIO 13 / SPI SCK / LED', compatibleWith: ['digital','spi_sck'] },
+      { name: '3V3',  label: '3.3V',   x: 76, y: 136, type: 'power',    required: false, description: '3.3V 출력 (50mA)',        compatibleWith: ['power'] },
+      { name: 'AREF', label: 'AREF',   x: 76, y: 154, type: 'analog',   required: false, description: 'ADC 기준 전압',           compatibleWith: ['analog'] },
+      { name: 'A0',   label: 'A0',     x:  0, y: 172, type: 'analog',   required: false, description: 'ADC0 / GPIO 14',          compatibleWith: ['analog','digital'] },
+      { name: 'A1',   label: 'A1',     x: 12, y: 190, type: 'analog',   required: false, description: 'ADC1 / GPIO 15',          compatibleWith: ['analog','digital'] },
+      { name: 'A2',   label: 'A2',     x: 24, y: 190, type: 'analog',   required: false, description: 'ADC2 / GPIO 16',          compatibleWith: ['analog','digital'] },
+      { name: 'A3',   label: 'A3',     x: 36, y: 190, type: 'analog',   required: false, description: 'ADC3 / GPIO 17',          compatibleWith: ['analog','digital'] },
+      { name: 'A4',   label: 'A4/SDA', x: 48, y: 190, type: 'i2c_sda',  required: false, description: 'ADC4 / I2C SDA',          compatibleWith: ['analog','i2c_sda'] },
+      { name: 'A5',   label: 'A5/SCL', x: 60, y: 190, type: 'i2c_scl',  required: false, description: 'ADC5 / I2C SCL',          compatibleWith: ['analog','i2c_scl'] },
+      { name: '5V',   label: '5V',     x: 68, y: 190, type: 'power',    required: false, description: '5V 출력/입력',            compatibleWith: ['power'] },
+      { name: 'GND',  label: 'GND',    x: 76, y: 172, type: 'ground',   required: false, description: 'GND',                     compatibleWith: ['ground'] },
+    ],
+    electrical: { vccMin: 5.0, vccMax: 5.0, currentMa: 50, logic: '5V' },
+    validation: [],
+    notes: ['ATmega328P @ 16MHz', 'USB Mini-B 커넥터', 'PWM: D3,D5,D6,D9,D10,D11 (analogWrite)'],
+  },
+
+  // ── ESP32 DevKit V1 ───────────────────────────────────────────────────────
+  {
+    id: 'board-esp32',
+    name: 'ESP32 DevKit V1',
+    category: 'mcu',
+    tags: ['esp32','devkit','wifi','ble','dual-core','240mhz'],
+    description: 'ESP32 듀얼코어 240MHz, Wi-Fi+BLE. 38핀 개발 보드.',
+    icon: '🔴',
+    element: 'sim-board-esp32',
+    width: 114, height: 228,
+    defaultProps: {},
+    props: [],
+    pins: [
+      { name: 'EN',   label: 'EN',    x:   0, y:  18, type: 'digital',  required: false, description: '칩 인에이블 (Low=리셋)',     compatibleWith: ['digital'] },
+      { name: 'VP',   label: 'VP/36', x:   0, y:  36, type: 'analog',   required: false, description: 'ADC1_0 입력 전용',          compatibleWith: ['analog'] },
+      { name: 'VN',   label: 'VN/39', x:   0, y:  54, type: 'analog',   required: false, description: 'ADC1_3 입력 전용',          compatibleWith: ['analog'] },
+      { name: 'D34',  label: 'D34',   x:   0, y:  72, type: 'analog',   required: false, description: '입력 전용 (ADC1_6)',         compatibleWith: ['analog','digital'] },
+      { name: 'D35',  label: 'D35',   x:   0, y:  90, type: 'analog',   required: false, description: '입력 전용 (ADC1_7)',         compatibleWith: ['analog','digital'] },
+      { name: 'D32',  label: 'D32',   x:   0, y: 108, type: 'pwm',      required: false, description: 'GPIO32 / ADC1_4',           compatibleWith: ['analog','digital','pwm'] },
+      { name: 'D33',  label: 'D33',   x:   0, y: 126, type: 'pwm',      required: false, description: 'GPIO33 / ADC1_5',           compatibleWith: ['analog','digital','pwm'] },
+      { name: 'D25',  label: 'D25',   x:   0, y: 144, type: 'pwm',      required: false, description: 'GPIO25 / DAC1',             compatibleWith: ['digital','pwm','analog'] },
+      { name: 'D26',  label: 'D26',   x:   0, y: 162, type: 'pwm',      required: false, description: 'GPIO26 / DAC2',             compatibleWith: ['digital','pwm'] },
+      { name: 'D27',  label: 'D27',   x:   0, y: 180, type: 'pwm',      required: false, description: 'GPIO27',                    compatibleWith: ['digital','pwm'] },
+      { name: 'D14',  label: 'D14',   x:   0, y: 198, type: 'pwm',      required: false, description: 'GPIO14 / SPI CLK (HSPI)',    compatibleWith: ['digital','pwm'] },
+      { name: 'D12',  label: 'D12',   x:   0, y: 216, type: 'pwm',      required: false, description: 'GPIO12 / ⚠️ 부팅 핀 주의', compatibleWith: ['digital','pwm'] },
+      { name: 'GND1', label: 'GND',   x:   0, y: 228, type: 'ground',   required: false, description: 'GND',                       compatibleWith: ['ground'] },
+      { name: 'D13',  label: 'D13',   x: 114, y:  18, type: 'pwm',      required: false, description: 'GPIO13 / SPI MOSI (HSPI)',   compatibleWith: ['digital','pwm'] },
+      { name: 'D9',   label: 'D9',    x: 114, y:  36, type: 'digital',  required: false, description: '⚠️ 플래시 핀 사용 주의',   compatibleWith: ['digital'] },
+      { name: 'D10',  label: 'D10',   x: 114, y:  54, type: 'digital',  required: false, description: '⚠️ 플래시 핀 사용 주의',   compatibleWith: ['digital'] },
+      { name: 'D11',  label: 'D11',   x: 114, y:  72, type: 'digital',  required: false, description: '⚠️ 플래시 핀 사용 주의',   compatibleWith: ['digital'] },
+      { name: 'VIN',  label: 'VIN',   x: 114, y:  90, type: 'power',    required: false, description: '5V 입력 (USB 전원)',         compatibleWith: ['power'] },
+      { name: 'GND2', label: 'GND',   x: 114, y: 108, type: 'ground',   required: false, description: 'GND',                       compatibleWith: ['ground'] },
+      { name: '3V3',  label: '3.3V',  x: 114, y: 126, type: 'power',    required: false, description: '3.3V 출력',                 compatibleWith: ['power'] },
+      { name: 'D15',  label: 'D15',   x: 114, y: 144, type: 'pwm',      required: false, description: 'GPIO15 / SPI SS (HSPI)',     compatibleWith: ['digital','pwm'] },
+      { name: 'D2',   label: 'D2',    x: 114, y: 162, type: 'pwm',      required: false, description: 'GPIO2 / 내장 LED (HIGH=ON)', compatibleWith: ['digital','pwm'] },
+      { name: 'D4',   label: 'D4',    x: 114, y: 180, type: 'pwm',      required: false, description: 'GPIO4',                     compatibleWith: ['digital','pwm'] },
+      { name: 'RX0',  label: 'RX0',   x: 114, y: 198, type: 'uart_rx',  required: false, description: 'UART0 RX (USB Serial)',      compatibleWith: ['uart_rx','digital'] },
+      { name: 'TX0',  label: 'TX0',   x: 114, y: 216, type: 'uart_tx',  required: false, description: 'UART0 TX (USB Serial)',      compatibleWith: ['uart_tx','digital'] },
+      { name: 'D5',   label: 'D5',    x: 114, y: 228, type: 'pwm',      required: false, description: 'GPIO5 / SPI SCK (VSPI)',     compatibleWith: ['digital','pwm'] },
+    ],
+    electrical: { vccMin: 3.3, vccMax: 3.3, currentMa: 80, maxCurrentMa: 500, logic: '3.3V' },
+    validation: [{ rule: 'voltage_3v3_only', message: '⚠️ GPIO 3.3V 레벨 — 5V 직접 연결 금지', severity: 'error' }],
+    notes: ['⚠️ GPIO 3.3V 레벨 — 5V 절대 금지', 'PWM: 모든 GPIO (ledcWrite)', 'ADC: 12bit (Wi-Fi 켜면 불안정)', '내장 LED D2: HIGH=켜짐'],
+  },
+
+  // ── AMS1117 3.3V 전압 레귤레이터 ─────────────────────────────────────────
+  {
+    id: 'ams1117',
+    name: 'AMS1117 3.3V',
+    category: 'power',
+    tags: ['ams1117','ldo','regulator','3.3v','전원','레귤레이터'],
+    description: 'AMS1117-3.3 LDO 전압 레귤레이터 모듈. 최대 800mA.',
+    icon: '🔋',
+    element: 'sim-generic',
+    width: 40, height: 60,
+    defaultProps: {},
+    props: [],
+    pins: [
+      { name: 'VIN',  label: 'VIN',  x: 10, y: 60, type: 'power',  required: true, description: '입력 4.5~12V', compatibleWith: ['power'] },
+      { name: 'GND',  label: 'GND',  x: 20, y: 60, type: 'ground', required: true, description: 'GND',          compatibleWith: ['ground'] },
+      { name: 'VOUT', label: 'VOUT', x: 30, y: 60, type: 'power',  required: true, description: '출력 3.3V',    compatibleWith: ['power'] },
+    ],
+    electrical: { vccMin: 4.5, vccMax: 12, currentMa: 800 },
+    validation: [],
+    notes: ['출력: 3.3V 고정 (최대 800mA)', '입력-출력 전압차 최소 1.2V 필요', '전류 많으면 방열판 부착'],
   },
 ];
