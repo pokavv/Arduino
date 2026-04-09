@@ -11,17 +11,28 @@ export function buildPreamble(
   gpio: GpioController,
   scheduler: SimScheduler,
   postFn: PostFn,
-  boardType: string
+  boardType: string,
+  serialInputBuffer: number[]
 ): string {
+  // 보드별 ADC 분해능 설정
+  const isEsp32 = boardType.includes('esp32');
+  const adcBits = isEsp32 ? 12 : 10;
+  const adcMax  = (1 << adcBits) - 1; // 4095 or 1023
+
   return `
 // ─── Arduino Runtime Preamble ────────────────────────────
 const __ledcPinMap = {};
-const __LED_BUILTIN = ${boardType.includes('esp32c3') ? 8 : 13};
+const __LED_BUILTIN = ${boardType.includes('esp32c3') ? 8 : boardType.includes('esp32') ? 2 : 13};
+const __ADC_MAX = ${adcMax};
 
 function __pinMode(pin, mode) { gpio.pinMode(+pin, mode); }
 function __digitalWrite(pin, value) { gpio.digitalWrite(+pin, value); }
 function __digitalRead(pin) { return gpio.digitalRead(+pin); }
-function __analogRead(pin) { return gpio.analogRead(+pin); }
+function __analogRead(pin) {
+  // GpioController는 내부적으로 0~1 정규화된 값을 반환하므로 보드 해상도로 스케일
+  const raw = gpio.analogRead(+pin);
+  return Math.round(raw * __ADC_MAX);
+}
 function __analogWrite(pin, value) { gpio.analogWrite(+pin, value); }
 
 function __millis() { return scheduler.millis(); }
@@ -38,8 +49,11 @@ function __serial_print(...args) {
   const text = args.map(a => String(a)).join('');
   postFn({ type: 'SERIAL_OUTPUT', text });
 }
-function __serial_available() { return 0; }
-function __serial_read() { return -1; }
+function __serial_available() { return _serialInputBuffer.length; }
+function __serial_read() {
+  if (_serialInputBuffer.length === 0) return -1;
+  return _serialInputBuffer.shift();
+}
 function __serial_write(v) {
   postFn({ type: 'SERIAL_OUTPUT', text: String.fromCharCode(v) });
 }
@@ -62,15 +76,15 @@ function __noTone(pin) { gpio.analogWrite(+pin, 0); }
 async function __pulseIn(pin, value, timeout = 1000000) {
   const start = __micros();
   while (__digitalRead(pin) === value && __micros() - start < timeout) {
-    await __delayUs(1);
+    await __delayUs(100);
   }
   const t1 = __micros();
   while (__digitalRead(pin) !== value && __micros() - t1 < timeout) {
-    await __delayUs(1);
+    await __delayUs(100);
   }
   const t2 = __micros();
   while (__digitalRead(pin) === value && __micros() - t2 < timeout) {
-    await __delayUs(1);
+    await __delayUs(100);
   }
   return __micros() - t2;
 }
@@ -93,8 +107,6 @@ function __shiftIn(dataPin, clockPin, bitOrder) {
   }
   return val;
 }
-
-function __parseFloat(s) { return parseFloat(s); }
 // ─────────────────────────────────────────────────────────
 `;
 }

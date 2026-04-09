@@ -20,7 +20,8 @@ export type MainToWorker =
   | { type: 'STOP' }
   | { type: 'RESET' }
   | { type: 'PIN_EVENT'; pin: number; value: number }
-  | { type: 'SENSOR_UPDATE'; componentId: string; data: Record<string, number> };
+  | { type: 'SENSOR_UPDATE'; componentId: string; data: Record<string, number> }
+  | { type: 'SERIAL_INPUT'; text: string };
 
 // ─── Worker → Main 메시지 ─────────────────────────────────────
 

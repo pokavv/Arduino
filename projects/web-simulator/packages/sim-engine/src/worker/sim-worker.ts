@@ -10,18 +10,30 @@ function post(msg: WorkerToMain) {
 
 let scheduler: SimScheduler | null = null;
 let gpio: GpioController | null = null;
-let _loopTimeout: ReturnType<typeof setTimeout> | null = null;
+let _running = false;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-let _ctx: Record<string, any> = {};
+const _ctx: Record<string, any> = {};
+
+// 시리얼 입력 버퍼 — SERIAL_INPUT 메시지로 채워짐
+const _serialInputBuffer: number[] = [];
+
+// INIT에서 받은 회로/코드 보관
+let _pendingCircuit: CircuitSnapshot | null = null;
+let _pendingCode: string | null = null;
 
 function stopSimulation() {
-  if (_loopTimeout) { clearTimeout(_loopTimeout); _loopTimeout = null; }
+  _running = false;
   scheduler?.stop();
+  scheduler = null;
+  gpio = null;
   post({ type: 'STOPPED' });
 }
 
 async function runSimulation(circuit: CircuitSnapshot, code: string) {
+  if (_running) stopSimulation();
+  _running = true;
+
   try {
     const transpiler = new ArduinoTranspiler();
     const jsCode = transpiler.transpile(code);
@@ -29,30 +41,25 @@ async function runSimulation(circuit: CircuitSnapshot, code: string) {
     scheduler = new SimScheduler();
     gpio = new GpioController(post);
 
-    // 컴포넌트에서 입력 콜백 등록
+    // 컴포넌트 입력 콜백 등록
     for (const comp of circuit.components) {
       if (comp.type === 'button') {
         for (const [pin, target] of Object.entries(comp.connections)) {
           if (pin === 'PIN1A' && typeof target === 'number') {
-            gpio.registerInputCallback(target, () => {
-              // 버튼 상태는 메인에서 SENSOR_UPDATE로 전달됨
-              return _ctx[`__btn_${comp.id}`] ?? 0;
-            });
+            gpio.registerInputCallback(target, () => _ctx[`__btn_${comp.id}`] ?? 0);
           }
         }
       }
       if (comp.type === 'potentiometer') {
         for (const [pin, target] of Object.entries(comp.connections)) {
           if (pin === 'WIPER' && typeof target === 'number') {
-            gpio.registerInputCallback(target, () => {
-              return _ctx[`__pot_${comp.id}`] ?? 512;
-            });
+            gpio.registerInputCallback(target, () => _ctx[`__pot_${comp.id}`] ?? 512);
           }
         }
       }
     }
 
-    const preamble = buildPreamble(gpio, scheduler, post, circuit.boardType);
+    const preamble = buildPreamble(gpio, scheduler, post, circuit.boardType, _serialInputBuffer);
 
     const fullCode = `
 ${preamble}
@@ -61,52 +68,53 @@ ${preamble}
 ${jsCode}
 // ─────────────────────────────────────────────────────────
 
-// 실행 엔트리
 await setup();
 while (true) {
   await loop();
-  await __delay(1); // yield
+  await __delay(1);
 }
 `;
 
     scheduler.start();
 
-    // AsyncFunction으로 실행
     const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
-    const fn = new AsyncFunction('gpio', 'scheduler', 'postFn', fullCode);
-    await fn(gpio, scheduler, post);
+    const fn = new AsyncFunction('gpio', 'scheduler', 'postFn', '_ctx', fullCode);
+    await fn(gpio, scheduler, post, _ctx);
 
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') {
-      // 정상 종료
-      return;
+      return; // 정상 종료
     }
     post({
       type: 'RUNTIME_ERROR',
       message: err instanceof Error ? err.message : String(err),
     });
+  } finally {
+    _running = false;
   }
 }
 
+// ─── 단일 메시지 리스너 ───────────────────────────────────────────
 (self as unknown as Worker).addEventListener('message', async (e: MessageEvent<MainToWorker>) => {
   const msg = e.data;
 
   switch (msg.type) {
     case 'INIT':
+      _pendingCircuit = msg.circuit;
+      _pendingCode    = msg.code;
+      _serialInputBuffer.length = 0; // 버퍼 초기화
+      Object.keys(_ctx).forEach(k => delete _ctx[k]); // 컨텍스트 초기화
       post({ type: 'READY' });
       break;
 
     case 'START':
-      break;
-
-    case 'INIT':
-      // 이미 처리됨
+      if (_pendingCircuit && _pendingCode) {
+        // await 없이 실행 — 비동기로 시뮬레이션 시작
+        runSimulation(_pendingCircuit, _pendingCode).catch(() => {});
+      }
       break;
 
     case 'STOP':
-      stopSimulation();
-      break;
-
     case 'RESET':
       stopSimulation();
       break;
@@ -122,12 +130,12 @@ while (true) {
         _ctx[`__pot_${msg.componentId}`] = msg.data.value;
       }
       break;
-  }
-});
 
-// INIT+START를 합친 메시지 처리
-(self as unknown as Worker).addEventListener('message', async (e: MessageEvent<MainToWorker>) => {
-  if (e.data.type === 'INIT' && 'code' in e.data) {
-    await runSimulation(e.data.circuit, e.data.code);
+    case 'SERIAL_INPUT':
+      // 문자열을 바이트 배열로 변환해서 버퍼에 추가
+      for (const ch of msg.text) {
+        _serialInputBuffer.push(ch.charCodeAt(0));
+      }
+      break;
   }
 });
