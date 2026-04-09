@@ -155,4 +155,11 @@ export class CodeEditor {
   focus() {
     this._monacoEditor?.focus() ?? this._textarea.focus();
   }
+
+  /** 탭 전환 등으로 컨테이너가 다시 보일 때 Monaco 레이아웃 갱신 */
+  relayout() {
+    if (this._monacoEditor) {
+      requestAnimationFrame(() => this._monacoEditor.layout());
+    }
+  }
 }

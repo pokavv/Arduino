@@ -34,28 +34,26 @@ canvasEl.addEventListener('drop', (e) => {
   const type = e.dataTransfer?.getData('component-type');
   if (!type) return;
   const rect = canvasEl.getBoundingClientRect();
-  // 마우스 위치를 캔버스 좌표계로 변환
   const pos = canvas.clientToCanvas(e.clientX - rect.left, e.clientY - rect.top);
   addComponent(type, pos.x - 30, pos.y - 30);
 });
 
-// ② 코드 에디터 (Monaco CDN 로드 후 비동기로 마운트)
+// ② 코드 에디터
 const editorEl = document.getElementById('editor')!;
-new CodeEditor(editorEl);
+const codeEditor = new CodeEditor(editorEl);
 
-// ② 속성 패널
+// ③ 속성 패널
 const propPanelEl = document.getElementById('property-panel')!;
 new PropertyPanel(propPanelEl);
 
-// ③ 팔레트 — 서버에서 동적 로드
-const palette = document.getElementById('palette')!;
+// ④ 팔레트 — 서버에서 동적 로드
+const paletteList = document.getElementById('palette-list')!;
 
 async function loadPalette() {
   try {
     const data = await fetch(`${API_BASE}/components`).then(r => r.json()) as { components: CompSummary[] };
     renderPalette(data.components);
   } catch {
-    // 서버 없을 때 기본 목록 폴백
     renderPalette(FALLBACK_PALETTE.map(p => ({
       id: p.type, name: p.label, category: 'passive', description: '', _builtIn: true,
     })));
@@ -63,20 +61,18 @@ async function loadPalette() {
 }
 
 function renderPalette(comps: CompSummary[]) {
-  // 카테고리별 그룹화
   const groups: Record<string, CompSummary[]> = {};
   for (const c of comps) {
     (groups[c.category] ??= []).push(c);
   }
 
-  palette.innerHTML = '';
+  paletteList.innerHTML = '';
 
-  // 부품 추가 버튼
   const addBtn = document.createElement('button');
   addBtn.className = 'palette-add-btn';
   addBtn.textContent = '+ 새 부품 등록';
   addBtn.addEventListener('click', () => componentEditor.openNew(() => loadPalette()));
-  palette.appendChild(addBtn);
+  paletteList.appendChild(addBtn);
 
   const CAT_LABELS: Record<string, string> = {
     mcu: '보드', passive: '수동 소자', active: '능동 소자',
@@ -88,14 +84,15 @@ function renderPalette(comps: CompSummary[]) {
     if (!groups[cat]?.length) continue;
 
     const title = document.createElement('div');
-    title.className = 'palette-title';
+    title.className = 'palette-category';
     title.textContent = CAT_LABELS[cat] ?? cat;
-    palette.appendChild(title);
+    paletteList.appendChild(title);
 
     for (const comp of groups[cat]) {
       const item = document.createElement('div');
       item.className = 'palette-item';
       item.dataset.compId = comp.id;
+      item.dataset.label  = comp.name.toLowerCase();
 
       const icon = COMP_ICONS[comp.id] ?? '📦';
       item.innerHTML = `
@@ -119,12 +116,41 @@ function renderPalette(comps: CompSummary[]) {
         componentEditor.openEdit(comp.id, () => loadPalette());
       });
 
-      palette.appendChild(item);
+      paletteList.appendChild(item);
     }
   }
+
+  // 검색 필터 초기화
+  applyPaletteSearch();
 }
 
-// 서버 없을 때 폴백 목록
+// ── 팔레트 검색 ───────────────────────────────────────────────────
+const paletteSearchEl = document.getElementById('palette-search') as HTMLInputElement;
+paletteSearchEl.addEventListener('input', applyPaletteSearch);
+
+function applyPaletteSearch() {
+  const q = paletteSearchEl.value.toLowerCase().trim();
+  let lastCategory: HTMLElement | null = null;
+  let lastCategoryVisible = false;
+
+  for (const el of paletteList.children) {
+    const div = el as HTMLElement;
+    if (div.classList.contains('palette-category')) {
+      if (lastCategory) lastCategory.style.display = lastCategoryVisible ? '' : 'none';
+      lastCategory = div;
+      lastCategoryVisible = false;
+      continue;
+    }
+    if (div.classList.contains('palette-item')) {
+      const label = div.dataset.label ?? '';
+      const visible = !q || label.includes(q);
+      div.style.display = visible ? '' : 'none';
+      if (visible) lastCategoryVisible = true;
+    }
+  }
+  if (lastCategory) lastCategory.style.display = lastCategoryVisible ? '' : 'none';
+}
+
 const FALLBACK_PALETTE = [
   { type: 'board-uno',     label: 'Uno 보드' },
   { type: 'board-esp32c3', label: 'ESP32-C3' },
@@ -146,12 +172,18 @@ const FALLBACK_PALETTE = [
 const COMP_ICONS: Record<string, string> = {
   led:'💡', 'rgb-led':'🌈', button:'🔘', resistor:'〰️', buzzer:'🔊',
   potentiometer:'🔄', servo:'⚙️', dht:'🌡️', ultrasonic:'📡', lcd:'🖥️',
-  oled:'📺', 'seven-segment':'7️⃣', neopixel:'✨', 'board-uno':'🟢', 'board-esp32c3':'🔵',
+  oled:'📺', 'seven-segment':'7️⃣', neopixel:'✨',
+  'board-uno':'🟢', 'board-esp32c3':'🔵',
+  capacitor:'⚡', diode:'→', 'transistor-npn':'🔺',
+  relay:'🔌', 'dc-motor':'🌀', 'ir-led':'💫', 'ir-receiver':'👁️',
+  'hall-sensor':'🧲', lm35:'🌡️', joystick:'🕹️',
+  '74hc595':'🔢', l298n:'⚙️', 'pir-sensor':'👤',
+  'sound-sensor':'🔈', 'stepper-motor':'⚙️',
 };
 
 loadPalette();
 
-// ④ 시리얼 모니터
+// ── 시리얼 모니터 ─────────────────────────────────────────────────
 const serialOutput = document.getElementById('serial-output')!;
 circuitStore.subscribe(() => {
   if (serialOutput.textContent !== circuitStore.serialOutput) {
@@ -160,7 +192,73 @@ circuitStore.subscribe(() => {
   }
 });
 
-// ⑤ 버튼 이벤트
+// ── 탭 전환 ──────────────────────────────────────────────────────
+document.querySelectorAll<HTMLButtonElement>('.right-tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab!;
+    document.querySelectorAll('.right-tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.right-tab-pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(`tab-${tab}`)!.classList.add('active');
+    if (tab === 'editor') codeEditor.relayout();
+  });
+});
+
+// 에러/경고 시 시리얼 탭으로 자동 전환
+circuitStore.subscribe(() => {
+  if (circuitStore.simState === 'error') {
+    switchTab('serial');
+  }
+});
+
+function switchTab(tab: string) {
+  const btn = document.querySelector<HTMLButtonElement>(`.right-tab-btn[data-tab="${tab}"]`);
+  btn?.click();
+}
+
+// ── 패널 리사이즈 ──────────────────────────────────────────────────
+setupPanelResize(
+  document.getElementById('divider-left')!,
+  document.getElementById('palette-panel')!,
+  'left'
+);
+setupPanelResize(
+  document.getElementById('divider-right')!,
+  document.getElementById('right-panel')!,
+  'right'
+);
+
+function setupPanelResize(handle: HTMLElement, panel: HTMLElement, side: 'left' | 'right') {
+  let startX = 0, startW = 0;
+
+  handle.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    startX = e.clientX;
+    startW = panel.getBoundingClientRect().width;
+    handle.classList.add('dragging');
+    handle.setPointerCapture(e.pointerId);
+
+    handle.addEventListener('pointermove', onMove);
+    handle.addEventListener('pointerup', onUp, { once: true });
+  });
+
+  function onMove(e: PointerEvent) {
+    const delta = side === 'left'
+      ? e.clientX - startX
+      : startX - e.clientX;
+    const newW = Math.max(140, Math.min(600, startW + delta));
+    panel.style.width = `${newW}px`;
+    if (side === 'right') codeEditor.relayout();
+  }
+
+  function onUp() {
+    handle.classList.remove('dragging');
+    handle.removeEventListener('pointermove', onMove);
+    codeEditor.relayout();
+  }
+}
+
+// ── 버튼 이벤트 ─────────────────────────────────────────────────
 document.getElementById('btn-new')!.addEventListener('click', () => {
   if (!confirm('현재 회로를 지우고 새로 시작할까요?')) return;
   simController.stop();
@@ -173,6 +271,7 @@ document.getElementById('btn-run')!.addEventListener('click', () => {
   } else {
     circuitStore.clearSerial();
     simController.start();
+    switchTab('serial'); // 실행 시 시리얼 탭으로
   }
 });
 
@@ -180,16 +279,13 @@ document.getElementById('btn-clear-serial')!.addEventListener('click', () => cir
 
 // 시리얼 입력 전송
 const serialInputEl = document.getElementById('serial-input') as HTMLInputElement;
-document.getElementById('btn-serial-send')!.addEventListener('click', () => {
+function sendSerialInput() {
   const text = serialInputEl.value;
   if (text) { simController.sendSerial(text + '\n'); serialInputEl.value = ''; }
-});
-serialInputEl.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    const text = serialInputEl.value;
-    if (text) { simController.sendSerial(text + '\n'); serialInputEl.value = ''; }
-  }
-});
+}
+document.getElementById('btn-serial-send')!.addEventListener('click', sendSerialInput);
+serialInputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendSerialInput(); });
+
 document.getElementById('btn-zoom-in')!.addEventListener('click',  () => canvas.zoomIn());
 document.getElementById('btn-zoom-out')!.addEventListener('click', () => canvas.zoomOut());
 document.getElementById('btn-fit')!.addEventListener('click',      () => canvas.fitView());
@@ -198,19 +294,17 @@ document.getElementById('btn-fit')!.addEventListener('click',      () => canvas.
 document.getElementById('btn-undo')!.addEventListener('click', () => circuitStore.undo());
 document.getElementById('btn-redo')!.addEventListener('click', () => circuitStore.redo());
 
-// 저장 — JSON 파일 다운로드
+// 저장
 document.getElementById('btn-save')!.addEventListener('click', () => {
   const json = circuitStore.saveToJson();
   const blob = new Blob([json], { type: 'application/json' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
-  a.href     = url;
-  a.download = `circuit-${Date.now()}.json`;
-  a.click();
+  a.href = url; a.download = `circuit-${Date.now()}.json`; a.click();
   URL.revokeObjectURL(url);
 });
 
-// 불러오기 — 파일 선택 후 JSON 파싱
+// 불러오기
 const fileInput = document.getElementById('file-input') as HTMLInputElement;
 document.getElementById('btn-load')!.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', () => {
@@ -231,14 +325,15 @@ fileInput.addEventListener('change', () => {
   fileInput.value = '';
 });
 
+// 키보드 단축키
 document.addEventListener('keydown', (e) => {
   const active = document.activeElement?.tagName;
   const isEditing = active === 'INPUT' || active === 'TEXTAREA';
 
-  // Ctrl+Z / Ctrl+Y — 에디터 외부에서만
   if ((e.ctrlKey || e.metaKey) && !isEditing) {
     if (e.key === 'z') { e.preventDefault(); circuitStore.undo(); return; }
     if (e.key === 'y') { e.preventDefault(); circuitStore.redo(); return; }
+    if (e.key === 's') { e.preventDefault(); document.getElementById('btn-save')!.click(); return; }
   }
 
   if ((e.key === 'Delete' || e.key === 'Backspace') && !isEditing) {
@@ -249,7 +344,7 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// Undo/Redo 버튼 활성화 상태 업데이트
+// Undo/Redo 버튼 상태
 circuitStore.subscribe(() => {
   const undoBtn = document.getElementById('btn-undo') as HTMLButtonElement | null;
   const redoBtn = document.getElementById('btn-redo') as HTMLButtonElement | null;
@@ -264,37 +359,26 @@ circuitStore.subscribe(() => {
   const statusEl = document.getElementById('status-indicator');
   if (runBtn) {
     runBtn.textContent = state === 'running' ? '⏹ 정지' : '▶ 실행';
-    runBtn.id = 'btn-run';
     runBtn.className = `toolbar-btn${state === 'running' ? ' running' : state === 'error' ? ' error' : ''}`;
   }
   if (statusEl) {
-    statusEl.className = `${state === 'running' ? 'running' : state === 'error' ? 'error' : ''}`;
-    statusEl.style.cssText = `
-      width:8px;height:8px;border-radius:50%;margin-left:auto;
-      background:${state === 'running' ? '#4af44a' : state === 'error' ? '#fa4' : '#444'};
-      ${state === 'running' ? 'box-shadow:0 0 6px #4af44a' : state === 'error' ? 'box-shadow:0 0 6px #fa4' : ''}
-    `;
+    statusEl.className = state === 'running' ? 'running' : state === 'error' ? 'error' : '';
+    statusEl.title = state === 'running' ? '실행 중' : state === 'error' ? '오류' : '정지';
   }
 });
 
-// ⑥ 기본 예제 로드 (Arduino Uno + Blink) — 로드 후 fitView
+// ── 기본 예제 로드 ────────────────────────────────────────────────
 loadDefaultExample();
 setTimeout(() => canvas.fitView(), 150);
 
-// ⑦ 보드/템플릿 서버 데이터 비동기 로드
+// ── 서버 데이터 로드 (보드/템플릿) ───────────────────────────────
 loadServerData();
 
-// ⑧ 유효성 검사 바
-const canvasEl2 = document.getElementById('canvas')!;
-const validationBar = document.createElement('div');
-validationBar.id = 'validation-bar';
-canvasEl2.appendChild(validationBar);
+// ── 유효성 검사 바 ─────────────────────────────────────────────────
+const validationBar = document.getElementById('validation-bar')!;
 
 function renderValidation(results: import('./stores/circuit-validator.js').ValidationResult[]) {
-  if (results.length === 0) {
-    validationBar.style.display = 'none';
-    return;
-  }
+  if (results.length === 0) { validationBar.style.display = 'none'; return; }
   validationBar.style.display = 'block';
   validationBar.innerHTML = results.slice(0, 3).map(r => `
     <div class="validation-item ${r.severity}" title="${r.detail ?? ''}" data-comp="${r.compId ?? ''}">
@@ -309,10 +393,7 @@ function renderValidation(results: import('./stores/circuit-validator.js').Valid
   });
 }
 
-// 동기 검사 (즉시 표시)
 circuitStore.subscribe(() => renderValidation(circuitValidator.validate()));
-
-// 비동기 검사: 서버 def 로드 후 더 정밀하게 재검사
 circuitStore.subscribe(() => {
   circuitValidator.validateAsync().then(results => renderValidation(results));
 });
@@ -321,7 +402,6 @@ console.log('%c⚡ Arduino Web Simulator 준비 완료', 'color:#4a9eff;font-siz
 
 // ─────────────────────────────────────────────────────────────────
 
-// 로컬 폴백 defaultProps (서버 응답 없을 때)
 const LOCAL_DEFAULTS: Record<string, Record<string, unknown>> = {
   'led':           { color: 'red' },
   'resistor':      { ohms: 220 },
@@ -335,8 +415,6 @@ const LOCAL_DEFAULTS: Record<string, Record<string, unknown>> = {
 
 async function addComponent(type: string, x: number, y: number) {
   const id = `${type}-${Date.now()}`;
-
-  // 서버에서 defaultProps 가져오기 (실패 시 로컬 폴백)
   let serverDefaults: Record<string, unknown> = {};
   try {
     const r = await fetch(`${API_BASE}/components/${type}`);
@@ -344,7 +422,7 @@ async function addComponent(type: string, x: number, y: number) {
       const def = await r.json() as { defaultProps?: Record<string, unknown> };
       serverDefaults = def.defaultProps ?? {};
     }
-  } catch { /* 서버 없으면 조용히 무시 */ }
+  } catch { /* 서버 없으면 무시 */ }
 
   circuitStore.addComponent({
     id, type, x, y, rotation: 0,
@@ -354,25 +432,10 @@ async function addComponent(type: string, x: number, y: number) {
 }
 
 function loadDefaultExample() {
-  // ── 기본 회로: Arduino Uno + 저항 + LED (Blink 예제) ──────────
-  // 모든 connections는 빈 객체 — 연결 정보는 와이어에서 도출됨
+  circuitStore.addComponent({ id: 'board-default', type: 'board-uno', x: 60, y: 60, rotation: 0, props: {}, connections: {} });
+  circuitStore.addComponent({ id: 'r1', type: 'resistor', x: 420, y: 120, rotation: 0, props: { ohms: 220 }, connections: {} });
+  circuitStore.addComponent({ id: 'led1', type: 'led', x: 510, y: 90, rotation: 0, props: { color: 'red' }, connections: {} });
 
-  circuitStore.addComponent({
-    id: 'board-default', type: 'board-uno',
-    x: 60, y: 60, rotation: 0, props: {}, connections: {},
-  });
-  circuitStore.addComponent({
-    id: 'r1', type: 'resistor',
-    x: 420, y: 120, rotation: 0,
-    props: { ohms: 220 }, connections: {},
-  });
-  circuitStore.addComponent({
-    id: 'led1', type: 'led',
-    x: 510, y: 90, rotation: 0,
-    props: { color: 'red' }, connections: {},
-  });
-
-  // 와이어로 연결 (보드 D13 → 저항 PIN1, 저항 PIN2 → LED ANODE, LED CATHODE → 보드 GND)
   circuitStore.addWire({ id: 'w1', fromCompId: 'board-default', fromPin: 'D13',     toCompId: 'r1',    toPin: 'PIN1',    color: '#4af' });
   circuitStore.addWire({ id: 'w2', fromCompId: 'r1',            fromPin: 'PIN2',    toCompId: 'led1',  toPin: 'ANODE',   color: '#4af' });
   circuitStore.addWire({ id: 'w3', fromCompId: 'led1',          fromPin: 'CATHODE', toCompId: 'board-default', toPin: 'GND', color: '#666' });
@@ -403,49 +466,61 @@ void loop() {
 
 async function loadServerData() {
   const boardSelect = document.getElementById('board-select') as HTMLSelectElement | null;
-  const tplSelect   = document.getElementById('template-select') as HTMLSelectElement | null;
-  if (!boardSelect || !tplSelect) return;
+  if (!boardSelect) return;
 
-  const [boards, templates] = await Promise.all([
-    fetch(`${API_BASE}/boards`).then(r => r.ok ? r.json() : []).catch(() => []) as Promise<BoardInfo[]>,
-    fetch(`${API_BASE}/templates`).then(r => r.ok ? r.json() : []).catch(() => []) as Promise<TemplateInfo[]>,
-  ]);
+  try {
+    const [boards, templates] = await Promise.all([
+      fetch(`${API_BASE}/boards`).then(r => r.ok ? r.json() : []).catch(() => []) as Promise<BoardInfo[]>,
+      fetch(`${API_BASE}/templates`).then(r => r.ok ? r.json() : []).catch(() => []) as Promise<TemplateInfo[]>,
+    ]);
 
-  if (boards.length > 0) {
-    // 서버 보드 목록으로 교체
-    boardSelect.innerHTML = '';
-    for (const b of boards) {
-      const opt = document.createElement('option');
-      opt.value = b.id;
-      opt.textContent = b.name;
-      if (b.id === 'arduino-uno') opt.selected = true;
-      boardSelect.appendChild(opt);
+    if (boards.length > 0) {
+      boardSelect.innerHTML = '';
+      for (const b of boards) {
+        const opt = document.createElement('option');
+        opt.value = b.id; opt.textContent = b.name;
+        if (b.id === 'arduino-uno') opt.selected = true;
+        boardSelect.appendChild(opt);
+      }
     }
-  }
-  boardSelect.addEventListener('change', () => circuitStore.setBoard(boardSelect.value));
+    boardSelect.addEventListener('change', () => circuitStore.setBoard(boardSelect.value));
 
-  const categories = [...new Set(templates.map((t: TemplateInfo) => t.category))];
+    // 템플릿 — 팔레트 아래에 로드 버튼으로 추가
+    if (templates.length > 0) {
+      appendTemplateSection(templates);
+    }
+  } catch { /* 서버 없으면 무시 */ }
+}
+
+function appendTemplateSection(templates: TemplateInfo[]) {
+  const div = document.createElement('div');
+  div.innerHTML = `<div class="palette-category">예제 템플릿</div>`;
+
+  const categories = [...new Set(templates.map(t => t.category))];
   for (const cat of categories) {
-    const optgroup = document.createElement('optgroup');
-    optgroup.label = cat;
-    for (const t of templates.filter((t: TemplateInfo) => t.category === cat)) {
-      const opt = document.createElement('option');
-      opt.value = t.id;
-      opt.textContent = t.name;
-      optgroup.appendChild(opt);
+    const catDiv = document.createElement('div');
+    catDiv.innerHTML = `<div class="palette-category" style="color:#555;padding-left:16px">${cat}</div>`;
+    div.appendChild(catDiv);
+
+    for (const t of templates.filter(tpl => tpl.category === cat)) {
+      const item = document.createElement('div');
+      item.className = 'palette-item';
+      item.dataset.label = t.name.toLowerCase();
+      item.innerHTML = `<span class="palette-icon">📋</span><span class="palette-label">${t.name}</span>`;
+      item.title = t.description ?? t.name;
+      item.style.cursor = 'pointer';
+      item.addEventListener('click', async () => {
+        try {
+          const detail = await fetch(`${API_BASE}/templates/${t.id}`).then(r => r.json()) as TemplateDetail;
+          circuitStore.loadTemplate(detail);
+          const hint = document.getElementById('canvas-hint');
+          if (hint) hint.style.display = 'none';
+          setTimeout(() => canvas.fitView(), 100);
+        } catch { /* 무시 */ }
+      });
+      div.appendChild(item);
     }
-    tplSelect.appendChild(optgroup);
   }
-  tplSelect.addEventListener('change', async () => {
-    const id = tplSelect.value;
-    if (!id) return;
-    try {
-      const detail = await fetch(`${API_BASE}/templates/${id}`).then(r => r.json()) as TemplateDetail;
-      circuitStore.loadTemplate(detail);
-      const hint = document.getElementById('canvas-hint');
-      if (hint) hint.style.display = 'none';
-      setTimeout(() => canvas.fitView(), 100);
-    } catch { /* 서버 없으면 조용히 실패 */ }
-    tplSelect.value = '';
-  });
+
+  paletteList.appendChild(div);
 }

@@ -41,7 +41,11 @@ function buildWirePath(
     default: { // bezier
       if (waypoints.length >= 1) {
         const wp = waypoints[0];
-        return `M${from.x},${from.y} Q${wp.x},${wp.y} ${to.x},${to.y}`;
+        // B(0.5) = 0.25*from + 0.5*P1 + 0.25*to = wp → P1 = 2wp − 0.5(from+to)
+        // 경유점을 곡선이 실제로 통과하도록 제어점 역산
+        const cx = 2 * wp.x - 0.5 * (from.x + to.x);
+        const cy = 2 * wp.y - 0.5 * (from.y + to.y);
+        return `M${from.x},${from.y} Q${cx},${cy} ${to.x},${to.y}`;
       }
       const dx = to.x - from.x;
       return `M${from.x},${from.y} C${from.x + dx * 0.4},${from.y} ${to.x - dx * 0.4},${to.y} ${to.x},${to.y}`;
@@ -58,6 +62,7 @@ class CompContextMenu {
   constructor() {
     this._el = document.createElement('div');
     this._el.id = 'comp-ctx-menu';
+    this._el.className = 'ctx-menu';
     this._el.style.display = 'none';
     document.body.appendChild(this._el);
 
@@ -133,6 +138,7 @@ class WireContextMenu {
   constructor() {
     this._el = document.createElement('div');
     this._el.id = 'wire-ctx-menu';
+    this._el.className = 'ctx-menu';
     this._el.style.display = 'none';
     document.body.appendChild(this._el);
 
@@ -257,7 +263,7 @@ export class CircuitCanvas {
 
     // z=1: 와이어 SVG (pointer-events:none — 히트 영역은 각 요소에서 직접 설정)
     this._svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    this._svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none;';
+    this._svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:2;pointer-events:none;';
 
     this._wiresLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     this._wiresLayer.style.pointerEvents = 'all';
@@ -269,12 +275,12 @@ export class CircuitCanvas {
 
     // z=2: Lit 컴포넌트
     this._layer = document.createElement('div');
-    this._layer.style.cssText = 'position:absolute;top:0;left:0;transform-origin:0 0;z-index:2;';
+    this._layer.style.cssText = 'position:absolute;top:0;left:0;transform-origin:0 0;z-index:1;';
     this._container.appendChild(this._layer);
 
     // z=3: 끝점 도트 / 경유점 핸들 / 핀 서클 (보드 위에 표시)
     this._topSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    this._topSvg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:3;pointer-events:none;';
+    this._topSvg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:4;pointer-events:none;';
 
     this._endpointLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     this._endpointLayer.style.pointerEvents = 'none';
