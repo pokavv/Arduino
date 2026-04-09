@@ -13,14 +13,18 @@ interface BoardPin {
 
 /**
  * Arduino Uno R3 핀 레이아웃
- * 공식 치수: 68.6mm × 53.4mm, 2.54mm 간격
- * SVG: 308×210px
+ * Wokwi 오픈소스(arduino-uno-element.ts) 기반 정밀 재구현
  *
- * 디지털 상단 (우→좌, D0~D13, AREF, GND)
- * 아날로그 하단 (좌→우, A0~A5, VIN, GND×2, 5V, 3V3, IOREF, RST)
+ * viewBox 기준: Wokwi "-4 0 72.58 53.34" → 우리 308×210px
+ * 스케일: kx=4.43 (304/68.58), ky=3.86 (206/53.34)
+ * dx=2, dy=2 (SVG 마진)
+ *
+ * 핀 연결 좌표 (host px):
+ *   상단 디지털: y=18, D0 x=280 ~ GND x=58 (우→좌)
+ *   하단 아날로그/전원: y=190
  */
 const UNO_PINS: BoardPin[] = [
-  // 디지털 헤더 (우측부터)
+  // 디지털 헤더 (우측부터 — Wokwi pinInfo 기준)
   { name:'D0',    x:280, y:18, type:'digital', gpioNum:0  },
   { name:'D1',    x:266, y:18, type:'digital', gpioNum:1  },
   { name:'D2',    x:252, y:18, type:'digital', gpioNum:2  },
@@ -37,7 +41,7 @@ const UNO_PINS: BoardPin[] = [
   { name:'D13',   x:92,  y:18, type:'digital', gpioNum:13 },
   { name:'AREF',  x:72,  y:18, type:'other'   },
   { name:'GND',   x:58,  y:18, type:'power'   },
-  // 아날로그/전원 헤더
+  // 아날로그/전원 헤더 (Wokwi pinInfo 기준)
   { name:'A0',    x:36,  y:190, type:'analog', gpioNum:14 },
   { name:'A1',    x:50,  y:190, type:'analog', gpioNum:15 },
   { name:'A2',    x:64,  y:190, type:'analog', gpioNum:16 },
@@ -106,158 +110,298 @@ export class SimBoardUno extends SimElement {
     return html`
       <svg width="308" height="210" viewBox="0 0 308 210" xmlns="http://www.w3.org/2000/svg">
 
-        <!-- ── PCB 기판 (Arduino 공식 teal/green) ── -->
-        <!-- 메인 사각형 -->
-        <rect x="2" y="2" width="304" height="206" rx="6"
-          fill="#00695c" stroke="#004d40" stroke-width="1.2"/>
-        <!-- 상단 광택 -->
-        <rect x="2" y="2" width="304" height="30" rx="6"
-          fill="white" opacity="0.03"/>
-        <!-- 실크스크린 테두리 -->
-        <rect x="8" y="8" width="292" height="194" rx="4"
-          fill="none" stroke="#004a42" stroke-width="0.4" opacity="0.7"/>
+        <!-- ══════════════════════════════════════════════════
+             PCB 기판 (실물/Wokwi: #2b6b99 파란색)
+             Arduino Uno 특유의 우측 챔퍼(각진) 모서리 형상
+             Wokwi 좌표 기준 정밀 재현
+             ══════════════════════════════════════════════════ -->
+        <!--
+          우상단 챔퍼 경로 (Wokwi path 기반, kx=4.43, ky=3.86 스케일):
+          - 하단 챔퍼: y≈196 → 대각 → 범프 오른쪽x=305, y≈186
+          - 범프 수직: y=186→y=60
+          - 상단 챔퍼: 대각 → x=294, y=50
+          - 상단 수직: y=50→y=11
+          - 작은 챔퍼: → x=287, y=6
+        -->
+        <path d="
+          M 8,2
+          A 6,6 0 0,0 2,8
+          L 2,202
+          A 6,6 0 0,0 8,208
+          L 294,208
+          A 6,6 0 0,0 300,202
+          L 300,196
+          L 305,191
+          L 305,65
+          L 294,55
+          L 294,11
+          L 287,5
+          L 8,2 Z"
+          fill="#2b6b99" stroke="#1a4a70" stroke-width="1"/>
 
-        <!-- ── 마운팅 홀 ── -->
-        <circle cx="14"  cy="14"  r="3.2" fill="#003d35"/>
-        <circle cx="294" cy="14"  r="3.2" fill="#003d35"/>
-        <circle cx="14"  cy="196" r="3.2" fill="#003d35"/>
-        <circle cx="242" cy="196" r="3.2" fill="#003d35"/>
+        <!-- 실크스크린 내부 테두리 -->
+        <path d="
+          M 14,7
+          A 4,4 0 0,0 10,11
+          L 10,198
+          A 4,4 0 0,0 14,202
+          L 290,202
+          A 4,4 0 0,0 294,198
+          L 294,197
+          L 299,192
+          L 299,64
+          L 290,55
+          L 290,13
+          L 284,7 Z"
+          fill="none" stroke="#1a4a70" stroke-width="0.35" opacity="0.6"/>
 
-        <!-- ── USB Type-B 커넥터 (좌측) ── -->
-        <rect x="0"  y="72" width="26" height="36" rx="3"
-          fill="#a0a0a0" stroke="#808080" stroke-width="1"/>
-        <rect x="2"  y="76" width="20" height="28" rx="1.5" fill="#1a1a1a"/>
-        <!-- Type-B 특유의 사다리꼴 구멍 -->
-        <polygon points="4,78 20,78 22,100 2,100" fill="#0d0d0d"/>
-        <!-- USB 중앙 가이드 -->
-        <rect x="8"  y="82" width="8" height="12" rx="1" fill="#2a2a2a"/>
-        <text x="12" y="97" font-size="4" fill="#444" font-family="monospace" text-anchor="middle">USB</text>
+        <!-- ── 마운팅 홀 (Wokwi 4개) ── -->
+        <!-- Wokwi: (15.077, 0.835), (65.876, 16.074), (65.876, 43.934), (13.807, 48.079) -->
+        <circle cx="69"  cy="5"   r="3.5" fill="#1a4a70"/>
+        <circle cx="289" cy="64"  r="3.5" fill="#1a4a70"/>  <!-- 우상단 (챔퍼 안쪽) -->
+        <circle cx="289" cy="172" r="3.5" fill="#1a4a70"/>
+        <circle cx="63"  cy="188" r="3.5" fill="#1a4a70"/>
 
-        <!-- ── DC 배럴 잭 (하단 좌측) ── -->
-        <rect x="0" y="130" width="22" height="24" rx="3"
-          fill="#2a2a2a" stroke="#1a1a1a" stroke-width="1"/>
-        <ellipse cx="11" cy="142" rx="7" ry="7" fill="#111" stroke="#333" stroke-width="0.8"/>
-        <circle cx="11" cy="142" r="3" fill="#333"/>
-        <circle cx="11" cy="142" r="1.2" fill="#555"/>
+        <!-- ══════════════════════════════════════════════════
+             USB-B 커넥터 (좌측 상단, Wokwi: y=9.37~21.22mm)
+             우리 SVG: y=38~84, x=0~50
+             ══════════════════════════════════════════════════ -->
+        <!-- 외관 은색 금속 케이스 -->
+        <rect x="0"  y="38" width="50" height="47" rx="2"
+          fill="#b3b2b2" stroke="#808080" stroke-width="0.8"/>
+        <!-- 내부 어두운 -->
+        <rect x="0"  y="40" width="46" height="43" rx="1.5" fill="#706f6f"/>
+        <!-- 정면 밝은 금속 -->
+        <rect x="0"  y="41" width="45" height="42" rx="1" fill="#9d9d9c"/>
+        <!-- 내부 어두운 구멍 -->
+        <rect x="2"  y="43" width="40" height="37" rx="1" fill="#1a1a1a"/>
+        <!-- USB Type-B 특유 사다리꼴 개구부 -->
+        <polygon points="4,45 38,45 42,76 2,76" fill="#111"/>
+        <!-- 중앙 가이드 -->
+        <rect x="12" y="50" width="16" height="18" rx="1.5" fill="#2a2a2a"/>
+        <!-- 마운팅 귀 (타원) -->
+        <ellipse cx="5"  cy="39.5" rx="4.2" ry="3.8" fill="#b3b2b2"/>
+        <ellipse cx="5"  cy="84.5" rx="4.2" ry="3.8" fill="#b3b2b2"/>
+        <text x="22" y="88" font-size="4" fill="#555" font-family="monospace"
+          text-anchor="middle">USB-B</text>
 
-        <!-- ── ICSP 헤더 (6핀 2×3) ── -->
-        <rect x="272" y="38" width="28" height="20" rx="1.5"
-          fill="#111" stroke="#2a2a2a" stroke-width="0.8"/>
-        ${[0,1,2].map(r => [0,1].map(c => svg`
-          <circle cx="${278 + c*14}" cy="${43 + r*6}" r="1.8"
-            fill="#c8a060" stroke="#888" stroke-width="0.5"/>
-        `))}
-        <text x="286" y="62" font-size="4" fill="#4a6a4a" font-family="monospace"
-          text-anchor="middle">ICSP</text>
+        <!-- ══════════════════════════════════════════════════
+             DC 배럴잭 (좌측 하단, Wokwi: y=40.914~50.803mm)
+             우리 SVG: y=160~198, x=0~54
+             ══════════════════════════════════════════════════ -->
+        <rect x="0"  y="160" width="54" height="38" rx="3"
+          fill="#252728" stroke="#1a1a1a" stroke-width="0.8"/>
+        <!-- 원통형 구멍 -->
+        <ellipse cx="11" cy="179" rx="10" ry="10" fill="#111" stroke="#333" stroke-width="0.8"/>
+        <circle cx="11" cy="179" r="5"   fill="#333"/>
+        <circle cx="11" cy="179" r="2.5" fill="#555"/>
+        <circle cx="11" cy="179" r="1"   fill="#777"/>
+        <!-- 내부 금속 라인 -->
+        <rect x="50" y="162" width="1" height="34" fill="white" opacity="0.15"/>
 
-        <!-- ── ATmega328P DIP-28 칩 ── -->
-        <rect x="112" y="64" width="74" height="80" rx="2"
-          fill="#111" stroke="#1e1e1e" stroke-width="0.8"/>
-        <!-- DIP 핀 1 노치 -->
-        <path d="M112,76 Q118,76 118,70 L112,70Z" fill="#1e1e1e"/>
-        <circle cx="115" cy="73" r="2" fill="#2a2a2a"/>
-        <!-- DIP 핀 (좌측 14개) -->
-        ${Array.from({length:7}, (_,i) => svg`
-          <rect x="104" y="${72 + i*10}" width="8" height="3"
-            rx="0.5" fill="#c0c0c0" opacity="0.9"/>
-        `)}
-        <!-- DIP 핀 (우측 14개) -->
-        ${Array.from({length:7}, (_,i) => svg`
-          <rect x="186" y="${72 + i*10}" width="8" height="3"
-            rx="0.5" fill="#c0c0c0" opacity="0.9"/>
-        `)}
-        <!-- 칩 마킹 -->
-        <text x="149" y="93" font-size="5.5" fill="#5a5a5a" font-family="monospace"
-          text-anchor="middle" letter-spacing="0.2">ATMEGA328P</text>
-        <text x="149" y="102" font-size="4.5" fill="#484848" font-family="monospace"
-          text-anchor="middle">-PU</text>
-        <text x="149" y="111" font-size="4" fill="#3a3a3a" font-family="monospace"
-          text-anchor="middle">ARDUINO</text>
-        <!-- 광택 -->
-        <rect x="112" y="64" width="74" height="8" rx="2" fill="white" opacity="0.025"/>
-
-        <!-- ── ATmega16U2 USB 칩 (SMD) ── -->
-        <rect x="48" y="64" width="26" height="24" rx="1.5"
-          fill="#0e0e0e" stroke="#1a1a1a" stroke-width="0.8"/>
-        ${[0,1,2,3].map(i => svg`
-          <rect x="${52 + i*5.5}" y="60" width="3" height="4" rx="0.3" fill="#aaa" opacity="0.8"/>
-          <rect x="${52 + i*5.5}" y="88" width="3" height="4" rx="0.3" fill="#aaa" opacity="0.8"/>
-        `)}
-        <text x="61" y="78" font-size="3.8" fill="#444" font-family="monospace"
-          text-anchor="middle">16U2</text>
-
-        <!-- ── 수정 발진자 (16MHz) ── -->
-        <rect x="56" y="108" width="20" height="9" rx="4"
-          fill="#e0e0d8" stroke="#aaaa99" stroke-width="0.8"/>
-        <text x="66" y="114" font-size="3.5" fill="#777" font-family="monospace"
-          text-anchor="middle">16MHz</text>
-
-        <!-- ── 전해 커패시터 100uF ── -->
-        <ellipse cx="232" cy="154" rx="9" ry="11"
-          fill="#3a3a3a" stroke="#282828" stroke-width="0.8"/>
-        <rect x="228" y="143" width="8" height="4" fill="#555" opacity="0.4"/>
-        <text x="232" y="157" font-size="3.5" fill="#777" font-family="monospace"
-          text-anchor="middle">100µ</text>
-
-        <!-- ── 전압 레귤레이터 LDO ── -->
-        <rect x="286" y="102" width="14" height="24" rx="1"
-          fill="#2a2a2a" stroke="#1a1a1a" stroke-width="0.8"/>
-        <rect x="284" y="98" width="18" height="6" rx="1" fill="#444" stroke="#2a2a2a" stroke-width="0.5"/>
-        <text x="293" y="117" font-size="3.5" fill="#555" font-family="monospace"
-          text-anchor="middle" transform="rotate(90,293,117)">LDO</text>
-
-        <!-- ── LED: ON (항상 켜짐, 녹색) ── -->
-        <circle cx="64" cy="152" r="2.8" fill="#22dd22" opacity="0.85"/>
-        <circle cx="64" cy="152" r="4.5" fill="#22dd22" opacity="0.15"/>
-        <text x="64" y="161" font-size="3.5" fill="#22aa22" font-family="monospace" text-anchor="middle">ON</text>
-
-        <!-- ── LED: TX ── -->
-        <circle cx="74" cy="152" r="2.5"
-          fill="${txOn ? '#ffdd00' : '#665500'}" opacity="${txOn ? 0.9 : 0.6}"/>
-        <text x="74" y="161" font-size="3.5" fill="#665500" font-family="monospace" text-anchor="middle">TX</text>
-
-        <!-- ── LED: RX ── -->
-        <circle cx="83" cy="152" r="2.5"
-          fill="${rxOn ? '#ffdd00' : '#665500'}" opacity="${rxOn ? 0.9 : 0.6}"/>
-        <text x="83" y="161" font-size="3.5" fill="#665500" font-family="monospace" text-anchor="middle">RX</text>
-
-        <!-- ── LED: L (D13) ── -->
-        <circle cx="92" cy="152" r="2.5"
-          fill="${d13on ? '#ffcc00' : '#664400'}" opacity="${d13on ? 0.9 : 0.65}"/>
-        ${d13on ? svg`<circle cx="92" cy="152" r="4.5" fill="#ffcc00" opacity="0.2"/>` : ''}
-        <text x="92" y="161" font-size="3.5" fill="#665500" font-family="monospace" text-anchor="middle">L</text>
-
-        <!-- ── RST 버튼 (실물: 보드 좌측 상단, USB 포트 위, 빨간 택트 스위치) ── -->
-        <!-- Wokwi 기준: cx=6.96mm, cy=4.53mm (PCB 스케일×4.3 ≈ cx=30, cy=20) -->
+        <!-- ══════════════════════════════════════════════════
+             RST 버튼 (Wokwi: cx=6.9619, cy=4.5279mm)
+             우리 SVG: cx=33, cy=20 (보드 좌측 상단, USB 위)
+             ══════════════════════════════════════════════════ -->
+        <!-- Wokwi RST 배경 rect -->
+        <rect x="19" y="14" width="27" height="23" rx="1" fill="#9b9b9b"/>
+        <!-- Wokwi RST 리드 (5개, #e6e6e6) -->
+        <rect x="10" y="16" width="9" height="3.5" rx="0.5" fill="#e6e6e6"/>
+        <rect x="10" y="22" width="9" height="3.5" rx="0.5" fill="#e6e6e6"/>
+        <rect x="10" y="29" width="9" height="3.5" rx="0.5" fill="#e6e6e6"/>
+        <rect x="46" y="29" width="9" height="3.5" rx="0.5" fill="#e6e6e6"/>
+        <rect x="46" y="16" width="9" height="3.5" rx="0.5" fill="#e6e6e6"/>
+        <!-- RST 버튼 원 (Wokwi: fill=#960000) -->
         <g class="btn-rst"
           @pointerdown="${this._onRstDown}"
           @pointerup="${(e: PointerEvent) => { e.stopPropagation(); }}">
-          <!-- 버튼 기판 -->
-          <rect x="22" y="13" width="18" height="14" rx="2"
-            fill="#111" stroke="${this.rstPressed ? '#ff6644' : '#222'}" stroke-width="0.8"/>
-          <!-- 버튼 돔 (빨간색) -->
-          <circle cx="31" cy="20" r="5.5"
-            fill="${this.rstPressed ? '#dd2200' : '#cc2222'}"
-            stroke="${this.rstPressed ? '#ff4422' : '#991111'}"
-            stroke-width="0.8"/>
-          <!-- 돔 중앙 하이라이트 -->
-          <circle cx="31" cy="20" r="2.5"
-            fill="${this.rstPressed ? '#ff5533' : '#ee4444'}"/>
-          <ellipse cx="29" cy="18" rx="1.5" ry="1"
-            fill="white" opacity="${this.rstPressed ? 0.1 : 0.25}"/>
-          <text x="31" y="33" font-size="4" fill="#884444" font-family="monospace"
-            text-anchor="middle">RST</text>
+          <circle cx="33" cy="26" r="9"
+            fill="${this.rstPressed ? '#c00000' : '#960000'}"
+            stroke="${this.rstPressed ? '#ff4422' : '#777'}"
+            stroke-width="0.6"/>
+          <!-- 하이라이트 -->
+          <ellipse cx="30" cy="23" rx="2.5" ry="1.5"
+            fill="white" opacity="${this.rstPressed ? 0.1 : 0.2}"/>
+          <text x="33" y="41" font-size="4" fill="#663333"
+            font-family="monospace" text-anchor="middle">RST</text>
         </g>
 
-        <!-- ── 핀 헤더 소켓 (검은 플라스틱) ── -->
-        <!-- 디지털 상단 -->
-        <rect x="55" y="8" width="240" height="14" rx="1.5"
-          fill="#0a0a0a" stroke="#161616" stroke-width="0.5"/>
-        <!-- 아날로그/전원 하단 -->
-        <rect x="28" y="178" width="200" height="14" rx="1.5"
-          fill="#0a0a0a" stroke="#161616" stroke-width="0.5"/>
+        <!-- ══════════════════════════════════════════════════
+             ATmega16U2 SMD 칩 (USB 커넥터 위/우측)
+             Wokwi에는 별도 SVG 없음, 위치 추정
+             ══════════════════════════════════════════════════ -->
+        <rect x="55" y="36" width="28" height="24" rx="1.5"
+          fill="#292c2d" stroke="#1a1a1a" stroke-width="0.8"/>
+        <!-- SMD 핀 상단/하단 -->
+        ${[0,1,2,3].map(i => svg`
+          <rect x="${58 + i*5.5}" y="32"  width="3.5" height="4" rx="0.3" fill="#ddd" opacity="0.8"/>
+          <rect x="${58 + i*5.5}" y="60"  width="3.5" height="4" rx="0.3" fill="#ddd" opacity="0.8"/>
+        `)}
+        <text x="69" y="50" font-size="3.5" fill="#555" font-family="monospace"
+          text-anchor="middle">16U2</text>
 
-        <!-- ── 핀 구멍 & 라벨 ── -->
+        <!-- ══════════════════════════════════════════════════
+             ICSP 헤더 — ATmega328P 용 (Wokwi: translate(14.1, 4.4))
+             우리: x=65, y=19
+             ══════════════════════════════════════════════════ -->
+        <rect x="65" y="19" width="28" height="20" rx="1.5"
+          fill="#1a1a1a" stroke="#2a2a2a" stroke-width="0.8"/>
+        ${[0,1,2].map(r => [0,1].map(c => svg`
+          <ellipse cx="${71 + c*14}" cy="${24 + r*6}" rx="2" ry="2"
+            fill="#9d9d9a" stroke="#565656" stroke-width="0.5"/>
+        `))}
+        <text x="79" y="44" font-size="3.5" fill="#3a5a3a"
+          font-family="monospace" text-anchor="middle">ICSP</text>
+
+        <!-- ══════════════════════════════════════════════════
+             16MHz 수정 발진자
+             ══════════════════════════════════════════════════ -->
+        <rect x="88" y="100" width="38" height="12" rx="5"
+          fill="#e0e0d8" stroke="#aaaa99" stroke-width="0.8"/>
+        <text x="107" y="109" font-size="3.5" fill="#777"
+          font-family="monospace" text-anchor="middle">16MHz</text>
+
+        <!-- ══════════════════════════════════════════════════
+             ATmega328P DIP-28 칩 (Wokwi: x=28.21~65.31mm, y=32.7~41.63mm)
+             우리: x=127, y=128, w=163, h=33
+             ══════════════════════════════════════════════════ -->
+        <!-- 칩 케이스 -->
+        <rect x="127" y="128" width="163" height="33" rx="1.5"
+          fill="#292c2d" stroke="#1a1a1a" stroke-width="0.8"/>
+        <!-- 칩 상면 (약간 밝음) -->
+        <rect x="129" y="130" width="159" height="29" rx="1"
+          fill="#3c4042"/>
+        <!-- DIP 핀 상단 (Wokwi: 위/아래 패턴, 2.54mm간격) -->
+        ${Array.from({length:14}, (_,i) => svg`
+          <rect x="${134 + i*11}" y="124" width="4" height="4"
+            rx="0.3" fill="#ddd" opacity="0.9"/>
+        `)}
+        <!-- DIP 핀 하단 -->
+        ${Array.from({length:14}, (_,i) => svg`
+          <rect x="${134 + i*11}" y="161" width="4" height="4"
+            rx="0.3" fill="#ddd" opacity="0.9"/>
+        `)}
+        <!-- 핀1 마커 원 (좌측) -->
+        <circle cx="133" cy="139" r="2.5" fill="#252728"/>
+        <!-- 우측 마커 반원 (Wokwi: M65 38.05 arc) -->
+        <path d="M286,140 a5,5 0 0 1 0,10 Z" fill="#252728"/>
+        <!-- 칩 마킹 -->
+        <text x="209" y="140" font-size="5" fill="#666666" font-family="monospace"
+          text-anchor="middle" letter-spacing="0.2">ATMEGA328P-PU</text>
+        <text x="209" y="150" font-size="4" fill="#555" font-family="monospace"
+          text-anchor="middle">ARDUINO</text>
+        <!-- 칩 상단 하이라이트 -->
+        <rect x="129" y="130" width="159" height="5" rx="1"
+          fill="white" opacity="0.025"/>
+
+        <!-- ══════════════════════════════════════════════════
+             전해 커패시터 100uF
+             ══════════════════════════════════════════════════ -->
+        <ellipse cx="249" cy="158" rx="9" ry="11"
+          fill="#3a3a3a" stroke="#282828" stroke-width="0.8"/>
+        <rect x="244" y="147" width="10" height="4" fill="#555" opacity="0.4"/>
+        <text x="249" y="162" font-size="3.5" fill="#777"
+          font-family="monospace" text-anchor="middle">100µ</text>
+
+        <!-- ══════════════════════════════════════════════════
+             전압 레귤레이터 LDO (우측 중상단)
+             ══════════════════════════════════════════════════ -->
+        <rect x="275" y="90" width="14" height="24" rx="1"
+          fill="#2a2a2a" stroke="#1a1a1a" stroke-width="0.8"/>
+        <rect x="272" y="86" width="20" height="6" rx="1"
+          fill="#444" stroke="#2a2a2a" stroke-width="0.5"/>
+        <text x="282" y="108" font-size="3.5" fill="#555" font-family="monospace"
+          text-anchor="middle" transform="rotate(90,282,108)">LDO</text>
+
+        <!-- ══════════════════════════════════════════════════
+             ICSP 2 — ATmega16U2 용 (Wokwi: translate(63, 27.2) rotate(270))
+             우리: x=265, y=107, 수직 방향
+             ══════════════════════════════════════════════════ -->
+        <rect x="265" y="107" width="20" height="28" rx="1.5"
+          fill="#1a1a1a" stroke="#2a2a2a" stroke-width="0.8"/>
+        ${[0,1,2].map(r => [0,1].map(c => svg`
+          <ellipse cx="${270 + c*10}" cy="${112 + r*8}" rx="2" ry="2"
+            fill="#9d9d9a" stroke="#565656" stroke-width="0.5"/>
+        `))}
+
+        <!-- ══════════════════════════════════════════════════
+             LED 4개 — Wokwi 정확한 위치
+             LED ON: translate(57.3, 16.21) → (258, 65)
+             LED L:  translate(26.87, 11.69) → (122, 47)
+             LED TX: translate(26.9, 16.2) → (122, 65)
+             LED RX: translate(26.9, 18.5) → (122, 73)
+             ══════════════════════════════════════════════════ -->
+        <!-- LED ON (전원, 항상 초록) -->
+        <circle cx="258" cy="65" r="3.5" fill="#80ff80" opacity="0.9"/>
+        <circle cx="258" cy="65" r="5.5" fill="#80ff80" opacity="0.2"/>
+        <text x="258" y="76" font-size="3.5" fill="#22aa22"
+          font-family="monospace" text-anchor="middle">ON</text>
+
+        <!-- LED L (D13, 노랑/주황) -->
+        <circle cx="122" cy="47" r="3"
+          fill="${d13on ? '#ff8080' : '#661a1a'}"
+          opacity="${d13on ? 0.9 : 0.7}"/>
+        ${d13on ? svg`<circle cx="122" cy="47" r="5" fill="#ff4444" opacity="0.3"/>` : ''}
+        <text x="122" y="58" font-size="3.5" fill="#885544"
+          font-family="monospace" text-anchor="middle">L</text>
+
+        <!-- LED TX (노랑) -->
+        <circle cx="122" cy="64" r="3"
+          fill="${txOn ? '#ffff00' : '#555500'}"
+          opacity="${txOn ? 0.9 : 0.7}"/>
+        ${txOn ? svg`<circle cx="122" cy="64" r="5" fill="#ffff00" opacity="0.3"/>` : ''}
+        <text x="122" y="75" font-size="3.5" fill="#665500"
+          font-family="monospace" text-anchor="middle">TX</text>
+
+        <!-- LED RX (노랑) -->
+        <circle cx="122" cy="73" r="3"
+          fill="${rxOn ? '#ffff00' : '#555500'}"
+          opacity="${rxOn ? 0.9 : 0.7}"/>
+        ${rxOn ? svg`<circle cx="122" cy="73" r="5" fill="#ffff00" opacity="0.3"/>` : ''}
+        <text x="122" y="84" font-size="3.5" fill="#665500"
+          font-family="monospace" text-anchor="middle">RX</text>
+
+        <!-- ══════════════════════════════════════════════════
+             Arduino 로고 + 텍스트 (Wokwi: fill=#fff)
+             Wokwi: "ARDUINO" x=31, y=20.2 / "UNO" 박스
+             우리: 비례 스케일
+             ══════════════════════════════════════════════════ -->
+        <!-- Arduino 인피니티 로고 -->
+        <g transform="translate(143,76)" fill="none" stroke="white" opacity="0.6">
+          <path d="M-7,0 C-7,-5 -2,-7 3,-4 C7,-1 9,4 14,4 C18,4 21,1 21,-3"
+            stroke-width="2.5"/>
+          <path d="M21,-3 C21,-7 18,-10 14,-10 C9,-10 7,-5 3,-8 C-2,-11 -7,-7 -7,0"
+            stroke-width="2.5"/>
+          <line x1="4" y1="-3" x2="4" y2="3" stroke-width="1.5"/>
+          <line x1="1" y1="0"  x2="7" y2="0" stroke-width="1.5"/>
+          <line x1="17" y1="-3" x2="17" y2="3" stroke-width="1.5"/>
+        </g>
+        <text x="140" y="95" font-size="5.5" fill="white" font-family="Arial,sans-serif"
+          text-anchor="middle" font-weight="bold" opacity="0.7">ARDUINO</text>
+        <!-- UNO 박스 -->
+        <rect x="185" y="73" width="27" height="14" rx="1.5"
+          fill="none" stroke="white" stroke-width="0.4"
+          stroke-dasharray="0.4,0.4" opacity="0.6"/>
+        <text x="199" y="83" font-size="7" fill="white" font-family="Arial,sans-serif"
+          text-anchor="middle" font-weight="bold" opacity="0.8">UNO</text>
+
+        <!-- ══════════════════════════════════════════════════
+             핀 헤더 소켓 (검은 플라스틱)
+             ══════════════════════════════════════════════════ -->
+        <!-- 상단 디지털 헤더 (Wokwi: translate(17.497, 1.27) + translate(44.421, 1.27)) -->
+        <rect x="55"  y="8" width="114" height="14" rx="1.5"
+          fill="#333" stroke="#161616" stroke-width="0.5"/>
+        <rect x="178" y="8" width="108" height="14" rx="1.5"
+          fill="#333" stroke="#161616" stroke-width="0.5"/>
+        <!-- 하단 아날로그/전원 헤더 -->
+        <rect x="28"  y="178" width="106" height="14" rx="1.5"
+          fill="#333" stroke="#161616" stroke-width="0.5"/>
+        <rect x="142" y="178" width="82"  height="14" rx="1.5"
+          fill="#333" stroke="#161616" stroke-width="0.5"/>
+
+        <!-- ══════════════════════════════════════════════════
+             핀 구멍 & 라벨
+             ══════════════════════════════════════════════════ -->
         ${UNO_PINS.map(pin => {
           const val = pin.gpioNum !== undefined ? (this.pinStates[pin.gpioNum] ?? 0) : 0;
           const isHigh = val > 0;
@@ -267,7 +411,7 @@ export class SimBoardUno extends SimElement {
             ? (pin.name.startsWith('GND') ? '#55aa77' : '#cc7755')
             : pin.type === 'analog' ? '#cc6655'
             : pin.isPwm ? '#8899cc' : '#c8a060';
-          const holeColor = isHigh ? '#ffee44' : '#08201a';
+          const holeColor = isHigh ? '#ffee44' : '#191919';
 
           return svg`
             <g class="pin-hole" data-pin="${pin.name}">
@@ -278,19 +422,25 @@ export class SimBoardUno extends SimElement {
               <text
                 x="${pin.x}"
                 y="${isBottom ? pin.y + 13 : pin.y - 9}"
-                font-size="3.8" fill="#88ccaa" font-family="monospace"
+                font-size="3.8" font-family="monospace"
+                fill="white"
                 text-anchor="middle"
-                transform="rotate(-90,${pin.x},${isBottom ? pin.y + 13 : pin.y - 9})"
-              >${pin.name.replace('~','')}</text>
+                opacity="0.75"
+              >${pin.name}</text>
             </g>
           `;
         })}
 
-        <!-- ── ARDUINO 실크스크린 로고 ── -->
-        <text x="162" y="164" font-size="12" fill="#004d42" font-family="Arial,sans-serif"
-          text-anchor="middle" font-weight="bold" letter-spacing="1">ARDUINO</text>
-        <text x="162" y="175" font-size="7.5" fill="#004040" font-family="Arial,sans-serif"
-          text-anchor="middle" letter-spacing="2.5">UNO  R3</text>
+        <!-- ══════════════════════════════════════════════════
+             DIGITAL/ANALOG 구분선 및 헤더 레이블
+             ══════════════════════════════════════════════════ -->
+        <rect x="55" y="8.5" width="114" height="0.6" fill="white" opacity="0.25"/>
+        <text x="113" y="8" font-size="3" fill="white" opacity="0.5"
+          text-anchor="middle">DIGITAL (PWM ~)</text>
+        <text x="88"  y="202" font-size="3" fill="white" opacity="0.5"
+          text-anchor="middle">POWER</text>
+        <text x="183" y="202" font-size="3" fill="white" opacity="0.5"
+          text-anchor="middle">ANALOG IN</text>
       </svg>
     `;
   }
