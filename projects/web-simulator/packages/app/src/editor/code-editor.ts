@@ -127,12 +127,13 @@ export class CodeEditor {
     }
 
     this._container.innerHTML = '';
+    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
     this._monacoEditor = window.monaco.editor.create(this._container, {
       value: circuitStore.code,
       language: 'arduino',
-      theme: 'vs-dark',
+      theme: isDark ? 'vs-dark' : 'vs',
       fontSize: 13,
-      fontFamily: '"Fira Code","Cascadia Code","Consolas",monospace',
+      fontFamily: '"JetBrains Mono","Fira Code","Cascadia Code","Consolas",monospace',
       minimap: { enabled: false },
       scrollBeyondLastLine: false,
       automaticLayout: true,

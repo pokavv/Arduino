@@ -11,6 +11,44 @@ import { circuitValidator } from './stores/circuit-validator.js';
 
 const API_BASE = '/api';
 
+declare global {
+  interface Window {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    monaco: any;
+  }
+}
+
+// ── 테마 (라이트/다크) ──────────────────────────────────────────────
+(function initTheme() {
+  const saved = localStorage.getItem('sim-theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const theme = saved ?? (prefersDark ? 'dark' : 'light');
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme') ?? 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  localStorage.setItem('sim-theme', next);
+  const btn = document.getElementById('btn-theme');
+  if (btn) btn.textContent = next === 'dark' ? '🌙' : '☀️';
+  // Monaco 테마 동기화
+  if (window.monaco) {
+    window.monaco.editor.setTheme(next === 'dark' ? 'vs-dark' : 'vs');
+  }
+}
+
+document.getElementById('btn-theme')?.addEventListener('click', toggleTheme);
+
+// 초기 버튼 아이콘 반영
+{
+  const initialTheme = document.documentElement.getAttribute('data-theme') ?? 'dark';
+  const btn = document.getElementById('btn-theme');
+  if (btn) btn.textContent = initialTheme === 'dark' ? '🌙' : '☀️';
+}
+
 interface BoardInfo  { id: string; name: string; vendor: string; mcu: string; }
 interface TemplateInfo { id: string; name: string; category: string; boardId: string; description: string; }
 interface TemplateDetail extends TemplateInfo { components: object[]; code: string; }

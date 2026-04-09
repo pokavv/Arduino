@@ -1,32 +1,176 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Arduino Web Simulator</title>
+
+  <!-- Pretendard Variable — KRDS 표준 한국어 서체 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+
+  <!-- JetBrains Mono — 코드 에디터 서체 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
   <style>
-    :root {
-      --palette-w: 220px;
-      --right-w: 400px;
-      --toolbar-h: 44px;
-      --clr-bg:     #0a0a0e;
-      --clr-panel:  #121216;
-      --clr-bar:    #141418;
-      --clr-border: #222228;
-      --clr-accent: #4a9eff;
-      --clr-text:   #ccc;
-      --clr-muted:  #555;
+    /* ══════════════════════════════════════════════════════════════
+       KRDS 디자인 토큰 — 다크 모드 (기본)
+       한국 디자인 시스템 기반, 기본 컬러 #0055FF
+    ══════════════════════════════════════════════════════════════ */
+    :root,
+    [data-theme="dark"] {
+      /* 레이아웃 */
+      --palette-w: 230px;
+      --right-w: 420px;
+      --toolbar-h: 48px;
+      --radius-sm: 4px;
+      --radius-md: 6px;
+      --radius-lg: 8px;
+
+      /* 배경 계층 */
+      --color-bg:          #0D0F12;
+      --color-surface-1:   #141618;
+      --color-surface-2:   #1A1C20;
+      --color-surface-3:   #20222A;
+
+      /* 테두리 */
+      --color-border:      #252830;
+      --color-border-subtle: #1E2026;
+
+      /* 텍스트 */
+      --color-text-primary:   #E8EAF0;
+      --color-text-secondary: #8A90A0;
+      --color-text-disabled:  #454A58;
+      --color-text-inverse:   #FFFFFF;
+
+      /* 브랜드 — KRDS Primary #0055FF 기반 */
+      --color-primary:         #4A8EFF;
+      --color-primary-hover:   #5C9EFF;
+      --color-primary-active:  #3A7EEF;
+      --color-primary-subtle:  rgba(74, 142, 255, 0.12);
+      --color-primary-border:  rgba(74, 142, 255, 0.25);
+
+      /* 상태 색상 */
+      --color-success:        #3DDC84;
+      --color-success-subtle: rgba(61, 220, 132, 0.12);
+      --color-success-border: rgba(61, 220, 132, 0.25);
+      --color-error:          #FF5C5C;
+      --color-error-subtle:   rgba(255, 92, 92, 0.12);
+      --color-error-border:   rgba(255, 92, 92, 0.25);
+      --color-warning:        #FFB020;
+      --color-warning-subtle: rgba(255, 176, 32, 0.12);
+
+      /* 인터랙티브 컴포넌트 */
+      --color-btn-bg:      #1E2028;
+      --color-btn-border:  #2E3240;
+      --color-btn-hover:   #262A38;
+      --color-btn-active:  #1A1E2C;
+      --color-btn-text:    #9AA0B0;
+
+      /* 입력 */
+      --color-input-bg:     #161820;
+      --color-input-border: #2A2E3C;
+      --color-input-focus:  #4A8EFF;
+      --color-input-text:   #D0D4E0;
+      --color-input-placeholder: #454A58;
+
+      /* 캔버스 */
+      --color-canvas-bg:   #0A0C10;
+      --color-canvas-dot:  rgba(50, 60, 80, 0.5);
+
+      /* 시리얼 출력 */
+      --color-serial-text: #3DDC84;
+      --color-serial-bg:   #080A0E;
+
+      /* 스크롤바 */
+      --color-scrollbar:       #252830;
+      --color-scrollbar-hover: #2E3440;
     }
-    * { box-sizing: border-box; }
+
+    /* ══════════════════════════════════════════════════════════════
+       KRDS 라이트 모드
+    ══════════════════════════════════════════════════════════════ */
+    [data-theme="light"] {
+      /* 배경 계층 */
+      --color-bg:          #F5F7FA;
+      --color-surface-1:   #FFFFFF;
+      --color-surface-2:   #F0F2F5;
+      --color-surface-3:   #E8EBF0;
+
+      /* 테두리 */
+      --color-border:      #DDE1E8;
+      --color-border-subtle: #EAECF0;
+
+      /* 텍스트 */
+      --color-text-primary:   #1A1D26;
+      --color-text-secondary: #5C6270;
+      --color-text-disabled:  #AAB0BE;
+      --color-text-inverse:   #FFFFFF;
+
+      /* 브랜드 */
+      --color-primary:         #0055FF;
+      --color-primary-hover:   #0044DD;
+      --color-primary-active:  #0033BB;
+      --color-primary-subtle:  rgba(0, 85, 255, 0.08);
+      --color-primary-border:  rgba(0, 85, 255, 0.2);
+
+      /* 상태 색상 */
+      --color-success:        #1E8A4A;
+      --color-success-subtle: rgba(30, 138, 74, 0.1);
+      --color-success-border: rgba(30, 138, 74, 0.2);
+      --color-error:          #D93025;
+      --color-error-subtle:   rgba(217, 48, 37, 0.08);
+      --color-error-border:   rgba(217, 48, 37, 0.2);
+      --color-warning:        #C8830A;
+      --color-warning-subtle: rgba(200, 131, 10, 0.1);
+
+      /* 인터랙티브 */
+      --color-btn-bg:      #FFFFFF;
+      --color-btn-border:  #D0D5DE;
+      --color-btn-hover:   #F0F2F5;
+      --color-btn-active:  #E4E7EE;
+      --color-btn-text:    #3C4252;
+
+      /* 입력 */
+      --color-input-bg:     #FFFFFF;
+      --color-input-border: #CDD1DA;
+      --color-input-focus:  #0055FF;
+      --color-input-text:   #1A1D26;
+      --color-input-placeholder: #9EA5B5;
+
+      /* 캔버스 */
+      --color-canvas-bg:   #F8F9FC;
+      --color-canvas-dot:  rgba(180, 190, 210, 0.6);
+
+      /* 시리얼 */
+      --color-serial-text: #1E6830;
+      --color-serial-bg:   #F6FAF7;
+
+      /* 스크롤바 */
+      --color-scrollbar:       #DDE1E8;
+      --color-scrollbar-hover: #C8CDD8;
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       기본 리셋
+    ══════════════════════════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; }
+
     html, body {
       margin: 0; padding: 0;
       overflow: hidden; height: 100%;
-      background: var(--clr-bg);
-      color: var(--clr-text);
-      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--color-bg);
+      color: var(--color-text-primary);
+      font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont,
+                   'Noto Sans KR', system-ui, sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* ── 앱 루트 ──────────────────────────────────────────── */
+    /* ══════════════════════════════════════════════════════════════
+       앱 루트 레이아웃
+    ══════════════════════════════════════════════════════════════ */
     #app {
       display: flex;
       flex-direction: column;
@@ -34,52 +178,138 @@
       overflow: hidden;
     }
 
-    /* ── 툴바 ──────────────────────────────────────────────── */
+    /* ══════════════════════════════════════════════════════════════
+       툴바
+    ══════════════════════════════════════════════════════════════ */
     #toolbar {
       height: var(--toolbar-h);
       flex-shrink: 0;
-      background: var(--clr-bar);
-      border-bottom: 1px solid var(--clr-border);
+      background: var(--color-surface-1);
+      border-bottom: 1px solid var(--color-border);
       display: flex;
       align-items: center;
-      padding: 0 10px;
-      gap: 6px;
+      padding: 0 12px;
+      gap: 4px;
       user-select: none;
+      z-index: 100;
     }
+
     .toolbar-logo {
-      font-weight: 700; font-size: 14px;
-      color: var(--clr-accent); margin-right: 4px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-right: 6px;
+      flex-shrink: 0;
+    }
+    .toolbar-logo-icon {
+      width: 24px; height: 24px;
+      background: var(--color-primary);
+      border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; color: white;
+      font-weight: 700; flex-shrink: 0;
+    }
+    .toolbar-logo-text {
+      font-size: 13px; font-weight: 700;
+      color: var(--color-text-primary);
+      letter-spacing: -0.3px;
       white-space: nowrap;
     }
+    .toolbar-logo-ver {
+      font-size: 10px;
+      color: var(--color-text-disabled);
+      font-weight: 400;
+    }
+
     .toolbar-sep {
-      width: 1px; height: 22px;
-      background: #2a2a34; margin: 0 2px; flex-shrink: 0;
+      width: 1px; height: 20px;
+      background: var(--color-border);
+      margin: 0 4px; flex-shrink: 0;
     }
+
     .toolbar-btn {
-      background: #1c1c24; border: 1px solid #2e2e3e;
-      border-radius: 4px; color: #aaa;
-      padding: 3px 8px; font-size: 12px;
-      cursor: pointer; white-space: nowrap;
-      transition: background 0.1s, color 0.1s;
+      display: inline-flex; align-items: center; gap: 5px;
+      background: var(--color-btn-bg);
+      border: 1px solid var(--color-btn-border);
+      border-radius: var(--radius-sm);
+      color: var(--color-btn-text);
+      padding: 5px 10px;
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.1s, border-color 0.1s, color 0.1s;
+      line-height: 1;
     }
-    .toolbar-btn:hover { background: #26263a; color: #eee; }
-    .toolbar-btn:active { background: #1a1a2a; }
+    .toolbar-btn:hover {
+      background: var(--color-btn-hover);
+      border-color: var(--color-btn-border);
+      color: var(--color-text-primary);
+    }
+    .toolbar-btn:active { background: var(--color-btn-active); }
+
+    /* 실행 버튼 */
     #btn-run {
-      background: #142414; border-color: #1e4a1e;
-      color: #4af44a; font-weight: 600; padding: 3px 14px;
+      background: var(--color-success-subtle);
+      border-color: var(--color-success-border);
+      color: var(--color-success);
+      font-weight: 600;
+      padding: 5px 16px;
+      min-width: 80px;
+      justify-content: center;
     }
-    #btn-run:hover { background: #1a3018; }
-    #btn-run.running { background: #2a0a0a; border-color: #5a1a1a; color: #f55; }
-    #btn-run.error   { background: #2a1800; border-color: #5a3000; color: #fa8; }
+    #btn-run:hover {
+      background: rgba(61, 220, 132, 0.2);
+      border-color: var(--color-success);
+      color: var(--color-success);
+    }
+    #btn-run.running {
+      background: var(--color-error-subtle);
+      border-color: var(--color-error-border);
+      color: var(--color-error);
+    }
+    #btn-run.running:hover {
+      background: rgba(255, 92, 92, 0.2);
+      border-color: var(--color-error);
+    }
+    #btn-run.error {
+      background: var(--color-warning-subtle);
+      border-color: rgba(255, 176, 32, 0.25);
+      color: var(--color-warning);
+    }
+
+    /* 상태 인디케이터 */
     #status-indicator {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: #333; flex-shrink: 0; margin-left: 2px;
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--color-border);
+      flex-shrink: 0; margin-left: 2px;
       transition: background 0.3s, box-shadow 0.3s;
     }
-    #status-indicator.running { background: #4af44a; box-shadow: 0 0 8px #4af44a88; }
-    #status-indicator.error   { background: #fa4;   box-shadow: 0 0 8px #fa488; }
+    #status-indicator.running {
+      background: var(--color-success);
+      box-shadow: 0 0 7px var(--color-success);
+    }
+    #status-indicator.error {
+      background: var(--color-warning);
+      box-shadow: 0 0 7px var(--color-warning);
+    }
 
-    /* ── 메인 영역 ──────────────────────────────────────────── */
+    /* 테마 토글 버튼 */
+    #btn-theme {
+      margin-left: auto;
+      padding: 5px 8px;
+      font-size: 14px;
+      background: transparent;
+      border-color: transparent;
+    }
+    #btn-theme:hover {
+      background: var(--color-surface-2);
+      border-color: var(--color-border);
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       메인 영역
+    ══════════════════════════════════════════════════════════════ */
     #main {
       display: flex;
       flex: 1;
@@ -87,155 +317,274 @@
       min-height: 0;
     }
 
-    /* ── 팔레트 패널 ────────────────────────────────────────── */
+    /* ══════════════════════════════════════════════════════════════
+       팔레트 패널 (좌측)
+    ══════════════════════════════════════════════════════════════ */
     #palette-panel {
       width: var(--palette-w);
-      min-width: 140px;
-      max-width: 420px;
+      min-width: 150px;
+      max-width: 380px;
       flex-shrink: 0;
       display: flex;
       flex-direction: column;
-      background: var(--clr-panel);
-      border-right: 1px solid var(--clr-border);
+      background: var(--color-surface-1);
+      border-right: 1px solid var(--color-border);
       overflow: hidden;
     }
+
     .palette-header {
-      padding: 8px 8px 4px;
-      border-bottom: 1px solid var(--clr-border);
+      padding: 8px;
+      border-bottom: 1px solid var(--color-border);
       flex-shrink: 0;
+      background: var(--color-surface-1);
     }
+
+    /* 보드 셀렉트 */
     .palette-board-select {
       width: 100%;
-      background: #1a1a26; border: 1px solid #2e2e3e;
-      border-radius: 4px; color: var(--clr-text);
-      padding: 4px 6px; font-size: 11px; cursor: pointer;
-      margin-bottom: 6px;
+      background: var(--color-input-bg);
+      border: 1px solid var(--color-input-border);
+      border-radius: var(--radius-sm);
+      color: var(--color-input-text);
+      padding: 5px 8px;
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+      margin-bottom: 7px;
+      outline: none;
+      transition: border-color 0.15s;
     }
-    .palette-search-wrap {
-      position: relative;
+    .palette-board-select:focus { border-color: var(--color-input-focus); }
+    .palette-board-select option {
+      background: var(--color-surface-2);
     }
-    .palette-search-wrap::before {
-      content: '🔍';
-      position: absolute; left: 7px; top: 50%; transform: translateY(-50%);
-      font-size: 11px; pointer-events: none;
+
+    /* 검색 */
+    .palette-search-wrap { position: relative; }
+    .palette-search-icon {
+      position: absolute; left: 8px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--color-text-disabled);
+      font-size: 12px; pointer-events: none;
+      font-style: normal;
     }
     #palette-search {
-      width: 100%; background: #1a1a26;
-      border: 1px solid #2e2e3e; border-radius: 4px;
-      color: var(--clr-text); padding: 4px 6px 4px 26px;
-      font-size: 11px; outline: none;
+      width: 100%;
+      background: var(--color-input-bg);
+      border: 1px solid var(--color-input-border);
+      border-radius: var(--radius-sm);
+      color: var(--color-input-text);
+      padding: 5px 8px 5px 28px;
+      font-size: 12px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
     }
-    #palette-search:focus { border-color: #3a3a5e; }
+    #palette-search::placeholder { color: var(--color-input-placeholder); }
+    #palette-search:focus { border-color: var(--color-input-focus); }
+
+    /* 팔레트 리스트 */
     #palette-list {
-      flex: 1; overflow-y: auto; padding: 6px 4px;
+      flex: 1; overflow-y: auto;
+      padding: 4px 0 8px;
     }
+
     .palette-category {
-      font-size: 9px; color: var(--clr-muted);
-      text-transform: uppercase; letter-spacing: 0.6px;
-      padding: 6px 8px 2px; font-weight: 600;
+      font-size: 10px;
+      color: var(--color-text-disabled);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 8px 12px 3px;
+      font-weight: 600;
     }
+
     .palette-item {
-      display: flex; align-items: center; gap: 6px;
-      padding: 5px 8px; border-radius: 4px;
-      cursor: grab; font-size: 11px; color: #aaa;
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 12px;
+      cursor: grab;
+      font-size: 12px;
+      color: var(--color-text-secondary);
       transition: background 0.1s, color 0.1s;
+      border-radius: 0;
+      position: relative;
     }
-    .palette-item:hover { background: #1c1c2e; color: #eee; }
+    .palette-item::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 2px;
+      background: var(--color-primary);
+      border-radius: 0 2px 2px 0;
+      opacity: 0;
+      transition: opacity 0.1s;
+    }
+    .palette-item:hover {
+      background: var(--color-primary-subtle);
+      color: var(--color-text-primary);
+    }
+    .palette-item:hover::before { opacity: 1; }
     .palette-item:active { cursor: grabbing; }
-    .palette-icon { font-size: 14px; min-width: 18px; }
-    .palette-label { flex: 1; }
+
+    .palette-icon {
+      font-size: 15px;
+      min-width: 20px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .palette-label { flex: 1; font-weight: 450; }
     .palette-edit-btn {
       background: transparent; border: none; cursor: pointer;
-      font-size: 10px; opacity: 0; transition: opacity 0.1s; padding: 0 2px;
+      font-size: 11px; opacity: 0; transition: opacity 0.1s;
+      padding: 1px 3px; color: var(--color-text-secondary);
+      border-radius: var(--radius-sm);
     }
-    .palette-item:hover .palette-edit-btn { opacity: 0.6; }
-    .palette-edit-btn:hover { opacity: 1 !important; }
-    .palette-add-btn {
-      width: calc(100% - 8px); margin: 4px;
-      padding: 5px; background: #0e1e0e;
-      border: 1px dashed #1e3e1e; border-radius: 4px;
-      color: #4f4; font-size: 10px; cursor: pointer; text-align: center;
-    }
-    .palette-add-btn:hover { background: #122012; }
+    .palette-item:hover .palette-edit-btn { opacity: 0.7; }
+    .palette-edit-btn:hover { opacity: 1 !important; background: var(--color-surface-3); }
 
-    /* ── 패널 구분선 (리사이즈) ───────────────────────────────── */
+    .palette-add-btn {
+      width: calc(100% - 16px); margin: 4px 8px;
+      padding: 6px 8px;
+      background: transparent;
+      border: 1px dashed var(--color-border);
+      border-radius: var(--radius-sm);
+      color: var(--color-text-disabled);
+      font-size: 11px;
+      font-family: inherit;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.1s, border-color 0.1s, color 0.1s;
+    }
+    .palette-add-btn:hover {
+      background: var(--color-success-subtle);
+      border-color: var(--color-success-border);
+      color: var(--color-success);
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       패널 구분선 (리사이즈 핸들)
+    ══════════════════════════════════════════════════════════════ */
     .panel-divider {
       width: 4px; flex-shrink: 0;
-      background: var(--clr-border);
+      background: var(--color-border-subtle);
       cursor: col-resize;
       transition: background 0.15s;
       position: relative;
       z-index: 10;
     }
+    .panel-divider::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 2px; height: 32px;
+      background: var(--color-border);
+      border-radius: 2px;
+      transition: background 0.15s, height 0.15s;
+    }
+    .panel-divider:hover::after,
+    .panel-divider.dragging::after {
+      background: var(--color-primary);
+      height: 48px;
+    }
     .panel-divider:hover,
-    .panel-divider.dragging { background: var(--clr-accent); opacity: 0.6; }
+    .panel-divider.dragging {
+      background: var(--color-primary-subtle);
+    }
 
-    /* ── 캔버스 ─────────────────────────────────────────────── */
+    /* ══════════════════════════════════════════════════════════════
+       캔버스
+    ══════════════════════════════════════════════════════════════ */
     #canvas {
       flex: 1; min-width: 100px;
       position: relative; overflow: hidden;
-      background: #0f0f13;
-      background-image:
-        radial-gradient(circle, #22222e 1px, transparent 1px);
+      background: var(--color-canvas-bg);
+      background-image: radial-gradient(circle, var(--color-canvas-dot) 1px, transparent 1px);
       background-size: 20px 20px;
       cursor: default;
     }
+
     #canvas-hint {
       position: absolute; top: 50%; left: 50%;
-      transform: translate(-50%,-50%);
-      text-align: center; color: #2e2e3e;
-      pointer-events: none; font-size: 13px; line-height: 1.9;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      color: var(--color-text-disabled);
+      pointer-events: none;
+      font-size: 13px;
+      line-height: 2;
     }
-    #canvas-hint .hint-icon { font-size: 36px; display: block; margin-bottom: 8px; }
+    #canvas-hint .hint-icon {
+      font-size: 32px; display: block; margin-bottom: 6px;
+      opacity: 0.4;
+    }
+    #canvas-hint small {
+      font-size: 11px;
+      color: var(--color-border);
+    }
 
-    /* ── 유효성 검사 바 ───────────────────────────────────────── */
+    /* ── 유효성 검사 바 ──────────────────────────────────────────── */
     #validation-bar {
       position: absolute; bottom: 0; left: 0; right: 0;
-      background: #09090f; border-top: 1px solid #1a1a22;
-      z-index: 10; font-size: 10px; display: none;
+      background: var(--color-surface-1);
+      border-top: 1px solid var(--color-border);
+      z-index: 10; font-size: 11px; display: none;
     }
     .validation-item {
-      display: flex; align-items: center; gap: 6px;
-      padding: 4px 10px; cursor: pointer;
+      display: flex; align-items: center; gap: 7px;
+      padding: 5px 12px; cursor: pointer;
       transition: background 0.1s;
+      font-size: 11px;
     }
-    .validation-item:hover { background: #141420; }
-    .validation-item.error   { color: #f55; }
-    .validation-item.warning { color: #fa4; }
-    .validation-item.info    { color: #4af; }
-    .validation-icon { font-size: 10px; flex-shrink: 0; }
+    .validation-item:hover { background: var(--color-surface-2); }
+    .validation-item.error   { color: var(--color-error); }
+    .validation-item.warning { color: var(--color-warning); }
+    .validation-item.info    { color: var(--color-primary); }
+    .validation-icon { font-size: 11px; flex-shrink: 0; }
 
-    /* ── 우측 패널 ──────────────────────────────────────────── */
+    /* ══════════════════════════════════════════════════════════════
+       우측 패널
+    ══════════════════════════════════════════════════════════════ */
     #right-panel {
       width: var(--right-w);
-      min-width: 200px;
+      min-width: 220px;
       max-width: 700px;
       flex-shrink: 0;
       display: flex;
       flex-direction: column;
-      background: var(--clr-panel);
-      border-left: 1px solid var(--clr-border);
+      background: var(--color-surface-1);
+      border-left: 1px solid var(--color-border);
       overflow: hidden;
     }
 
-    /* ── 탭 바 ──────────────────────────────────────────────── */
+    /* ── 탭 바 ──────────────────────────────────────────────────── */
     .right-tab-bar {
       display: flex;
-      background: var(--clr-bar);
-      border-bottom: 1px solid var(--clr-border);
+      background: var(--color-surface-2);
+      border-bottom: 1px solid var(--color-border);
       flex-shrink: 0;
+      padding: 0 4px;
     }
     .right-tab-btn {
-      padding: 9px 16px; font-size: 12px; color: #555;
-      cursor: pointer; border: none; background: transparent;
+      padding: 10px 14px;
+      font-size: 12px;
+      font-family: inherit;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      border: none;
+      background: transparent;
       border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
       transition: color 0.15s, border-color 0.15s;
       white-space: nowrap;
     }
-    .right-tab-btn:hover { color: #888; }
-    .right-tab-btn.active { color: var(--clr-accent); border-bottom-color: var(--clr-accent); }
+    .right-tab-btn:hover { color: var(--color-text-primary); }
+    .right-tab-btn.active {
+      color: var(--color-primary);
+      border-bottom-color: var(--color-primary);
+      background: var(--color-surface-1);
+    }
 
-    /* ── 탭 컨텐츠 ──────────────────────────────────────────── */
+    /* ── 탭 컨텐츠 ──────────────────────────────────────────────── */
     .right-tab-pane {
       display: none;
       flex: 1; min-height: 0;
@@ -244,154 +593,284 @@
     }
     .right-tab-pane.active { display: flex; }
 
-    /* ── 코드 에디터 ────────────────────────────────────────── */
+    /* ── 코드 에디터 ────────────────────────────────────────────── */
     #editor {
-      flex: 1; min-height: 0; overflow: hidden;
-      background: #1e1e1e;
+      flex: 1; min-height: 0;
+      overflow: hidden;
     }
 
-    /* ── 시리얼 패널 ────────────────────────────────────────── */
+    /* ── 시리얼 패널 ────────────────────────────────────────────── */
     #serial-panel {
       flex: 1; min-height: 0;
       display: flex; flex-direction: column;
     }
     .serial-toolbar {
       display: flex; align-items: center;
-      padding: 4px 8px; gap: 6px;
-      background: #0e0e16; border-bottom: 1px solid var(--clr-border);
+      padding: 6px 10px; gap: 6px;
+      background: var(--color-surface-2);
+      border-bottom: 1px solid var(--color-border);
       flex-shrink: 0;
     }
-    .serial-label { font-size: 11px; color: #666; font-weight: 600; }
-    .serial-baud {
-      background: #1a1a26; border: 1px solid #2e2e3e;
-      border-radius: 3px; color: #888; padding: 1px 4px; font-size: 10px;
-      margin-left: auto;
+    .serial-label {
+      font-size: 11px;
+      color: var(--color-text-secondary);
+      font-weight: 600;
+      letter-spacing: 0.2px;
     }
+    .serial-baud {
+      background: var(--color-input-bg);
+      border: 1px solid var(--color-input-border);
+      border-radius: var(--radius-sm);
+      color: var(--color-text-secondary);
+      padding: 2px 6px;
+      font-size: 11px;
+      font-family: inherit;
+      margin-left: auto;
+      outline: none;
+      cursor: pointer;
+    }
+    .serial-baud option { background: var(--color-surface-2); }
+
     #serial-output {
       flex: 1; overflow-y: auto;
-      padding: 6px 10px; margin: 0;
-      font-family: 'Fira Code', 'Consolas', monospace;
-      font-size: 11px; color: #4af44a;
-      background: #09090f; white-space: pre-wrap; word-break: break-all;
+      padding: 8px 12px; margin: 0;
+      font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 11.5px;
+      color: var(--color-serial-text);
+      background: var(--color-serial-bg);
+      white-space: pre-wrap;
+      word-break: break-all;
+      line-height: 1.65;
     }
+
     .serial-input-row {
-      display: flex; gap: 4px; padding: 4px 6px;
-      border-top: 1px solid var(--clr-border);
-      background: #0e0e16; flex-shrink: 0;
+      display: flex; gap: 6px;
+      padding: 6px 8px;
+      border-top: 1px solid var(--color-border);
+      background: var(--color-surface-2);
+      flex-shrink: 0;
     }
     #serial-input {
-      flex: 1; background: #1a1a26; border: 1px solid #2e2e3e;
-      border-radius: 3px; color: var(--clr-text);
-      padding: 3px 7px; font-size: 11px; font-family: monospace; outline: none;
+      flex: 1;
+      background: var(--color-input-bg);
+      border: 1px solid var(--color-input-border);
+      border-radius: var(--radius-sm);
+      color: var(--color-input-text);
+      padding: 4px 9px;
+      font-size: 11.5px;
+      font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+      outline: none;
+      transition: border-color 0.15s;
     }
-    #serial-input:focus { border-color: #3a3a5e; }
-    #btn-serial-send { padding: 3px 10px; font-size: 11px; }
-    #btn-clear-serial { padding: 2px 7px; font-size: 10px; }
+    #serial-input::placeholder { color: var(--color-input-placeholder); }
+    #serial-input:focus { border-color: var(--color-input-focus); }
+    #btn-serial-send { padding: 4px 12px; font-size: 11.5px; }
+    #btn-clear-serial { padding: 4px 8px; font-size: 11px; }
 
-    /* ── 속성 패널 ──────────────────────────────────────────── */
+    /* ── 속성 패널 ──────────────────────────────────────────────── */
     #property-panel {
       flex: 1; overflow-y: auto;
-      background: #0e0e14; font-size: 11px;
+      background: var(--color-surface-1);
+      font-size: 11.5px;
     }
     .prop-empty {
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      height: 100%; color: #2a2a3a;
-      font-size: 11px; text-align: center; line-height: 1.7;
+      height: 100%;
+      color: var(--color-text-disabled);
+      font-size: 12px; text-align: center; line-height: 1.8;
+      padding: 24px;
     }
-    .prop-empty-icon { font-size: 24px; margin-bottom: 8px; opacity: 0.5; }
+    .prop-empty-icon { font-size: 28px; margin-bottom: 10px; opacity: 0.4; }
+
     .prop-header {
       display: flex; align-items: center; gap: 8px;
-      padding: 8px 10px; background: #141420;
-      border-bottom: 1px solid var(--clr-border);
+      padding: 10px 12px;
+      background: var(--color-surface-2);
+      border-bottom: 1px solid var(--color-border);
     }
     .prop-icon { font-size: 18px; }
-    .prop-title { font-size: 12px; font-weight: 700; color: #ddd; }
-    .prop-id { font-size: 9px; color: #444; font-family: monospace; }
+    .prop-title { font-size: 12px; font-weight: 700; color: var(--color-text-primary); }
+    .prop-id {
+      font-size: 10px;
+      color: var(--color-text-disabled);
+      font-family: 'JetBrains Mono', monospace;
+    }
     .prop-delete {
       margin-left: auto; background: transparent; border: none;
-      cursor: pointer; font-size: 14px; opacity: 0.4;
+      cursor: pointer; font-size: 14px;
+      color: var(--color-text-disabled);
+      padding: 2px 4px; border-radius: var(--radius-sm);
+      transition: background 0.1s, color 0.1s;
     }
-    .prop-delete:hover { opacity: 1; }
-    .prop-section { padding: 6px 10px; border-bottom: 1px solid #16161e; }
+    .prop-delete:hover { background: var(--color-error-subtle); color: var(--color-error); }
+
+    .prop-section {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--color-border-subtle);
+    }
     .prop-section-title {
-      font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;
-      color: #444; margin-bottom: 4px; font-weight: 600;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--color-text-disabled);
+      margin-bottom: 6px;
+      font-weight: 600;
     }
-    .prop-row { display: flex; align-items: center; gap: 6px; padding: 2px 0; font-size: 10px; }
-    .prop-label { color: #555; min-width: 60px; flex-shrink: 0; }
-    .prop-value { color: #999; flex: 1; }
-    .spec-highlight { color: #4af44a; font-weight: 600; }
+    .prop-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 2px 0;
+      font-size: 11.5px;
+    }
+    .prop-label {
+      color: var(--color-text-secondary);
+      min-width: 64px; flex-shrink: 0;
+    }
+    .prop-value { color: var(--color-text-primary); flex: 1; }
+    .spec-highlight { color: var(--color-success); font-weight: 600; }
+
     .prop-input {
-      background: #1a1a26; border: 1px solid #2e2e3e; border-radius: 3px;
-      color: var(--clr-text); padding: 2px 6px; font-size: 10px; width: 70px;
+      background: var(--color-input-bg);
+      border: 1px solid var(--color-input-border);
+      border-radius: var(--radius-sm);
+      color: var(--color-input-text);
+      padding: 3px 7px;
+      font-size: 11px;
+      font-family: inherit;
+      width: 70px;
+      outline: none;
+      transition: border-color 0.15s;
     }
-    .prop-unit { color: #444; font-size: 10px; }
+    .prop-input:focus { border-color: var(--color-input-focus); }
+    .prop-unit { color: var(--color-text-disabled); font-size: 10px; }
+
     .prop-select {
-      background: #1a1a26; border: 1px solid #2e2e3e; border-radius: 3px;
-      color: var(--clr-text); padding: 2px 4px; font-size: 10px; flex: 1;
+      background: var(--color-input-bg);
+      border: 1px solid var(--color-input-border);
+      border-radius: var(--radius-sm);
+      color: var(--color-input-text);
+      padding: 3px 6px;
+      font-size: 11px;
+      font-family: inherit;
+      flex: 1; outline: none;
+      cursor: pointer;
     }
-    .prop-pin-row { display: flex; align-items: flex-start; gap: 6px; padding: 2px 0; font-size: 10px; }
+    .prop-select option { background: var(--color-surface-2); }
+
+    .prop-pin-row {
+      display: flex; align-items: flex-start; gap: 8px;
+      padding: 3px 0;
+      font-size: 11px;
+    }
     .prop-pin-name {
-      font-family: monospace; font-size: 9px; min-width: 54px;
-      padding: 1px 4px; border-radius: 3px; text-align: center; flex-shrink: 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      min-width: 56px;
+      padding: 2px 5px;
+      border-radius: var(--radius-sm);
+      text-align: center;
+      flex-shrink: 0;
     }
-    .pin-type-power        { background: #3a0a0a; color: #f88; border: 1px solid #6a1a1a; }
-    .pin-type-ground       { background: #0a1a0a; color: #8a8; border: 1px solid #1a3a1a; }
-    .pin-type-input        { background: #0a0a3a; color: #88f; border: 1px solid #1a1a6a; }
-    .pin-type-output       { background: #0a2a3a; color: #8cf; border: 1px solid #1a5a6a; }
-    .pin-type-signal       { background: #1e1e0a; color: #cc8; border: 1px solid #3e3e1a; }
-    .pin-type-bidirectional{ background: #1e0a2a; color: #a8f; border: 1px solid #3e1a5a; }
-    .prop-pin-desc { color: #555; font-size: 9px; line-height: 1.4; }
-    .prop-note { color: #555; font-size: 9px; padding: 2px 10px; line-height: 1.5; }
+    .pin-type-power         { background: rgba(255,92,92,0.12);  color: #FF8080; border: 1px solid rgba(255,92,92,0.25); }
+    .pin-type-ground        { background: rgba(61,220,132,0.1);  color: #5DC888; border: 1px solid rgba(61,220,132,0.2); }
+    .pin-type-input         { background: rgba(74,142,255,0.12); color: #7AAEFF; border: 1px solid rgba(74,142,255,0.25); }
+    .pin-type-output        { background: rgba(100,200,255,0.1); color: #8CCFFF; border: 1px solid rgba(100,200,255,0.2); }
+    .pin-type-signal        { background: rgba(255,200,80,0.1);  color: #E8C060; border: 1px solid rgba(255,200,80,0.2); }
+    .pin-type-bidirectional { background: rgba(180,100,255,0.1); color: #C080FF; border: 1px solid rgba(180,100,255,0.2); }
+    .prop-pin-desc { color: var(--color-text-disabled); font-size: 10px; line-height: 1.45; }
+    .prop-note { color: var(--color-text-disabled); font-size: 10px; padding: 4px 12px; line-height: 1.6; }
     .pin-info-badge {
       display: inline-flex; align-items: center; gap: 4px;
-      padding: 2px 6px; border-radius: 3px; font-size: 10px;
-      font-family: monospace; font-weight: 600;
+      padding: 2px 7px; border-radius: var(--radius-sm);
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
     }
 
-    /* ── 컨텍스트 메뉴 (공통) ────────────────────────────────── */
+    /* ══════════════════════════════════════════════════════════════
+       컨텍스트 메뉴 (공통)
+    ══════════════════════════════════════════════════════════════ */
     .ctx-menu {
       position: fixed; z-index: 9999;
-      background: #1c1c28; border: 1px solid #2e2e42;
-      border-radius: 6px; padding: 4px 0; min-width: 150px;
-      box-shadow: 0 8px 28px rgba(0,0,0,0.65);
-      font-size: 12px; color: var(--clr-text); user-select: none;
+      background: var(--color-surface-2);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 4px 0;
+      min-width: 160px;
+      box-shadow:
+        0 4px 6px -1px rgba(0,0,0,0.15),
+        0 10px 25px -3px rgba(0,0,0,0.2);
+      font-size: 12px;
+      font-family: inherit;
+      color: var(--color-text-primary);
+      user-select: none;
     }
     .ctx-menu .ctx-title {
-      padding: 5px 12px 3px; font-size: 9px;
-      color: var(--clr-muted); text-transform: uppercase; letter-spacing: 0.5px;
+      padding: 5px 12px 3px;
+      font-size: 10px;
+      color: var(--color-text-disabled);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
     }
     .ctx-menu .ctx-item {
-      padding: 6px 14px; cursor: pointer;
+      padding: 7px 14px;
+      cursor: pointer;
       display: flex; align-items: center; gap: 8px;
-      transition: background 0.1s;
+      transition: background 0.08s, color 0.08s;
+      color: var(--color-text-secondary);
     }
-    .ctx-menu .ctx-item:hover { background: #252538; color: #eee; }
-    .ctx-menu .ctx-item.active { color: var(--clr-accent); }
-    .ctx-menu .ctx-sep { height: 1px; background: #252535; margin: 3px 0; }
-    .ctx-menu .ctx-item.danger:hover { background: #2e0e0e; color: #f55; }
+    .ctx-menu .ctx-item:hover {
+      background: var(--color-primary-subtle);
+      color: var(--color-text-primary);
+    }
+    .ctx-menu .ctx-item.active { color: var(--color-primary); }
+    .ctx-menu .ctx-sep {
+      height: 1px;
+      background: var(--color-border);
+      margin: 3px 0;
+    }
+    .ctx-menu .ctx-item.danger:hover {
+      background: var(--color-error-subtle);
+      color: var(--color-error);
+    }
 
-    /* ── 파일 입력 숨김 ──────────────────────────────────────── */
+    /* ══════════════════════════════════════════════════════════════
+       기타
+    ══════════════════════════════════════════════════════════════ */
     #file-input { display: none; }
 
-    /* ── 스크롤바 (공통) ─────────────────────────────────────── */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    /* 스크롤바 */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #2a2a38; border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: #3a3a52; }
+    ::-webkit-scrollbar-thumb {
+      background: var(--color-scrollbar);
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover { background: var(--color-scrollbar-hover); }
+
+    /* ── 라이트 모드 핀 색상 오버라이드 ─────────────────────────── */
+    [data-theme="light"] .pin-type-power         { background: rgba(217,48,37,0.08);  color: #C0302A; border-color: rgba(217,48,37,0.2); }
+    [data-theme="light"] .pin-type-ground        { background: rgba(30,138,74,0.08);  color: #1E6830; border-color: rgba(30,138,74,0.2); }
+    [data-theme="light"] .pin-type-input         { background: rgba(0,85,255,0.08);   color: #0044CC; border-color: rgba(0,85,255,0.2); }
+    [data-theme="light"] .pin-type-output        { background: rgba(0,130,200,0.08);  color: #0068A0; border-color: rgba(0,130,200,0.2); }
+    [data-theme="light"] .pin-type-signal        { background: rgba(180,120,0,0.08);  color: #916000; border-color: rgba(180,120,0,0.2); }
+    [data-theme="light"] .pin-type-bidirectional { background: rgba(110,40,160,0.08); color: #6E28A0; border-color: rgba(110,40,160,0.2); }
   </style>
 </head>
 <body>
   <div id="app">
 
-    <!-- ── 툴바 ──────────────────────────────────────────────── -->
+    <!-- ── 툴바 ──────────────────────────────────────────────────── -->
     <div id="toolbar">
-      <span class="toolbar-logo">⚡ Arduino Sim</span>
+      <div class="toolbar-logo">
+        <div class="toolbar-logo-icon">⚡</div>
+        <span class="toolbar-logo-text">Arduino Sim <span class="toolbar-logo-ver">v2</span></span>
+      </div>
       <div class="toolbar-sep"></div>
 
       <button id="btn-new"  class="toolbar-btn" title="새 회로 (Ctrl+N)">🗋 새로</button>
-      <button id="btn-run"  class="toolbar-btn" title="실행/정지">▶ 실행</button>
+      <button id="btn-run"  class="toolbar-btn" title="실행/정지 (Ctrl+Enter)">▶ 실행</button>
 
       <div class="toolbar-sep"></div>
 
@@ -408,12 +887,14 @@
 
       <button id="btn-zoom-in"  class="toolbar-btn" title="확대 (+)">+</button>
       <button id="btn-zoom-out" class="toolbar-btn" title="축소 (-)">−</button>
-      <button id="btn-fit"      class="toolbar-btn" title="전체 보기">⊡</button>
+      <button id="btn-fit"      class="toolbar-btn" title="전체 보기 (F)">⊡</button>
 
       <div id="status-indicator" title="시뮬레이터 상태"></div>
+
+      <button id="btn-theme" class="toolbar-btn" title="라이트/다크 모드 전환">🌙</button>
     </div>
 
-    <!-- ── 메인 영역 ──────────────────────────────────────────── -->
+    <!-- ── 메인 영역 ──────────────────────────────────────────────── -->
     <div id="main">
 
       <!-- 부품 팔레트 -->
@@ -426,6 +907,7 @@
             <option value="esp32-devkit">ESP32 DevKit V1</option>
           </select>
           <div class="palette-search-wrap">
+            <i class="palette-search-icon">⌕</i>
             <input id="palette-search" type="search" placeholder="부품 검색...">
           </div>
         </div>
@@ -442,7 +924,7 @@
         <div id="canvas-hint">
           <span class="hint-icon">🔌</span>
           부품을 왼쪽에서 드래그하거나<br>더블클릭하여 추가하세요<br>
-          <small style="color:#1e1e2e">휠: 줌 · Alt+드래그: 이동 · 우클릭: 메뉴</small>
+          <small>휠: 줌 · Alt+드래그: 이동 · 우클릭: 메뉴</small>
         </div>
         <div id="validation-bar"></div>
       </div>
@@ -467,7 +949,7 @@
         <div class="right-tab-pane" id="tab-serial">
           <div id="serial-panel">
             <div class="serial-toolbar">
-              <span class="serial-label">📟 시리얼 모니터</span>
+              <span class="serial-label">시리얼 모니터</span>
               <select class="serial-baud">
                 <option>9600 baud</option>
                 <option>115200 baud</option>
@@ -476,7 +958,7 @@
             </div>
             <pre id="serial-output"></pre>
             <div class="serial-input-row">
-              <input id="serial-input" type="text" placeholder="전송할 데이터 입력...">
+              <input id="serial-input" type="text" placeholder="전송할 데이터 입력 후 Enter...">
               <button id="btn-serial-send" class="toolbar-btn">전송</button>
             </div>
           </div>
