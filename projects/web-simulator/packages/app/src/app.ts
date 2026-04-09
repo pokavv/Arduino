@@ -405,8 +405,6 @@ circuitStore.subscribe(() => {
   }
 });
 
-// ── 기본 예제 로드 ────────────────────────────────────────────────
-loadDefaultExample();
 setTimeout(() => canvas.fitView(), 150);
 
 // ── 서버 데이터 로드 (보드/템플릿) ───────────────────────────────
@@ -469,38 +467,6 @@ async function addComponent(type: string, x: number, y: number) {
   });
 }
 
-function loadDefaultExample() {
-  circuitStore.addComponent({ id: 'board-default', type: 'board-uno', x: 60, y: 60, rotation: 0, props: {}, connections: {} });
-  circuitStore.addComponent({ id: 'r1', type: 'resistor', x: 420, y: 120, rotation: 0, props: { ohms: 220 }, connections: {} });
-  circuitStore.addComponent({ id: 'led1', type: 'led', x: 510, y: 90, rotation: 0, props: { color: 'red' }, connections: {} });
-
-  circuitStore.addWire({ id: 'w1', fromCompId: 'board-default', fromPin: 'D13',     toCompId: 'r1',    toPin: 'PIN1',    color: '#4af' });
-  circuitStore.addWire({ id: 'w2', fromCompId: 'r1',            fromPin: 'PIN2',    toCompId: 'led1',  toPin: 'ANODE',   color: '#4af' });
-  circuitStore.addWire({ id: 'w3', fromCompId: 'led1',          fromPin: 'CATHODE', toCompId: 'board-default', toPin: 'GND', color: '#666' });
-
-  circuitStore.setCode(`// Blink — LED 깜빡이기
-// D13번 핀에 연결된 LED를 1초 간격으로 켜고 끕니다
-// 회로: D13 → 220Ω 저항 → LED → GND
-
-const int LED_PIN = 13;
-
-void setup() {
-  pinMode(LED_PIN, OUTPUT);
-  Serial.begin(9600);
-  Serial.println("시뮬레이터 시작!");
-}
-
-void loop() {
-  digitalWrite(LED_PIN, HIGH);
-  Serial.println("LED ON");
-  delay(1000);
-
-  digitalWrite(LED_PIN, LOW);
-  Serial.println("LED OFF");
-  delay(1000);
-}
-`);
-}
 
 async function loadServerData() {
   const boardSelect = document.getElementById('board-select') as HTMLSelectElement | null;
