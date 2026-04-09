@@ -73,7 +73,7 @@ export const BOARDS: BoardDef[] = [
     adcBits: 10,
     voltage: 5.0,
     ledBuiltin: 13,
-    element: 'sim-board-uno',
+    element: 'sim-board-nano',
     pins: [
       { name:'D2',  gpio:2,  type:'digital' },
       { name:'D3',  gpio:3,  type:'digital', pwm:true },
@@ -142,7 +142,7 @@ export const BOARDS: BoardDef[] = [
     adcBits: 12,
     voltage: 3.3,
     ledBuiltin: 2,
-    element: 'sim-board-uno',
+    element: 'sim-board-esp32',
     pins: [
       { name:'D0',  gpio:0,  type:'digital' },
       { name:'D2',  gpio:2,  type:'digital', pwm:true },

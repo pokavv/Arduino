@@ -42,6 +42,8 @@ export { SimL298n } from './components/sim-l298n.js';
 // 보드
 export { SimBoardUno } from './components/sim-board-uno.js';
 export { SimBoardEsp32c3 } from './components/sim-board-esp32c3.js';
+export { SimBoardNano } from './components/sim-board-nano.js';
+export { SimBoardEsp32 } from './components/sim-board-esp32.js';
 
 // 범용 (서버 정의 커스텀 컴포넌트)
 export { SimGeneric } from './components/sim-generic.js';
