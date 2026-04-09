@@ -210,20 +210,20 @@ export class SimBoardEsp32c3 extends SimElement {
         <line x1="2.03" y1="2.95" x2="3.24" y2="2.95"
           stroke="#444" stroke-width="0.12"/>
 
-        <!-- ── PWR LED 빨강 (3.121, 7.022)mm — 0603 SMD ── -->
+        <!-- ── PWR LED 빨강 (board.json: 3.121,7.022) — 케이스 x=2.975 y=6.242 ── -->
         <!-- 글로우 -->
-        <ellipse cx="3.121" cy="7.022" rx="0.7" ry="0.5"
+        <ellipse cx="3.233" cy="6.721" rx="0.6" ry="0.4"
           fill="url(#pwr-glow)" opacity="0.7"/>
-        <!-- 하우징 흰색 -->
-        <rect x="2.721" y="6.742" width="0.8" height="0.56" rx="0.12"
-          fill="#eeeeee" stroke="#cccccc" stroke-width="0.04"/>
-        <!-- 발광체 -->
-        <rect x="2.921" y="6.812" width="0.4" height="0.42" rx="0.08"
-          fill="#e81010" opacity="0.95"/>
-        <!-- LED 다리 (초록 solder) -->
-        <rect x="2.62" y="6.76" width="0.22" height="0.40" rx="0.05"
-          fill="#91cc7d" opacity="0.7"/>
-        <rect x="3.28" y="6.76" width="0.22" height="0.40" rx="0.05"
+        <!-- 하우징 흰색 (Wokwi: w=0.517 h=0.958) -->
+        <rect x="2.975" y="6.242" width="0.517" height="0.958" rx="0.1"
+          fill="#ffffff" stroke="#cccccc" stroke-width="0.04"/>
+        <!-- 발광체 (Wokwi: #E19C9C 분홍빨강) -->
+        <rect x="3.104" y="6.471" width="0.249" height="0.482" rx="0.06"
+          fill="#E19C9C" opacity="0.95"/>
+        <!-- LED 다리 (#91CC7D 초록 솔더) -->
+        <rect x="3.017" y="7.032" width="0.095" height="0.142" rx="0.04"
+          fill="#91cc7d" opacity="0.8"/>
+        <rect x="3.353" y="7.032" width="0.095" height="0.142" rx="0.04"
           fill="#91cc7d" opacity="0.7"/>
         <!-- 라벨 -->
         <text x="3.6" y="7.3" font-size="0.7" fill="#664444"
@@ -278,19 +278,22 @@ export class SimBoardEsp32c3 extends SimElement {
             text-anchor="middle">RST</text>
         </g>
 
-        <!-- ── IO8 LED 파랑 (13.599, 12.885)mm — GPIO8 Active LOW ── -->
+        <!-- ── IO8 LED 파랑 (board.json: 13.599,12.885) — 90도 회전 배치 ── -->
         ${io8On ? svg`
-          <ellipse cx="13.599" cy="12.885" rx="0.8" ry="0.55"
+          <ellipse cx="13.599" cy="12.885" rx="0.6" ry="0.35"
             fill="url(#io8-glow)" opacity="0.75"/>
         ` : ''}
-        <rect x="13.199" y="12.605" width="0.8" height="0.56" rx="0.12"
-          fill="#eeeeee" stroke="#cccccc" stroke-width="0.04"/>
-        <rect x="13.399" y="12.675" width="0.4" height="0.42" rx="0.08"
-          fill="${io8On ? '#4488ff' : '#112244'}" opacity="0.95"/>
-        <rect x="12.9" y="12.62" width="0.22" height="0.40" rx="0.05"
-          fill="#91cc7d" opacity="0.7"/>
-        <rect x="13.56" y="12.62" width="0.22" height="0.40" rx="0.05"
-          fill="#91cc7d" opacity="0.7"/>
+        <!-- 하우징 흰색 (Wokwi: 90도 회전 → w=0.958 h=0.517) -->
+        <rect x="13.12" y="12.627" width="0.958" height="0.517" rx="0.1"
+          fill="#ffffff" stroke="#cccccc" stroke-width="0.04"/>
+        <!-- 발광체 (Wokwi: #9CA7E1 파란보라) -->
+        <rect x="13.358" y="12.756" width="0.482" height="0.249" rx="0.06"
+          fill="${io8On ? '#9CA7E1' : '#2a2a4a'}" opacity="0.95"/>
+        <!-- LED 다리 (90도 회전: 위/아래) -->
+        <rect x="13.457" y="12.485" width="0.142" height="0.095" rx="0.04"
+          fill="#91cc7d" opacity="0.8"/>
+        <rect x="13.457" y="13.064" width="0.142" height="0.095" rx="0.04"
+          fill="#91cc7d" opacity="0.8"/>
         <text x="12.7" y="13.15" font-size="0.7"
           fill="${io8On ? '#6688ff' : '#334455'}"
           font-family="monospace" text-anchor="end">IO8</text>
