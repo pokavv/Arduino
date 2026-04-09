@@ -392,6 +392,9 @@ export class CircuitCanvas {
     this._drawLayer.setAttribute('transform', tx);
     this._endpointLayer.setAttribute('transform', tx);
     this._waypointLayer.setAttribute('transform', tx);
+    // 상태 표시줄 줌 업데이트
+    const zoomEl = document.getElementById('canvas-zoom');
+    if (zoomEl) zoomEl.textContent = `${Math.round(scale * 100)}%`;
     this._pinLayer.setAttribute('transform', tx);
   }
 
