@@ -131,7 +131,7 @@ void loop() {
   },
   {
     id: 'pwm-fade',
-    name: 'PWM Fade (ESP32 전용)',
+    name: 'PWM Fade',
     category: 'GPIO',
     boardId: 'arduino-uno',
     description: 'PWM으로 LED 밝기 서서히 변경',
@@ -271,7 +271,7 @@ void loop() {
       {
         id: 'lcd1', type: 'lcd', x: 340, y: 80,
         props: { rows: 2, cols: 16, i2cAddress: 0x27 },
-        connections: { VCC: '5V', GND: 'GND', SDA: 18, SCL: 19 },
+        connections: { VCC: '5V', GND: 'GND', SDA: 'A4', SCL: 'A5' },
       },
     ],
     code: `// I2C LCD Hello World

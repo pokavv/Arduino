@@ -8,6 +8,7 @@ export class ArduinoTranspiler {
 
     result = this._stripComments(result);
     result = this._transformPreprocessor(result);
+    result = this._transformArrayDecls(result);
     result = this._transformTypes(result);
     result = this._transformForLoopDecls(result);
     result = this._transformEnums(result);
@@ -40,6 +41,32 @@ export class ArduinoTranspiler {
     });
     // #pragma 등 제거
     code = code.replace(/#\w+[^\n]*/g, '');
+    return code;
+  }
+
+  private _transformArrayDecls(code: string): string {
+    // C++ 배열 선언: type name[] = {...} → const name = [...]
+    // 예) int arr[] = {1,2,3}; → const arr = [1,2,3];
+    // 예) const int lut[4] = {0,1,2,3}; → const lut = [0,1,2,3];
+    // 예) byte buf[8] = {0x00, 0xFF}; → let buf = [0x00, 0xFF];
+    code = code.replace(
+      /^(\s*)(static\s+|volatile\s+)?(const\s+)?(unsigned\s+)?(int|long|short|byte|char|float|double|uint8_t|uint16_t|uint32_t|int8_t|int16_t|int32_t|size_t|word)\s+(\w+)\s*\[\s*\d*\s*\]\s*=\s*\{([^}]*)\}\s*;/gm,
+      (_, indent, _static, isConst, _unsigned, _type, name, body) => {
+        const keyword = isConst ? 'const' : 'let';
+        // 중괄호 내용을 배열 리터럴로 변환
+        return `${indent}${keyword} ${name} = [${body}];`;
+      }
+    );
+
+    // 초기화 없는 배열 선언: type name[N]; → let name = new Array(N).fill(0);
+    // 예) int buf[8]; → let buf = new Array(8).fill(0);
+    code = code.replace(
+      /^(\s*)(static\s+|volatile\s+)?(const\s+)?(unsigned\s+)?(int|long|short|byte|char|float|double|uint8_t|uint16_t|uint32_t|int8_t|int16_t|int32_t|size_t|word)\s+(\w+)\s*\[\s*(\d+)\s*\]\s*;/gm,
+      (_, indent, _static, _isConst, _unsigned, _type, name, size) => {
+        return `${indent}let ${name} = new Array(${size}).fill(0);`;
+      }
+    );
+
     return code;
   }
 

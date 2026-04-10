@@ -324,6 +324,7 @@ fileInput.addEventListener('change', () => {
   const reader = new FileReader();
   reader.onload = () => {
     try {
+      simController.stop(); // 실행 중인 Worker 종료 후 회로 로드
       circuitStore.loadFromJson(reader.result as string);
       const hint = document.getElementById('canvas-hint');
       if (hint) hint.style.display = 'none';
@@ -463,8 +464,15 @@ function renderValidation(results: import('./stores/circuit-validator.js').Valid
 }
 
 circuitStore.subscribe(() => renderValidation(circuitValidator.validate()));
+
+// validateAsync는 서버 fetch를 포함하므로 500ms 디바운스 적용
+let _validateAsyncTimer: ReturnType<typeof setTimeout> | null = null;
 circuitStore.subscribe(() => {
-  circuitValidator.validateAsync().then(results => renderValidation(results));
+  if (_validateAsyncTimer) clearTimeout(_validateAsyncTimer);
+  _validateAsyncTimer = setTimeout(() => {
+    _validateAsyncTimer = null;
+    circuitValidator.validateAsync().then(results => renderValidation(results));
+  }, 500);
 });
 
 console.log('%c⚡ Arduino Web Simulator 준비 완료', 'color:#4a9eff;font-size:14px;font-weight:bold');
@@ -543,6 +551,7 @@ function appendTemplateSection(templates: TemplateInfo[]) {
       item.addEventListener('click', async () => {
         try {
           const detail = await fetch(`${API_BASE}/templates/${t.id}`).then(r => r.json()) as TemplateDetail;
+          simController.stop(); // 실행 중인 Worker 종료 후 템플릿 로드
           circuitStore.loadTemplate(detail);
           const hint = document.getElementById('canvas-hint');
           if (hint) hint.style.display = 'none';

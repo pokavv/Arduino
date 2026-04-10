@@ -990,8 +990,8 @@ export class CircuitCanvas {
       if (!fromPinDef || !toPinDef) return;
       const r = await fetch(`/api/components/connections/validate?from=${encodeURIComponent(fromPinDef.type)}&to=${encodeURIComponent(toPinDef.type)}`);
       if (!r.ok) return;
-      const result = await r.json() as { compatible: boolean; severity?: string; message?: string };
-      if (!result.compatible) {
+      const result = await r.json() as { valid: boolean; severity?: string; message?: string };
+      if (!result.valid) {
         this._showToast(
           result.severity === 'error' ? '⛔' : '⚠️',
           result.message ?? '호환되지 않는 핀 연결',
