@@ -36,7 +36,8 @@ export class SimIrLed extends SimElement {
   }
 
   override render() {
-    const glowOpacity = this.lit ? (this.brightness / 255) : 0;
+    const normalizedBrightness = this.brightness > 255 ? this.brightness / 1023 : this.brightness / 255;
+    const glowOpacity = this.lit ? Math.min(1, normalizedBrightness) : 0;
     // IR LED: 어두운 투명 검은 렌즈, 켜지면 보라/자주색 글로우
     const lensBody    = this.lit ? '#3a1a4a' : '#1a1a2a';
     const lensStroke  = this.lit ? '#9955cc88' : '#33334488';

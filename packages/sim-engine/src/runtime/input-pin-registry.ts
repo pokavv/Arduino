@@ -19,7 +19,11 @@ export interface InputPinHandler {
 export const INPUT_PIN_REGISTRY: Record<string, InputPinHandler[]> = {
   // INPUT_PULLUP 기준: 기본값 HIGH(1) = 안 눌림
   'button':        [{ pin: 'PIN1A',  ctxKey: '__btn',    defaultValue: 1 }],
+  // 아날로그 입력: 기본값 512 (10-bit 중점)
   'potentiometer': [{ pin: 'WIPER',  ctxKey: '__pot',    defaultValue: 512 }],
+  // LM35: 10mV/°C, 25°C 기본 → 5V 1023-step 기준 adcValue ≈ 51 (= 25*1023/500)
+  'lm35':          [{ pin: 'OUT',    ctxKey: '__lm35',   defaultValue: 51 }],
+  // 디지털 센서: 기본값 LOW(0)
   'hall-sensor':   [{ pin: 'OUT',    ctxKey: '__sensor', defaultValue: 0 }],
   'pir-sensor':    [{ pin: 'OUT',    ctxKey: '__sensor', defaultValue: 0 }],
   'sound-sensor':  [{ pin: 'DO',     ctxKey: '__sensor', defaultValue: 0 }],
