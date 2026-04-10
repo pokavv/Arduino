@@ -7,7 +7,7 @@ import { simController } from '../stores/sim-controller.js'; // onPinState / onC
 import { fetchCompDef, getCachedCompDef } from '../stores/comp-def-cache.js';
 
 import { type SimElementLike } from './sim-element-types.js';
-import { CompContextMenu, WireContextMenu } from './context-menus.js';
+import { CompContextMenu, WireContextMenu, CanvasContextMenu } from './context-menus.js';
 import { WireRenderer } from './wire-renderer.js';
 import { PinRenderer, getPinAbsPos, getPinPosWithBase } from './pin-renderer.js';
 import { buildElement, applyGenericDef } from './element-builder.js';
@@ -51,6 +51,7 @@ export class CircuitCanvas {
   // 컨텍스트 메뉴
   private _ctxMenu = new WireContextMenu();
   private _compCtxMenu = new CompContextMenu();
+  private _canvasCtxMenu = new CanvasContextMenu({ fitView: () => this.fitView() });
 
   // 서브 렌더러
   private _wireRenderer!: WireRenderer;
@@ -157,6 +158,8 @@ export class CircuitCanvas {
         setWaypointDrag: (s) => { this._waypointDrag = s; },
         getWireMidpoint: (wireId) => this._wireRenderer.getWireMidpoint(wireId),
         getElementByCompId: (id) => this._elements.get(id),
+        showCanvasCtxMenu: (clientX, clientY, canvasX, canvasY) =>
+          this._canvasCtxMenu.show(clientX, clientY, canvasX, canvasY),
       },
     );
   }

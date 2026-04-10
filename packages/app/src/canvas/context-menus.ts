@@ -1,6 +1,7 @@
 // ─── 컨텍스트 메뉴 ────────────────────────────────────────────────────────────
-// CompContextMenu: 부품 우클릭 메뉴 (회전 / 복제 / 삭제)
-// WireContextMenu: 와이어 우클릭 메뉴 (라우팅 스타일 / 삭제)
+// CompContextMenu:   부품 우클릭 메뉴 (회전 / 복제 / 삭제)
+// WireContextMenu:   와이어 우클릭 메뉴 (라우팅 스타일 / 삭제)
+// CanvasContextMenu: 빈 캔버스 우클릭 메뉴 (전체 선택 / 붙여넣기 / 화면 맞춤)
 
 import { circuitStore, type PlacedWire } from '../stores/circuit-store.js';
 
@@ -144,5 +145,89 @@ export class WireContextMenu {
   hide() {
     this._el.style.display = 'none';
     this._currentWireId = null;
+  }
+}
+
+// ─── 빈 캔버스 배경 우클릭 메뉴 ─────────────────────────────────────────────
+
+export type CanvasCtxCallbacks = {
+  fitView(): void;
+};
+
+export class CanvasContextMenu {
+  private _el: HTMLDivElement;
+  private _canvasX = 0;
+  private _canvasY = 0;
+  private _cb: CanvasCtxCallbacks;
+
+  constructor(cb: CanvasCtxCallbacks) {
+    this._cb = cb;
+    this._el = document.createElement('div');
+    this._el.id = 'canvas-ctx-menu';
+    this._el.className = 'ctx-menu';
+    this._el.style.display = 'none';
+    document.body.appendChild(this._el);
+
+    document.addEventListener('click', () => this.hide());
+    document.addEventListener('contextmenu', (e) => {
+      if (e.target !== this._el && !this._el.contains(e.target as Node)) this.hide();
+    });
+  }
+
+  show(clientX: number, clientY: number, canvasX: number, canvasY: number) {
+    this._canvasX = canvasX;
+    this._canvasY = canvasY;
+
+    const hasComps = circuitStore.components.length > 0;
+    const hasSel   = circuitStore.selectedId != null;
+    const hasClip  = circuitStore.clipboardComp != null;
+
+    this._el.innerHTML = `
+      <div class="ctx-item${hasSel ? '' : ' disabled'}" data-action="copy">⎘ 복사</div>
+      <div class="ctx-item${hasClip ? '' : ' disabled'}" data-action="paste">⎙ 붙여넣기</div>
+      <div class="ctx-sep"></div>
+      <div class="ctx-item${hasComps ? '' : ' disabled'}" data-action="select-all">☰ 전체 선택</div>
+      <div class="ctx-sep"></div>
+      <div class="ctx-item" data-action="fit">⊡ 화면 맞춤</div>
+    `;
+
+    this._el.querySelector('[data-action="copy"]')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!hasSel) return;
+      const comp = circuitStore.components.find(c => c.id === circuitStore.selectedId);
+      if (comp) circuitStore.copyComponent(comp.id);
+      this.hide();
+    });
+
+    this._el.querySelector('[data-action="paste"]')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!hasClip) return;
+      circuitStore.pasteComponent(this._canvasX, this._canvasY);
+      this.hide();
+    });
+
+    this._el.querySelector('[data-action="select-all"]')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!hasComps) return;
+      circuitStore.selectAll();
+      this.hide();
+    });
+
+    this._el.querySelector('[data-action="fit"]')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this._cb.fitView();
+      this.hide();
+    });
+
+    this._el.style.display = 'block';
+    const rect = this._el.getBoundingClientRect();
+    const x = Math.min(clientX, window.innerWidth  - rect.width  - 8);
+    const y = Math.min(clientY, window.innerHeight - rect.height - 8);
+    this._el.style.left = `${x}px`;
+    this._el.style.top  = `${y}px`;
+  }
+
+  hide() {
+    this._el.style.display = 'none';
   }
 }

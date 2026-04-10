@@ -45,6 +45,8 @@ export interface CanvasInteractionCallbacks {
   setWaypointDrag(s: WaypointDragState): void;
   getWireMidpoint(wireId: string): { x: number; y: number };
   getElementByCompId(id: string): HTMLElement | undefined;
+  /** 빈 캔버스 배경 우클릭: clientX/Y는 화면 좌표, canvasX/Y는 캔버스 좌표 */
+  showCanvasCtxMenu(clientX: number, clientY: number, canvasX: number, canvasY: number): void;
 }
 
 export function bindCanvasEvents(
@@ -57,6 +59,19 @@ export function bindCanvasEvents(
   pinLayer: SVGGElement,
   cb: CanvasInteractionCallbacks,
 ) {
+  // ─── 빈 배경 우클릭 ────────────────────────────────────────────────────────
+  // 부품/와이어 우클릭은 각 요소에서 stopPropagation하므로 여기까지 올라오지 않음.
+  // 즉 이 핸들러는 오직 빈 캔버스 영역 우클릭 시에만 실행된다.
+
+  container.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    const t = cb.getTransform();
+    const rect = container.getBoundingClientRect();
+    const canvasX = (e.clientX - rect.left - t.x) / t.scale;
+    const canvasY = (e.clientY - rect.top  - t.y) / t.scale;
+    cb.showCanvasCtxMenu(e.clientX, e.clientY, canvasX, canvasY);
+  });
+
   // ─── 줌 ────────────────────────────────────────────────────────────────────
 
   container.addEventListener('wheel', (e) => {

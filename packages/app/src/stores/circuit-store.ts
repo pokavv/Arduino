@@ -59,6 +59,9 @@ export class CircuitStore {
     code: DEFAULT_CODE,
   };
 
+  /** 클립보드 (메모리, 탭 간 공유 안 됨) */
+  clipboardComp: PlacedComponent | null = null;
+
   /** Undo/Redo 히스토리 */
   private _history: CircuitStateSnapshot[] = [];
   private _historyIndex = -1;
@@ -286,6 +289,34 @@ export class CircuitStore {
       wires: this._state.wires.filter(w => w.fromCompId !== id && w.toCompId !== id),
       selectedId: this._state.selectedId === id ? null : this._state.selectedId,
     };
+    this._notify();
+  }
+
+  /** 부품을 클립보드에 복사 */
+  copyComponent(id: string) {
+    const comp = this._state.components.find(c => c.id === id);
+    if (comp) this.clipboardComp = JSON.parse(JSON.stringify(comp));
+  }
+
+  /** 클립보드 부품을 canvasX/Y 위치에 붙여넣기 */
+  pasteComponent(canvasX: number, canvasY: number) {
+    if (!this.clipboardComp) return;
+    const newComp: PlacedComponent = {
+      ...JSON.parse(JSON.stringify(this.clipboardComp)),
+      id: `${this.clipboardComp.type}-${Date.now()}`,
+      x: canvasX,
+      y: canvasY,
+      connections: {},
+    };
+    this.addComponent(newComp);
+    this.selectComponent(newComp.id);
+  }
+
+  /** 모든 부품 선택 (첫 번째 부품을 selectedId로 설정) */
+  selectAll() {
+    const first = this._state.components[0];
+    if (!first) return;
+    this._state = { ...this._state, selectedId: first.id };
     this._notify();
   }
 
