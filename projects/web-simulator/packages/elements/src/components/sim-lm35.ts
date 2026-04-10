@@ -51,9 +51,12 @@ export class SimLm35 extends SimElement {
     this.temperature = Math.round((this.temperature + delta) * 10) / 10;
     this.temperature = Math.max(-55, Math.min(150, this.temperature));
     this.requestUpdate();
+    // value: 10-bit ADC 환산값 (10mV/°C, 5V 기준: temp * 1023/500 ≈ temp * 2.046)
+    // analogRead()가 올바른 값을 반환하도록 ADC 환산값도 함께 전송
+    const adcValue = Math.round(Math.max(0, this.temperature) * 1023 / 500);
     this.dispatchEvent(new CustomEvent('sim-change', {
       bubbles: true, composed: true,
-      detail: { temperature: this.temperature },
+      detail: { temperature: this.temperature, value: adcValue },
     }));
     setTimeout(() => {
       this.dispatchEvent(new CustomEvent('sim-interaction-end', { bubbles: true, composed: true }));

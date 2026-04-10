@@ -33,7 +33,37 @@ export class SimNeopixel extends SimElement {
     this._pixels = Array.from({ length: this.count }, () => [0, 0, 0] as [number,number,number]);
   }
 
-  override setPinState(_pin: string, _value: number | string) {}
+  override setPinState(pin: string, value: number | string) {
+    if (pin === 'CLEAR') {
+      this._pixels = Array.from({ length: this.count }, () => [0, 0, 0] as [number, number, number]);
+      this.requestUpdate();
+      return;
+    }
+    if (pin === 'SHOW') {
+      try {
+        const arr: number[] = JSON.parse(String(value));
+        this._pixels = arr.slice(0, this.count).map(c => [
+          (c >> 16) & 0xFF,
+          (c >> 8) & 0xFF,
+          c & 0xFF,
+        ] as [number, number, number]);
+      } catch {}
+      this.requestUpdate();
+      return;
+    }
+    // LED0, LED1, ... LEDn
+    const m = pin.match(/^LED(\d+)$/);
+    if (m) {
+      const idx = parseInt(m[1], 10);
+      if (idx >= 0 && idx < this.count) {
+        const c = typeof value === 'string' ? parseInt(value, 10) : Math.round(value);
+        if (!isNaN(c)) {
+          this._pixels[idx] = [(c >> 16) & 0xFF, (c >> 8) & 0xFF, c & 0xFF];
+          this.requestUpdate();
+        }
+      }
+    }
+  }
 
   setPixel(index: number, r: number, g: number, b: number) {
     if (index < 0 || index >= this.count) return;

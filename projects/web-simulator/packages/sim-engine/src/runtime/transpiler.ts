@@ -8,11 +8,15 @@ export class ArduinoTranspiler {
 
     result = this._stripComments(result);
     result = this._transformPreprocessor(result);
-    result = this._transformTypes(result);
+    result = this._transformStructs(result);
+    result = this._transformStaticVars(result);
+    result = this._transformArrayDecls(result);
     result = this._transformForLoopDecls(result);
+    result = this._transformTypes(result);
     result = this._transformEnums(result);
     result = this._transformMultiVarDecls(result);
     result = this._transformArduinoAPI(result);
+    result = this._transformObjectDecls(result);
     result = this._transformStringClass(result);
     result = this._transformMisc(result);
     result = this._wrapFunctions(result);
@@ -31,20 +35,156 @@ export class ArduinoTranspiler {
   private _transformPreprocessor(code: string): string {
     // #include 제거
     code = code.replace(/#include\s*[<"][^>"]*[>"]\s*/g, '');
-    // #define 상수
-    code = code.replace(/#define\s+(\w+)\s+(.+)/g, (_, name, value) => {
-      const trimmed = value.trim();
-      // 함수형 매크로는 건너뜀
-      if (trimmed.includes('(')) return '';
-      return `const ${name} = ${trimmed};`;
+
+    // 함수형 매크로: #define MACRO(a, b) body → const MACRO = (a, b) => body;
+    // 단순 한 줄 본문만 처리 (멀티라인 매크로는 skip)
+    code = code.replace(/#define\s+(\w+)\s*\(([^)]*)\)\s*(.+)/g, (_, name, params, body) => {
+      const trimmedBody = body.trim();
+      // 백슬래시 라인 연속이면 멀티라인 매크로 → skip
+      if (trimmedBody.endsWith('\\')) return '';
+      const paramList = params.split(',').map((p: string) => p.trim()).filter(Boolean).join(', ');
+      return `const ${name} = (${paramList}) => ${trimmedBody};`;
     });
-    // #pragma 등 제거
+
+    // 일반 상수 매크로: #define NAME value
+    code = code.replace(/#define\s+(\w+)\s+(.+)/g, (_, name, value) => {
+      return `const ${name} = ${value.trim()};`;
+    });
+
+    // #pragma 등 나머지 전처리기 지시자 제거
     code = code.replace(/#\w+[^\n]*/g, '');
     return code;
   }
 
+  private _transformStructs(code: string): string {
+    // 정의된 struct 이름 수집 (키워드 없는 변수 선언 변환에 사용)
+    const structNames: string[] = [];
+
+    // struct 정의: struct Point { int x; int y; }; → function Point() { this.x = 0; this.y = 0; }
+    code = code.replace(/struct\s+(\w+)\s*\{([^}]+)\}\s*;?/g, (_, structName: string, body: string) => {
+      structNames.push(structName);
+      const fields = body.split(';').map((s: string) => s.trim()).filter(Boolean);
+      const assignments = fields.map((field: string) => {
+        // 타입 키워드 + 변수명 파싱
+        const match = field.match(/(?:unsigned\s+)?(?:int|long|short|byte|char|float|double|bool|boolean|String|uint8_t|uint16_t|uint32_t|int8_t|int16_t|int32_t)\s+(\w+)/);
+        if (!match) return null;
+        const [fullMatch, varName] = match;
+        // 타입에 따른 기본값 결정
+        const defaultVal = /float|double/.test(fullMatch) ? '0.0'
+          : /bool/.test(fullMatch) ? 'false'
+          : /char/.test(fullMatch) ? "''"
+          : /String/.test(fullMatch) ? '""'
+          : '0';
+        return `  this.${varName} = ${defaultVal};`;
+      }).filter(Boolean);
+      return `class ${structName} {\n  constructor() {\n${assignments.join('\n')}\n  }\n}`;
+    });
+
+    // struct 변수 선언 with initializer: struct Point p = {1, 2};
+    code = code.replace(
+      /struct\s+(\w+)\s+(\w+)\s*=\s*\{([^}]*)\}\s*;/g,
+      (_, typeName: string, varName: string, initValues: string) => {
+        const vals = initValues.split(',').map((v: string) => v.trim());
+        // 생성자 호출 후 순서대로 필드 할당 (필드 이름 불명이므로 Object.values 방식 사용)
+        const assigns = vals.map((v: string, i: number) => `Object.values(${varName})[${i}] !== undefined && (Object.keys(${varName})[${i}] in ${varName}) && (${varName}[Object.keys(${varName})[${i}]] = ${v});`);
+        return `let ${varName} = new ${typeName}();\n${assigns.join('\n')}`;
+      }
+    );
+
+    // struct 변수 선언 without initializer: struct Point p;
+    code = code.replace(/struct\s+(\w+)\s+(\w+)\s*;/g, (_, typeName: string, varName: string) => {
+      return `let ${varName} = new ${typeName}();`;
+    });
+
+    // struct 키워드 없는 변수 선언: Point p; → let p = new Point();
+    // (함수 본문 내에서 struct 키워드 없이 선언하는 경우)
+    for (const name of structNames) {
+      code = code.replace(
+        new RegExp(`^(\\s*)\\b${name}\\s+(\\w+)\\s*;`, 'gm'),
+        (_: string, indent: string, varName: string) => `${indent}let ${varName} = new ${name}();`
+      );
+    }
+
+    return code;
+  }
+
+  private _transformStaticVars(code: string): string {
+    // static 변수를 모듈 스코프로 끌어올리기
+    // 수집된 static 선언을 코드 최상단에 추가하고, 원래 위치는 제거
+    const staticDecls: string[] = [];
+    const staticPattern = /^(\s*)static\s+(?:unsigned\s+)?(?:int|long|short|byte|char|float|double|bool|boolean|uint8_t|uint16_t|uint32_t|int8_t|int16_t|int32_t)\s+(\w+)\s*=\s*([^;]+);/gm;
+
+    // 먼저 모든 static 변수를 수집
+    let match: RegExpExecArray | null;
+    const statics: Array<{ varName: string; initVal: string }> = [];
+    while ((match = staticPattern.exec(code)) !== null) {
+      const varName = match[2];
+      const initVal = match[3].trim();
+      // 중복 방지
+      if (!statics.some(s => s.varName === varName)) {
+        statics.push({ varName, initVal });
+        staticDecls.push(`let __static_${varName} = ${initVal};`);
+      }
+    }
+
+    if (statics.length === 0) return code;
+
+    // 원래 위치의 static 선언 제거 (제거 후 해당 줄은 빈 줄)
+    code = code.replace(
+      /^(\s*)static\s+(?:unsigned\s+)?(?:int|long|short|byte|char|float|double|bool|boolean|uint8_t|uint16_t|uint32_t|int8_t|int16_t|int32_t)\s+(\w+)\s*=\s*([^;]+);/gm,
+      ''
+    );
+
+    // 함수 내부에서 해당 변수명 참조를 __static_ 접두사로 교체
+    // 문자열 리터럴 안의 내용은 건드리지 않도록 임시로 플레이스홀더로 치환
+    const strLiterals: string[] = [];
+    code = code.replace(/"[^"\\]*(?:\\.[^"\\]*)*"|'[^'\\]*(?:\\.[^'\\]*)*'/g, (m) => {
+      strLiterals.push(m);
+      return `\x00STR${strLiterals.length - 1}\x00`;
+    });
+
+    for (const { varName } of statics) {
+      code = code.replace(new RegExp(`\\b${varName}\\b`, 'g'), `__static_${varName}`);
+    }
+
+    // 문자열 리터럴 복원
+    code = code.replace(/\x00STR(\d+)\x00/g, (_, i) => strLiterals[Number(i)]);
+
+    // 코드 최상단에 static 변수 선언 추가
+    code = staticDecls.join('\n') + '\n' + code;
+
+    return code;
+  }
+
+  private _transformArrayDecls(code: string): string {
+    // C++ 배열 선언: type name[] = {...} → const name = [...]
+    // 예) int arr[] = {1,2,3}; → const arr = [1,2,3];
+    // 예) const int lut[4] = {0,1,2,3}; → const lut = [0,1,2,3];
+    // 예) byte buf[8] = {0x00, 0xFF}; → let buf = [0x00, 0xFF];
+    code = code.replace(
+      /^(\s*)(static\s+|volatile\s+)?(const\s+)?(unsigned\s+)?(int|long|short|byte|char|float|double|uint8_t|uint16_t|uint32_t|int8_t|int16_t|int32_t|size_t|word)\s+(\w+)\s*\[\s*\d*\s*\]\s*=\s*\{([^}]*)\}\s*;/gm,
+      (_, indent, _static, isConst, _unsigned, _type, name, body) => {
+        const keyword = isConst ? 'const' : 'let';
+        // 중괄호 내용을 배열 리터럴로 변환
+        return `${indent}${keyword} ${name} = [${body}];`;
+      }
+    );
+
+    // 초기화 없는 배열 선언: type name[N]; → let name = new Array(N).fill(0);
+    // 예) int buf[8]; → let buf = new Array(8).fill(0);
+    code = code.replace(
+      /^(\s*)(static\s+|volatile\s+)?(const\s+)?(unsigned\s+)?(int|long|short|byte|char|float|double|uint8_t|uint16_t|uint32_t|int8_t|int16_t|int32_t|size_t|word)\s+(\w+)\s*\[\s*(\d+)\s*\]\s*;/gm,
+      (_, indent, _static, _isConst, _unsigned, _type, name, size) => {
+        return `${indent}let ${name} = new Array(${size}).fill(0);`;
+      }
+    );
+
+    return code;
+  }
+
   private _transformTypes(code: string): string {
-    const typePattern = /\b(unsigned\s+)?(int|long|short|byte|char|float|double|boolean|bool|uint8_t|uint16_t|uint32_t|int8_t|int16_t|int32_t|size_t|word)\b/g;
+    // String 타입도 포함 — Arduino String class를 JS string으로 취급
+    const typePattern = /\b(unsigned\s+)?(int|long|short|byte|char|float|double|boolean|bool|uint8_t|uint16_t|uint32_t|int8_t|int16_t|int32_t|size_t|word|String)\b/g;
 
     // 변수 선언: type name = ... → let name = ...
     // 함수 반환 타입 포함
@@ -59,6 +199,12 @@ export class ArduinoTranspiler {
         return `${indent}${modifier} ${rest}`;
       }
     );
+
+    // cast 변환 (타입 키워드 제거 전에 처리해야 함)
+    code = code.replace(/\(int\)\s*([^\s,;)]+)/g, 'Math.trunc($1)');
+    code = code.replace(/\(float\)\s*([^\s,;)]+)/g, '($1)');
+    code = code.replace(/\(byte\)\s*([^\s,;)]+)/g, '(($1)&0xFF)');
+    code = code.replace(/\(long\)\s*([^\s,;)]+)/g, 'Math.trunc($1)');
 
     // 남은 타입 키워드 제거
     code = code.replace(typePattern, '');
@@ -108,6 +254,13 @@ export class ArduinoTranspiler {
     code = code.replace(/Serial\.available\s*\(\)/g, '__serial_available()');
     code = code.replace(/Serial\.read\s*\(\)/g, '__serial_read()');
     code = code.replace(/Serial\.write\s*\(([^)]*)\)/g, '__serial_write($1)');
+    code = code.replace(/Serial\.readStringUntil\s*\(([^)]*)\)/g, '__serial_readStringUntil($1)');
+    code = code.replace(/Serial\.readString\s*\(\)/g, '__serial_readString()');
+    code = code.replace(/Serial\.parseInt\s*\(\)/g, '__serial_parseInt()');
+    code = code.replace(/Serial\.parseFloat\s*\(\)/g, '__serial_parseFloat()');
+    code = code.replace(/Serial\.peek\s*\(\)/g, '__serial_peek()');
+    code = code.replace(/Serial\.flush\s*\(\)/g, '__serial_flush()');
+    code = code.replace(/Serial\.setTimeout\s*\([^)]*\)/g, '');
 
     // digitalRead/Write
     code = code.replace(/digitalWrite\s*\(([^,)]+),\s*([^)]+)\)/g, '__digitalWrite($1,$2)');
@@ -121,7 +274,8 @@ export class ArduinoTranspiler {
 
     // PWM (ESP32)
     code = code.replace(/ledcSetup\s*\([^)]*\)/g, '');
-    code = code.replace(/ledcAttachPin\s*\([^)]*\)/g, '');
+    // ledcAttachPin(pin, channel) → __ledcPinMap[channel] = pin (핀-채널 매핑 저장)
+    code = code.replace(/ledcAttachPin\s*\(\s*([^,)]+)\s*,\s*([^)]+)\s*\)/g, '__ledcPinMap[$2]=$1');
     code = code.replace(/ledcWrite\s*\(([^,)]+),\s*([^)]+)\)/g, '__analogWrite(__ledcPinMap[$1]??$1,$2)');
 
     // millis/micros/delay/delayMicroseconds
@@ -142,7 +296,21 @@ export class ArduinoTranspiler {
     code = code.replace(/\bsin\s*\(/g, 'Math.sin(');
     code = code.replace(/\bcos\s*\(/g, 'Math.cos(');
     code = code.replace(/\btan\s*\(/g, 'Math.tan(');
+    code = code.replace(/\basin\s*\(/g, 'Math.asin(');
+    code = code.replace(/\bacos\s*\(/g, 'Math.acos(');
+    code = code.replace(/\batan2?\s*\(/g, 'Math.atan2(');
+    code = code.replace(/\blog\s*\(/g, 'Math.log(');
+    code = code.replace(/\bexp\s*\(/g, 'Math.exp(');
+    code = code.replace(/\bfloor\s*\(/g, 'Math.floor(');
+    code = code.replace(/\bceil\s*\(/g, 'Math.ceil(');
+    code = code.replace(/\bround\s*\(/g, 'Math.round(');
+    code = code.replace(/\bisnan\s*\(/g, 'isNaN(');
+    code = code.replace(/\bisinf\s*\(([^)]*)\)/g, '(!isFinite($1))');
     code = code.replace(/\bPI\b/g, 'Math.PI');
+    code = code.replace(/\bTWO_PI\b/g, '(Math.PI*2)');
+    code = code.replace(/\bHALF_PI\b/g, '(Math.PI/2)');
+    code = code.replace(/\bDEG_TO_RAD\b/g, '(Math.PI/180)');
+    code = code.replace(/\bRAD_TO_DEG\b/g, '(180/Math.PI)');
     code = code.replace(/\brandom\s*\(/g, '__random(');
     code = code.replace(/\brandomSeed\s*\([^)]*\)/g, '');
 
@@ -176,10 +344,10 @@ export class ArduinoTranspiler {
     // .substring() — 동일
     // .indexOf() — 동일
     // .charAt() — 동일
-    // .toInt() — Arduino String.toInt()는 정수 파싱, charCodeAt과 다름
+    // .toInt() — Arduino String.toInt()는 정수 파싱
     code = code.replace(/(\w+)\.toInt\s*\(\)/g, 'parseInt($1, 10)');
     // .toFloat()
-    code = code.replace(/\.toFloat\s*\(\)/g, '__parseFloat(this)');
+    code = code.replace(/(\w+)\.toFloat\s*\(\)/g, 'parseFloat($1)');
     // String concatenation (+ already works in JS)
     return code;
   }
@@ -202,12 +370,6 @@ export class ArduinoTranspiler {
     code = code.replace(/(\d+\.\d*)[fF]\b/g, '$1');
     code = code.replace(/(\d+)[uUlL]+\b/g, '$1');
 
-    // cast: (int)x → Math.trunc(x), (float)x → (x)
-    code = code.replace(/\(int\)\s*([^\s,;)]+)/g, 'Math.trunc($1)');
-    code = code.replace(/\(float\)\s*([^\s,;)]+)/g, '($1)');
-    code = code.replace(/\(byte\)\s*([^\s,;)]+)/g, '(($1)&0xFF)');
-    code = code.replace(/\(long\)\s*([^\s,;)]+)/g, 'Math.trunc($1)');
-
     // isDigit/isAlpha/isSpace
     code = code.replace(/\bisDigit\s*\(([^)]+)\)/g, '/[0-9]/.test($1)');
     code = code.replace(/\bisAlpha\s*\(([^)]+)\)/g, '/[a-zA-Z]/.test($1)');
@@ -224,11 +386,50 @@ export class ArduinoTranspiler {
     // -> dereference → .
     code = code.replace(/->/g, '.');
 
-    // & address-of (단순화)
-    code = code.replace(/&(\w+)/g, '$1');
+    // 함수 파라미터 목록 내 & (참조 파라미터): void foo(int &x, float &y) → void foo(int x, float y)
+    // 단순한 비트연산(&, &&, &=)은 건드리지 않도록 파라미터 목록 내부만 처리
+    code = code.replace(/\(([^)]+)\)/g, (match: string, inner: string) => {
+      // 파라미터 목록으로 보이는 경우 (타입+변수명 패턴)에만 & 제거
+      // inner가 연산식일 경우를 최소화하기 위해 타입 키워드 앞뒤 & 만 처리
+      const cleaned = inner.replace(
+        /\b((?:unsigned\s+)?(?:int|long|short|byte|char|float|double|bool|boolean|String|uint8_t|uint16_t|uint32_t|int8_t|int16_t|int32_t|size_t|word))\s*[&*]\s*(\w+)/g,
+        '$1 $2'
+      );
+      return `(${cleaned})`;
+    });
 
-    // * dereference (단순화)
-    code = code.replace(/\*(\w+)/g, '$1');
+    // * pointer dereference: *ptr = val → ptr = val (포인터 역참조 단순화, 선언 외 사용)
+    // 단항 * (피연산자 앞)만 제거하되 ** 이중 포인터, *= 복합대입은 건드리지 않음
+    code = code.replace(/(?<![*=])\*(?![*=])(\w+)/g, '$1');
+
+    return code;
+  }
+
+  private _transformObjectDecls(code: string): string {
+    // Arduino 라이브러리 객체 선언 변환
+    // 예) DHT dht(pin, type); → let dht = new DHT(pin, type);
+    // 예) Servo myServo;     → let myServo = new Servo();
+    // 조건: 대문자로 시작하는 타입, 소문자/언더스코어로 시작하는 변수명
+    //       줄 끝이 ; (함수 정의 { 와 구별)
+    //       이미 let/const/class/function 키워드가 없는 줄
+
+    // 생성자 인자가 있는 경우: ClassName varName(args);
+    code = code.replace(
+      /^(\s*)(?!let |const |class |function |async )([A-Z][A-Za-z0-9_]*)\s+([a-z_]\w*)\s*\(([^)]*)\)\s*;/gm,
+      (_: string, indent: string, typeName: string, varName: string, args: string) => {
+        // & 참조 제거
+        const cleanArgs = args.replace(/&/g, '').trim();
+        return `${indent}let ${varName} = new ${typeName}(${cleanArgs});`;
+      }
+    );
+
+    // 인자 없는 선언: ClassName varName;
+    code = code.replace(
+      /^(\s*)(?!let |const |class |function |async )([A-Z][A-Za-z0-9_]*)\s+([a-z_]\w*)\s*;/gm,
+      (_: string, indent: string, typeName: string, varName: string) => {
+        return `${indent}let ${varName} = new ${typeName}();`;
+      }
+    );
 
     return code;
   }

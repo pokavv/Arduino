@@ -1,63 +1,14 @@
 import { circuitStore, type PlacedComponent, type PlacedWire } from '../stores/circuit-store.js';
-import { getCachedCompDef } from '../stores/comp-def-cache.js';
+import { getCachedCompDef, fetchCompDef } from '../stores/comp-def-cache.js';
+import type { CompDef } from '../api/api-client.js';
+import { boardWorkerManager } from '../stores/board-worker-manager.js';
 
-const API_BASE = '/api';
+/** property-panel 내부에서 사용하는 CompDef 별칭 (기존 코드 호환) */
+type ComponentDefRemote = CompDef;
 
-/** 서버에서 가져온 컴포넌트 정의 캐시 */
-const _defCache = new Map<string, ComponentDefRemote>();
-
-interface PinDefRemote {
-  name: string;
-  label: string;
-  description: string;
-  type: string;
-  required: boolean;
-}
-
-interface PropDefRemote {
-  key: string;
-  label: string;
-  type: string;
-  default: unknown;
-  options?: string[];
-  min?: number;
-  max?: number;
-  step?: number;
-  unit?: string;
-}
-
-interface ComponentDefRemote {
-  id: string;
-  name: string;
-  category: string;
-  description: string;
-  element: string;
-  props: PropDefRemote[];
-  pins: PinDefRemote[];
-  electrical: {
-    vccMin?: number;
-    vccMax?: number;
-    currentMa?: number;
-    maxCurrentMa?: number;
-    forwardVoltage?: Record<string, number>;
-    logic?: string;
-    pinMaxCurrentMa?: number;
-  };
-  validation: Array<{ rule: string; message: string; severity: string; pin?: string }>;
-  notes: string[];
-}
-
+/** fetchDef — comp-def-cache를 통해 CompDef를 조회 (중복 캐시 제거) */
 async function fetchDef(type: string): Promise<ComponentDefRemote | null> {
-  if (_defCache.has(type)) return _defCache.get(type)!;
-  try {
-    const r = await fetch(`${API_BASE}/components/${type}`);
-    if (!r.ok) return null;
-    const def = await r.json() as ComponentDefRemote;
-    _defCache.set(type, def);
-    return def;
-  } catch {
-    return null;
-  }
+  return fetchCompDef(type);
 }
 
 /**
@@ -184,6 +135,14 @@ export class PropertyPanel {
               <span class="prop-label">${p.label}</span>
               <input type="checkbox" data-action="set-prop" data-key="${p.key}"
                 ${currentVal ? 'checked' : ''}>
+            </div>
+          `;
+        } else if (p.type === 'color') {
+          html += `
+            <div class="prop-row">
+              <span class="prop-label">${p.label}</span>
+              <input type="color" class="prop-color" data-action="set-prop" data-key="${p.key}"
+                value="${currentVal ?? p.default}">
             </div>
           `;
         }
@@ -393,6 +352,13 @@ export class PropertyPanel {
       { value: '#fff',  label: '흰색' },
     ];
 
+    const thicknessOpts: Array<{ value: string; label: string }> = [
+      { value: 'thin',   label: '얇게' },
+      { value: 'normal', label: '보통' },
+      { value: 'thick',  label: '굵게' },
+    ];
+    const thickness = wire.thickness ?? 'normal';
+
     this._el.innerHTML = `
       <div class="prop-header">
         <span class="prop-icon">🔗</span>
@@ -427,6 +393,17 @@ export class PropertyPanel {
             ${colorOpts.map(o => `<option value="${o.value}" ${(wire.color ?? '') === o.value ? 'selected' : ''}>${o.label}</option>`).join('')}
           </select>
         </div>
+        <div class="prop-row">
+          <span class="prop-label">두께</span>
+          <select class="prop-select" data-action="set-wire-thickness">
+            ${thicknessOpts.map(o => `<option value="${o.value}" ${thickness === o.value ? 'selected' : ''}>${o.label}</option>`).join('')}
+          </select>
+        </div>
+        <div class="prop-row">
+          <span class="prop-label">레이블</span>
+          <input class="prop-input" type="text" data-action="set-wire-label"
+            placeholder="예: VCC" value="${wire.label ?? ''}">
+        </div>
         ${wire.waypoints?.length ? `
         <div class="prop-row">
           <span class="prop-label">경유점</span>
@@ -448,9 +425,37 @@ export class PropertyPanel {
       const val = (e.target as HTMLSelectElement).value;
       circuitStore.updateWire(wire.id, { color: val || undefined });
     });
+    this._el.querySelector('[data-action="set-wire-thickness"]')?.addEventListener('change', (e) => {
+      const val = (e.target as HTMLSelectElement).value as 'thin' | 'normal' | 'thick';
+      circuitStore.updateWire(wire.id, { thickness: val });
+    });
+    this._el.querySelector('[data-action="set-wire-label"]')?.addEventListener('change', (e) => {
+      const val = (e.target as HTMLInputElement).value.trim();
+      circuitStore.updateWire(wire.id, { label: val || undefined });
+    });
     this._el.querySelector('[data-action="clear-waypoints"]')?.addEventListener('click', () => {
       circuitStore.updateWire(wire.id, { waypoints: [] });
     });
+  }
+
+  /** 시뮬레이션 실행 중이면 컴포넌트의 숫자/불리언 props를 엔진에 즉시 전송 */
+  private _sendSensorUpdateIfRunning(compId: string) {
+    const updatedComp = circuitStore.components.find(c => c.id === compId);
+    if (!updatedComp) return;
+    // 이 컴포넌트가 실제로 연결된 보드를 BFS로 찾아 해당 Worker로 전송
+    const boardId = circuitStore.findParentBoardForComp(compId);
+    if (!boardId) return;
+    const boardComp = circuitStore.components.find(c => c.id === boardId);
+    if (boardComp?.simState !== 'running') return;
+    const numericData: Record<string, number> = {};
+    for (const [k, v] of Object.entries(updatedComp.props)) {
+      if (typeof v === 'number') numericData[k] = v;
+      else if (typeof v === 'boolean') numericData[k] = v ? 1 : 0;
+      else if (typeof v === 'string' && !isNaN(parseFloat(v))) numericData[k] = parseFloat(v);
+    }
+    if (Object.keys(numericData).length > 0) {
+      boardWorkerManager.sendSensorUpdateToBoard(boardId, compId, numericData);
+    }
   }
 
   private _bindComponentEvents(comp: PlacedComponent, _def: ComponentDefRemote | null) {
@@ -458,8 +463,12 @@ export class PropertyPanel {
       circuitStore.removeComponent(comp.id);
     });
 
+    // select / number / boolean prop 변경 (change 이벤트)
     this._el.querySelectorAll('[data-action="set-prop"]').forEach(el => {
       const key = (el as HTMLElement).dataset.key!;
+      // color input은 'input' 이벤트로 별도 처리
+      if ((el as HTMLInputElement).type === 'color') return;
+
       el.addEventListener('change', () => {
         let val: unknown;
         if ((el as HTMLInputElement).type === 'checkbox') {
@@ -472,6 +481,18 @@ export class PropertyPanel {
         circuitStore.updateComponent(comp.id, {
           props: { ...comp.props, [key]: val },
         });
+        this._sendSensorUpdateIfRunning(comp.id);
+      });
+    });
+
+    // color input — 실시간 반영을 위해 'input' 이벤트 사용
+    this._el.querySelectorAll('input[type="color"][data-action="set-prop"]').forEach(el => {
+      const key = (el as HTMLElement).dataset.key!;
+      el.addEventListener('input', () => {
+        circuitStore.updateComponent(comp.id, {
+          props: { ...comp.props, [key]: (el as HTMLInputElement).value },
+        });
+        this._sendSensorUpdateIfRunning(comp.id);
       });
     });
   }

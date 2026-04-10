@@ -1,4 +1,5 @@
 import type { WorkerToMain } from '../types.js';
+import { normalizePin } from './pin-utils.js';
 
 type PostFn = (msg: WorkerToMain) => void;
 
@@ -32,11 +33,15 @@ export class GpioController {
   digitalRead(pin: number): number {
     const cb = this._inputCallbacks.get(pin);
     if (cb) return cb();
-    return this._pinValues.get(pin) ?? 0;
+    // INPUT_PULLUP(2) 모드: 콜백/주입값 없으면 기본 HIGH(1)
+    const injected = this._pinValues.get(pin);
+    if (injected !== undefined) return injected;
+    return this._pinModes.get(pin) === 2 ? 1 : 0;
   }
 
   analogWrite(pin: number, value: number) {
-    const clamped = Math.max(0, Math.min(255, value));
+    // 0-1023 범위 허용 (ESP32 10-bit PWM 지원), 음수만 차단
+    const clamped = Math.max(0, Math.min(1023, value));
     this._pinValues.set(pin, clamped);
     this._postMessage({
       type: 'PIN_STATE',
@@ -70,10 +75,8 @@ export class GpioController {
     return this._pinValues.get(pin) ?? 0;
   }
 
-  /** 핀 번호 정규화 (G9 → 9, D9 → 9) */
+  /** 핀 번호 정규화 (G9 → 9, D9 → 9) — pin-utils.ts의 normalizePin 위임 */
   static normalizePin(pin: string | number): number {
-    if (typeof pin === 'number') return pin;
-    const n = parseInt(pin.replace(/^[A-Za-z]+/, ''), 10);
-    return isNaN(n) ? -1 : n;
+    return normalizePin(pin);
   }
 }

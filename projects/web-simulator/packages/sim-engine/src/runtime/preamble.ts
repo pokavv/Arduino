@@ -2,6 +2,12 @@ import type { GpioController } from './gpio.js';
 import type { SimScheduler } from './scheduler.js';
 import type { WorkerToMain } from '../types.js';
 import { getBoardConfig } from '../boards.js';
+import { dhtMock } from './mocks/dht-mock.js';
+import { lcdMock } from './mocks/lcd-mock.js';
+import { oledMock } from './mocks/oled-mock.js';
+import { servoMock } from './mocks/servo-mock.js';
+import { neopixelMock } from './mocks/neopixel-mock.js';
+import { wireMock } from './mocks/wire-mock.js';
 
 type PostFn = (msg: WorkerToMain) => void;
 
@@ -19,7 +25,7 @@ export function buildPreamble(
   const board = getBoardConfig(boardType);
   const adcMax = (1 << board.adcBits) - 1; // 4095 or 1023
 
-  return `
+  const coreSection = `
 // ─── Arduino Runtime Preamble ────────────────────────────
 // ─── _ctx 별칭 ────────────────────────────────────────────────
 const _gpioToComp = _ctx._gpioToComp ?? new Map();
@@ -29,6 +35,17 @@ const _serialInputBuffer = _ctx._serialInputBuffer ?? [];
 const __ledcPinMap = {};
 const __LED_BUILTIN = ${board.ledBuiltin};
 const __ADC_MAX = ${adcMax};
+
+// ─── 아날로그 핀 별칭 (보드별) ──────────────────────────────────
+${board.id.startsWith('esp32') ? `
+// ESP32: GPIO 번호 그대로 사용
+const A0 = 0; const A1 = 1; const A2 = 2; const A3 = 3;
+const A4 = 4; const A5 = 5; const A6 = 6; const A7 = 7;
+` : `
+// Arduino Uno/Nano: A0=14, A1=15, ..., A7=21
+const A0 = 14; const A1 = 15; const A2 = 16; const A3 = 17;
+const A4 = 18; const A5 = 19; const A6 = 20; const A7 = 21;
+`}
 
 function __pinMode(pin, mode) { gpio.pinMode(+pin, mode); }
 function __digitalWrite(pin, value) { gpio.digitalWrite(+pin, value); }
@@ -135,6 +152,22 @@ const EEPROM = (() => {
   };
 })();
 
+// ─── Serial 확장 ────────────────────────────────────────────
+function __serial_readString() {
+  const buf = _serialInputBuffer.splice(0);
+  return buf.map(c => String.fromCharCode(c)).join('');
+}
+function __serial_readStringUntil(term) {
+  const code = typeof term === 'string' ? term.charCodeAt(0) : term;
+  const idx = _serialInputBuffer.indexOf(code);
+  if (idx === -1) return '';
+  return _serialInputBuffer.splice(0, idx + 1).slice(0, -1).map(c => String.fromCharCode(c)).join('');
+}
+function __serial_parseInt() { return parseInt(__serial_readString(), 10) || 0; }
+function __serial_parseFloat() { return parseFloat(__serial_readString()) || 0; }
+function __serial_peek() { return _serialInputBuffer[0] ?? -1; }
+function __serial_flush() {}
+
 // ─── Interrupt 스텁 ─────────────────────────────────────────
 const _interruptHandlers = {};
 function attachInterrupt(pin, fn, mode) {
@@ -143,179 +176,28 @@ function attachInterrupt(pin, fn, mode) {
 function detachInterrupt(pin) { delete _interruptHandlers[pin]; }
 function digitalPinToInterrupt(pin) { return pin; }
 
-// ─── DHT 라이브러리 목 ──────────────────────────────────────
-const DHT11 = 11, DHT22 = 22, DHT21 = 21;
-class DHT {
-  constructor(pin, type) {
-    this._pin = +pin;
-    this._type = type;
-    const c = _gpioToComp?.get(this._pin);
-    this._id = c?.id ?? null;
-  }
-  begin() {}
-  read(force = false) { return true; }
-  readTemperature(isFahrenheit = false, force = false) {
-    const t = (_ctx[\`__dht_temp_\${this._id}\`] ?? 25.0);
-    return isFahrenheit ? t * 9.0 / 5.0 + 32 : t;
-  }
-  readHumidity(force = false) {
-    return (_ctx[\`__dht_hum_\${this._id}\`] ?? 60.0);
-  }
-  computeHeatIndex(temp, hum, isFahrenheit = false) {
-    const t = isFahrenheit ? temp : temp * 9.0/5.0 + 32;
-    const hi = -42.379 + 2.04901523*t + 10.14333127*hum
-               -0.22475541*t*hum - 0.00683783*t*t - 0.05481717*hum*hum;
-    return isFahrenheit ? hi : (hi - 32) * 5.0/9.0;
-  }
-  isnan(v) { return isNaN(v); }
-}
+// ─── PROGMEM / F() 매크로 (no-op) ───────────────────────────
+function F(s) { return s; }
+function PSTR(s) { return s; }
+function pgm_read_byte(p) { return typeof p === 'number' ? p : 0; }
+function pgm_read_word(p) { return typeof p === 'number' ? p : 0; }
+const PROGMEM = '';
 
-// ─── LiquidCrystal_I2C 목 ───────────────────────────────────
-class LiquidCrystal_I2C {
-  constructor(addr, cols, rows) {
-    this._addr = addr;
-    this._cols = cols || 16;
-    this._rows = rows || 2;
-    const c = _i2cDevices?.get(addr);
-    this._id = c?.id ?? null;
-  }
-  begin(cols, rows) {
-    if (cols) this._cols = cols;
-    if (rows) this._rows = rows;
-    if (this._id) postFn({ type:'COMPONENT_UPDATE', id:this._id, pin:'INIT', value:\`\${this._cols}x\${this._rows}\` });
-  }
-  init() { this.begin(); }
-  clear() {
-    if (this._id) postFn({ type:'COMPONENT_UPDATE', id:this._id, pin:'CLEAR', value:0 });
-  }
-  home() {
-    if (this._id) postFn({ type:'COMPONENT_UPDATE', id:this._id, pin:'CURSOR', value:'0,0' });
-  }
-  setCursor(col, row) {
-    if (this._id) postFn({ type:'COMPONENT_UPDATE', id:this._id, pin:'CURSOR', value:\`\${col},\${row}\` });
-  }
-  print(text) {
-    if (this._id) postFn({ type:'COMPONENT_UPDATE', id:this._id, pin:'PRINT', value:String(text) });
-  }
-  println(text) { this.print(String(text) + '\\n'); }
-  backlight() {}
-  noBacklight() {}
-  display() {}
-  noDisplay() {}
-  cursor() {}
-  noCursor() {}
-  blink() {}
-  noBlink() {}
-  scrollDisplayLeft() {}
-  scrollDisplayRight() {}
-  autoscroll() {}
-  noAutoscroll() {}
-  createChar() {}
-  leftToRight() {}
-  rightToLeft() {}
-}
+// ─── 비트 연산 추가 상수 ──────────────────────────────────────
+const LSBFIRST = 0;
+const MSBFIRST = 1;
+const CHANGE = 1;
+const FALLING = 2;
+const RISING = 3;
+`;
 
-// ─── Adafruit_SSD1306 목 ────────────────────────────────────
-const BLACK = 0, WHITE = 1, INVERSE = 2;
-class Adafruit_SSD1306 {
-  constructor(w, h, wire, rst = -1) {
-    this._w = w || 128; this._h = h || 64;
-    this._id = null; this._textSize = 1;
-    this._cx = 0; this._cy = 0;
-  }
-  begin(addr = 0x3C, reset = true) {
-    const c = _i2cDevices?.get(addr);
-    this._id = c?.id ?? null;
-    return true;
-  }
-  clearDisplay() {
-    if (this._id) postFn({ type:'COMPONENT_UPDATE', id:this._id, pin:'CLEAR', value:0 });
-  }
-  display() {}
-  setTextSize(s) { this._textSize = s || 1; }
-  setTextColor(c) {}
-  setCursor(x, y) {
-    this._cx = x; this._cy = y;
-    if (this._id) postFn({ type:'COMPONENT_UPDATE', id:this._id, pin:'CURSOR', value:\`\${x},\${y}\` });
-  }
-  print(text) {
-    if (this._id) postFn({ type:'COMPONENT_UPDATE', id:this._id, pin:'PRINT', value:String(text) });
-  }
-  println(text) { this.print(String(text)+'\\n'); }
-  drawPixel(x, y, color) {
-    if (this._id) postFn({ type:'COMPONENT_UPDATE', id:this._id, pin:'PIXEL', value:\`\${x},\${y},\${color}\` });
-  }
-  fillRect(x, y, w, h, color) {
-    if (this._id) postFn({ type:'COMPONENT_UPDATE', id:this._id, pin:'FILLRECT', value:\`\${x},\${y},\${w},\${h},\${color}\` });
-  }
-  drawRect(x, y, w, h, color) { this.fillRect(x, y, w, h, color); }
-  drawLine(x0, y0, x1, y1, color) {
-    if (this._id) postFn({ type:'COMPONENT_UPDATE', id:this._id, pin:'LINE', value:\`\${x0},\${y0},\${x1},\${y1},\${color}\` });
-  }
-  fillScreen(color) {
-    if (this._id) postFn({ type:'COMPONENT_UPDATE', id:this._id, pin: color ? 'FILL_WHITE':'CLEAR', value:0 });
-  }
-  width() { return this._w; }
-  height() { return this._h; }
-  drawCircle() {} fillCircle() {} drawTriangle() {} fillTriangle() {}
-  setRotation() {} invertDisplay() {}
-}
-
-// ─── Servo 목 ────────────────────────────────────────────────
-class Servo {
-  constructor() { this._pin = -1; this._id = null; this._angle = 90; }
-  attach(pin) {
-    this._pin = +pin;
-    const c = _gpioToComp.get(+pin);
-    this._id = c?.id ?? null;
-  }
-  write(angle) {
-    this._angle = Math.max(0, Math.min(180, Math.round(+angle)));
-    if (this._id) postFn({ type: 'COMPONENT_UPDATE', id: this._id, pin: 'SIGNAL', value: this._angle });
-    gpio.analogWrite(this._pin, Math.round(this._angle * 255 / 180));
-  }
-  read() { return this._angle; }
-  readMicroseconds() { return Math.round(this._angle * 2000 / 180) + 500; }
-  writeMicroseconds(us) { this.write(Math.round((+us - 500) * 180 / 2000)); }
-  attached() { return this._pin >= 0; }
-  detach() { this._pin = -1; this._id = null; }
-}
-
-// ─── Adafruit_NeoPixel 목 ────────────────────────────────────
-const NEO_GRB = 0x06, NEO_RGB = 0x00, NEO_KHZ800 = 0x0200;
-class Adafruit_NeoPixel {
-  constructor(count, pin, type) {
-    this._count = +count || 8;
-    this._pin = +pin;
-    this._id = null;
-    this._pixels = new Uint32Array(this._count);
-    this._brightness = 255;
-  }
-  begin() {
-    const c = _gpioToComp.get(this._pin);
-    this._id = c?.id ?? null;
-  }
-  Color(r, g, b) { return ((+r & 0xFF) << 16) | ((+g & 0xFF) << 8) | (+b & 0xFF); }
-  setPixelColor(n, r, g, b) {
-    const color = (g === undefined) ? (+r >>> 0) : this.Color(r, g, b);
-    if (n >= 0 && n < this._count) {
-      this._pixels[n] = color;
-      if (this._id) postFn({ type: 'COMPONENT_UPDATE', id: this._id, pin: \`LED\${n}\`, value: color });
-    }
-  }
-  getPixelColor(n) { return this._pixels[n] ?? 0; }
-  fill(color, first = 0, count = this._count) {
-    const c = +color >>> 0;
-    for (let i = +first; i < +first + +count && i < this._count; i++) this.setPixelColor(i, c);
-  }
-  clear() { this._pixels.fill(0); if (this._id) postFn({ type: 'COMPONENT_UPDATE', id: this._id, pin: 'CLEAR', value: 0 }); }
-  show() { if (this._id) postFn({ type: 'COMPONENT_UPDATE', id: this._id, pin: 'SHOW', value: JSON.stringify(Array.from(this._pixels)) }); }
-  setBrightness(b) { this._brightness = Math.max(0, Math.min(255, +b)); }
-  numPixels() { return this._count; }
-  sine8(x) { return Math.round(128 + 127 * Math.sin((+x) * Math.PI / 128)); }
-  gamma8(x) { return Math.round(Math.pow(+x / 255, 2.8) * 255); }
-  gamma32(c) { return c; }
-}
+  return `${coreSection}
+${dhtMock()}
+${lcdMock()}
+${oledMock()}
+${servoMock()}
+${neopixelMock()}
+${wireMock()}
 // ─────────────────────────────────────────────────────────
 `;
 }

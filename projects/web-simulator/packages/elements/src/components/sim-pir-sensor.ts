@@ -32,6 +32,20 @@ export class SimPirSensor extends SimElement {
     ]);
   }
 
+  private _onToggle(e: PointerEvent) {
+    e.stopPropagation();
+    this.dispatchEvent(new CustomEvent('sim-interaction-start', { bubbles: true, composed: true }));
+    this.detected = !this.detected;
+    this.requestUpdate();
+    this.dispatchEvent(new CustomEvent('sim-change', {
+      bubbles: true, composed: true,
+      detail: { detected: this.detected },
+    }));
+    setTimeout(() => {
+      this.dispatchEvent(new CustomEvent('sim-interaction-end', { bubbles: true, composed: true }));
+    }, 60);
+  }
+
   override render() {
     const glowOpacity = this.detected ? 0.7 : 0;
     const domeFill = this.detected ? '#fffbe0' : '#f0f0f0';
@@ -95,6 +109,17 @@ export class SimPirSensor extends SimElement {
         <rect x="1.5" y="25" width="1.5" height="6" rx="0.4" fill="#cc2200"/>
         <rect x="9.2" y="25" width="1.5" height="6" rx="0.4" fill="#888"/>
         <rect x="17" y="25" width="1.5" height="6" rx="0.4" fill="#222"/>
+
+        <!-- 토글 버튼 영역 (PCB 하단 여백) -->
+        <g style="cursor:pointer" @pointerdown="${this._onToggle}">
+          <rect x="1" y="17" width="18" height="3.2" rx="0.6"
+            fill="${this.detected ? '#1a3a1a' : '#1a1a2a'}"
+            stroke="${this.detected ? '#44bb44' : '#334455'}" stroke-width="0.2"/>
+          <text x="10" y="19.1" font-size="1.5" fill="${this.detected ? '#44ff44' : '#556677'}"
+            font-family="monospace" text-anchor="middle" font-weight="bold">
+            ${this.detected ? '🏃 MOTION DETECTED' : 'NO MOTION'}
+          </text>
+        </g>
 
         <!-- 핀 라벨 -->
         <rect x="0" y="20.5" width="20" height="5" fill="#0d0d14"/>

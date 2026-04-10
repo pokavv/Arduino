@@ -53,7 +53,9 @@ export class SimLed extends SimElement {
 
   override render() {
     const c = this._colors;
-    const glowOpacity = this.lit ? (this.brightness / 255) : 0;
+    // 8-bit analogWrite(0-255) 또는 10-bit ledcWrite(0-1023) 모두 지원
+    const normalizedBrightness = this.brightness > 255 ? this.brightness / 1023 : this.brightness / 255;
+    const glowOpacity = this.lit ? Math.min(1, normalizedBrightness) : 0;
     // 켜졌을 때: 렌즈 색(밝음), 꺼졌을 때: 암색
     const lensBody  = this.lit ? c.on   : c.off;
     const lensStroke = this.lit ? '#fff8' : '#5555';

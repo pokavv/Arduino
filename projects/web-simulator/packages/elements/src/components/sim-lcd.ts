@@ -94,7 +94,7 @@ export class SimLcd extends SimElement {
         break;
       }
       case 'PRINT': {
-        const lines = String(value).split('\\n');
+        const lines = String(value).split('\n');
         for (let i = 0; i < lines.length; i++) {
           if (i > 0) {
             this._cursor.col = 0;

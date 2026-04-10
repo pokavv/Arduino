@@ -125,6 +125,9 @@ Wokwi / TinkerCAD 수준의 Arduino 웹 시뮬레이터
 | 전용 SVG 부품 30종 | 구현 |
 | sim-generic 부품 15종 (서버 데이터) | 구현 |
 | 지원 보드 4종 (각 전용 Element) | 구현 |
+| 템플릿 호환 연결 (와이어 없이 직접 GPIO) | 구현 |
+| 부품-부품 체인 와이어 Net 해소 | 구현 |
+| Playwright E2E 테스트 (76/76 통과) | 구현 |
 
 ---
 
