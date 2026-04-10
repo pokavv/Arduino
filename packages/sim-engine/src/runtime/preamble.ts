@@ -36,6 +36,17 @@ const __ledcPinMap = {};
 const __LED_BUILTIN = ${board.ledBuiltin};
 const __ADC_MAX = ${adcMax};
 
+// ─── 아날로그 핀 별칭 (보드별) ──────────────────────────────────
+${board.id.startsWith('esp32') ? `
+// ESP32: GPIO 번호 그대로 사용
+const A0 = 0; const A1 = 1; const A2 = 2; const A3 = 3;
+const A4 = 4; const A5 = 5; const A6 = 6; const A7 = 7;
+` : `
+// Arduino Uno/Nano: A0=14, A1=15, ..., A7=21
+const A0 = 14; const A1 = 15; const A2 = 16; const A3 = 17;
+const A4 = 18; const A5 = 19; const A6 = 20; const A7 = 21;
+`}
+
 function __pinMode(pin, mode) { gpio.pinMode(+pin, mode); }
 function __digitalWrite(pin, value) { gpio.digitalWrite(+pin, value); }
 function __digitalRead(pin) { return gpio.digitalRead(+pin); }

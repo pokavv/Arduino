@@ -16,6 +16,7 @@ export class ArduinoTranspiler {
     result = this._transformEnums(result);
     result = this._transformMultiVarDecls(result);
     result = this._transformArduinoAPI(result);
+    result = this._transformObjectDecls(result);
     result = this._transformStringClass(result);
     result = this._transformMisc(result);
     result = this._wrapFunctions(result);
@@ -400,6 +401,35 @@ export class ArduinoTranspiler {
     // * pointer dereference: *ptr = val → ptr = val (포인터 역참조 단순화, 선언 외 사용)
     // 단항 * (피연산자 앞)만 제거하되 ** 이중 포인터, *= 복합대입은 건드리지 않음
     code = code.replace(/(?<![*=])\*(?![*=])(\w+)/g, '$1');
+
+    return code;
+  }
+
+  private _transformObjectDecls(code: string): string {
+    // Arduino 라이브러리 객체 선언 변환
+    // 예) DHT dht(pin, type); → let dht = new DHT(pin, type);
+    // 예) Servo myServo;     → let myServo = new Servo();
+    // 조건: 대문자로 시작하는 타입, 소문자/언더스코어로 시작하는 변수명
+    //       줄 끝이 ; (함수 정의 { 와 구별)
+    //       이미 let/const/class/function 키워드가 없는 줄
+
+    // 생성자 인자가 있는 경우: ClassName varName(args);
+    code = code.replace(
+      /^(\s*)(?!let |const |class |function |async )([A-Z][A-Za-z0-9_]*)\s+([a-z_]\w*)\s*\(([^)]*)\)\s*;/gm,
+      (_: string, indent: string, typeName: string, varName: string, args: string) => {
+        // & 참조 제거
+        const cleanArgs = args.replace(/&/g, '').trim();
+        return `${indent}let ${varName} = new ${typeName}(${cleanArgs});`;
+      }
+    );
+
+    // 인자 없는 선언: ClassName varName;
+    code = code.replace(
+      /^(\s*)(?!let |const |class |function |async )([A-Z][A-Za-z0-9_]*)\s+([a-z_]\w*)\s*;/gm,
+      (_: string, indent: string, typeName: string, varName: string) => {
+        return `${indent}let ${varName} = new ${typeName}();`;
+      }
+    );
 
     return code;
   }
