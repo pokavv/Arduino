@@ -78,19 +78,39 @@ export function initToolbar(
   // ── 키보드 단축키
   document.addEventListener('keydown', (e) => {
     const active = document.activeElement?.tagName;
-    const isEditing = active === 'INPUT' || active === 'TEXTAREA';
+    const isEditing = active === 'INPUT' || active === 'TEXTAREA' || active === 'SELECT';
 
     if ((e.ctrlKey || e.metaKey) && !isEditing) {
-      if (e.key === 'z') { e.preventDefault(); circuitStore.undo(); return; }
-      if (e.key === 'y') { e.preventDefault(); circuitStore.redo(); return; }
-      if (e.key === 's') { e.preventDefault(); document.getElementById('btn-save')!.click(); return; }
+      switch (e.key) {
+        case 'z': e.preventDefault(); circuitStore.undo(); return;
+        case 'y': e.preventDefault(); circuitStore.redo(); return;
+        case 's': e.preventDefault(); document.getElementById('btn-save')?.click(); return;
+        case 'o': e.preventDefault(); document.getElementById('btn-load')?.click(); return;
+        case 'a': e.preventDefault(); circuitStore.selectAll(); return;
+        case 'Enter': e.preventDefault(); document.getElementById('btn-run')?.click(); return;
+      }
+    }
+
+    if (!isEditing && !e.ctrlKey && !e.metaKey) {
+      switch (e.key) {
+        case 'f': case 'F':
+          document.getElementById('btn-fit')?.click(); return;
+        case '=': case '+':
+          document.getElementById('btn-zoom-in')?.click(); return;
+        case '-':
+          document.getElementById('btn-zoom-out')?.click(); return;
+      }
     }
 
     if ((e.key === 'Delete' || e.key === 'Backspace') && !isEditing) {
-      const selComp = circuitStore.selectedId;
-      const selWire = circuitStore.selectedWireId;
-      if (selComp) circuitStore.removeComponent(selComp);
-      if (selWire) circuitStore.removeWire(selWire);
+      if (circuitStore.selectedIds.size > 1) {
+        circuitStore.removeSelectedComponents();
+      } else {
+        const selComp = circuitStore.selectedId;
+        const selWire = circuitStore.selectedWireId;
+        if (selComp) circuitStore.removeComponent(selComp);
+        if (selWire) circuitStore.removeWire(selWire);
+      }
     }
   });
 

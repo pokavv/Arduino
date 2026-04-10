@@ -83,6 +83,7 @@ export class PinRenderer {
     while (this._pinLayer.firstChild) this._pinLayer.firstChild.remove();
 
     const selPin = circuitStore.selectedPin;
+    const isDrawing = wireDrawing !== null;
 
     for (const comp of circuitStore.components) {
       const pins = getPinsForComp(this._elements, comp.id);
@@ -93,6 +94,9 @@ export class PinRenderer {
         const ay = comp.y + local.y;
         const isFrom   = wireDrawing?.fromCompId === comp.id && wireDrawing?.fromPin === pinName;
         const isSelPin = selPin?.compId === comp.id && selPin?.pinName === pinName;
+        // 드로잉 중 핀 호환성 분류
+        const isSameComp = isDrawing && !isFrom && wireDrawing!.fromCompId === comp.id;
+        const isCompatible = isDrawing && !isFrom && !isSameComp;
 
         const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         g.setAttribute('data-comp', comp.id);
@@ -100,9 +104,41 @@ export class PinRenderer {
         g.style.cursor = 'crosshair';
 
         // 핀 기능별 색상
-        const color = isFrom ? '#ffee00' : isSelPin ? '#cc44ff' : pinFillColor(pinName);
-        const baseOpacity = (isFrom || isSelPin) ? '1' : '0.55';
-        const baseR = (isFrom || isSelPin) ? '6' : '5';
+        let color: string;
+        let baseOpacity: string;
+        let baseR: string;
+        let glowOpacity: string;
+
+        if (isFrom) {
+          // 시작 핀 — 노란색 강조
+          color = '#ffee00';
+          baseOpacity = '1';
+          baseR = '6';
+          glowOpacity = '0.25';
+        } else if (isSelPin) {
+          color = '#cc44ff';
+          baseOpacity = '1';
+          baseR = '6';
+          glowOpacity = '0.25';
+        } else if (isSameComp) {
+          // 같은 부품의 다른 핀 — 회색 + 매우 흐리게 (자기 자신과 연결 방지 표시)
+          color = '#888888';
+          baseOpacity = '0.2';
+          baseR = '5';
+          glowOpacity = '0';
+        } else if (isCompatible) {
+          // 호환 가능한 다른 부품 핀 — 초록 글로우
+          color = '#44ff88';
+          baseOpacity = '0.85';
+          baseR = '7';
+          glowOpacity = '0.3';
+        } else {
+          // 드로잉 중이 아닌 일반 상태
+          color = pinFillColor(pinName);
+          baseOpacity = '0.55';
+          baseR = '5';
+          glowOpacity = '0';
+        }
 
         // 히트 영역 (투명, 크게)
         const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -112,9 +148,9 @@ export class PinRenderer {
         // 활성 상태 글로우
         const glow = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         glow.setAttribute('cx', `${ax}`); glow.setAttribute('cy', `${ay}`);
-        glow.setAttribute('r', '10');
+        glow.setAttribute('r', isCompatible ? '12' : '10');
         glow.setAttribute('fill', color);
-        glow.setAttribute('opacity', (isFrom || isSelPin) ? '0.25' : '0');
+        glow.setAttribute('opacity', glowOpacity);
         glow.style.transition = 'opacity 0.1s';
 
         // 핀 서클 (항상 표시)
@@ -149,27 +185,32 @@ export class PinRenderer {
         label.textContent = labelText;
 
         g.addEventListener('mouseenter', () => {
-          circle.setAttribute('opacity', '1');
-          circle.setAttribute('r', '6.5');
-          glow.setAttribute('opacity', '0.3');
+          if (!isSameComp) {
+            circle.setAttribute('opacity', '1');
+            circle.setAttribute('r', '6.5');
+            glow.setAttribute('opacity', isCompatible ? '0.45' : '0.3');
+          }
           labelBg.setAttribute('opacity', '1');
           label.setAttribute('opacity', '1');
         });
         g.addEventListener('mouseleave', () => {
           if (!isFrom && !isSelPin) {
-            circle.setAttribute('opacity', '0.55');
-            circle.setAttribute('r', '5');
-            glow.setAttribute('opacity', '0');
+            circle.setAttribute('opacity', baseOpacity);
+            circle.setAttribute('r', baseR);
+            glow.setAttribute('opacity', glowOpacity);
           }
           labelBg.setAttribute('opacity', '0');
           label.setAttribute('opacity', '0');
         });
 
-        // 좌클릭 → 와이어 드로잉
-        g.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this._onPinClick(comp.id, pinName, ax, ay);
-        });
+        // 같은 부품 핀은 클릭 무시 (자기 자신과 연결 방지)
+        if (!isSameComp) {
+          // 좌클릭 → 와이어 드로잉
+          g.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this._onPinClick(comp.id, pinName, ax, ay);
+          });
+        }
         // 우클릭 → 핀 선택 (속성 패널)
         g.addEventListener('contextmenu', (e) => {
           e.preventDefault(); e.stopPropagation();

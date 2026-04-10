@@ -16,10 +16,12 @@ import {
   type DraggingState,
   type WaypointDragState,
   type WireDrawingState,
+  type WireEndpointDragState,
   bindCanvasEvents,
   applyTransform,
   zoomAt,
 } from './canvas-interaction.js';
+import { getPinsForComp } from './pin-renderer.js';
 
 export class CircuitCanvas {
   private _container: HTMLElement;
@@ -43,6 +45,7 @@ export class CircuitCanvas {
   private _dragging: DraggingState = null;
   private _waypointDrag: WaypointDragState = null;
   private _wireDrawing: WireDrawingState = null;
+  private _wireEndpointDrag: WireEndpointDragState = null;
   private _mousePos = { x: 0, y: 0 };
 
   // 부품 엘리먼트 맵 (타입 안전)
@@ -99,7 +102,7 @@ export class CircuitCanvas {
     this._topSvg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:4;pointer-events:none;';
 
     this._endpointLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    this._endpointLayer.style.pointerEvents = 'none';
+    this._endpointLayer.style.pointerEvents = 'all'; // 끝점 드래그 히트 영역
     this._waypointLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     this._waypointLayer.style.pointerEvents = 'all';
     this._pinLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -123,6 +126,13 @@ export class CircuitCanvas {
       (wireId, clientX, clientY) => this._ctxMenu.show(wireId, clientX, clientY),
       (compId, pinName) => getPinAbsPos(this._elements, compId, pinName),
       (compId, pinName, base) => getPinPosWithBase(this._elements, compId, pinName, base),
+      (drag) => {
+        // 끝점 드래그 시작: 원본 와이어 임시 제거
+        this._wireEndpointDrag = drag;
+        circuitStore.removeWire(drag.wireId);
+        this._container.style.cursor = 'crosshair';
+        this._renderPinPoints();
+      },
     );
 
     this._pinRenderer = new PinRenderer(
@@ -160,6 +170,12 @@ export class CircuitCanvas {
         getElementByCompId: (id) => this._elements.get(id),
         showCanvasCtxMenu: (clientX, clientY, canvasX, canvasY) =>
           this._canvasCtxMenu.show(clientX, clientY, canvasX, canvasY),
+        getWireEndpointDrag:  () => this._wireEndpointDrag,
+        setWireEndpointDrag:  (s) => { this._wireEndpointDrag = s; },
+        renderWireEndpointPreview: (fixedPos, mousePos) =>
+          this._renderWireEndpointPreview(fixedPos, mousePos),
+        commitWireEndpointDrag: (drag, mousePos, orig) =>
+          this._commitWireEndpointDrag(drag, mousePos, orig),
       },
     );
   }
@@ -201,8 +217,9 @@ export class CircuitCanvas {
   // ─── 메인 렌더 ────────────────────────────────────────────────────────────
 
   private _render() {
-    const comps      = circuitStore.components;
-    const selectedId = circuitStore.selectedId;
+    const comps       = circuitStore.components;
+    const selectedId  = circuitStore.selectedId;
+    const selectedIds = circuitStore.selectedIds;
 
     const hint = document.getElementById('canvas-hint');
     if (hint) hint.style.display = comps.length > 0 ? 'none' : '';
@@ -223,6 +240,8 @@ export class CircuitCanvas {
       el.style.top       = `${comp.y}px`;
       el.style.transform = `rotate(${comp.rotation ?? 0}deg)`;
       el.classList.toggle('selected', comp.id === selectedId);
+      // 다중선택 표시: selectedIds에 있고 2개 이상 선택된 경우
+      el.classList.toggle('multi-selected', selectedIds.size > 1 && selectedIds.has(comp.id));
     }
 
     this._wireRenderer.renderWires();
@@ -289,13 +308,137 @@ export class CircuitCanvas {
   // ─── 와이어 드로잉 (미리보기) 렌더 ───────────────────────────────────────
 
   private _renderDrawingWire(mousePos: { x: number; y: number } | null) {
-    this._wireRenderer.renderDrawingWire(this._wireDrawing, mousePos);
+    // 마그넷 스냅: 드로잉 중 마우스 근처 핀 탐색 (15px 이내)
+    const SNAP_DIST = 15;
+    let nearestPin: { x: number; y: number } | null = null;
+    if (mousePos && this._wireDrawing) {
+      let minDist = SNAP_DIST + 1;
+      for (const comp of circuitStore.components) {
+        // 시작 부품 핀은 스냅 제외
+        if (comp.id === this._wireDrawing.fromCompId) continue;
+        const pins = getPinsForComp(this._elements, comp.id);
+        for (const [, local] of pins) {
+          const px = comp.x + local.x;
+          const py = comp.y + local.y;
+          const dx = mousePos.x - px;
+          const dy = mousePos.y - py;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < minDist) { minDist = dist; nearestPin = { x: px, y: py }; }
+        }
+      }
+    }
+    this._wireRenderer.renderDrawingWire(this._wireDrawing, mousePos, nearestPin);
+  }
+
+  // ─── 와이어 끝점 드래그 프리뷰 렌더 ─────────────────────────────────────
+
+  private _renderWireEndpointPreview(
+    fixedPos: { x: number; y: number },
+    mousePos: { x: number; y: number },
+  ) {
+    this._wireRenderer.renderDrawingWire(
+      { fromX: fixedPos.x, fromY: fixedPos.y },
+      mousePos,
+      this._findNearestPin(mousePos, this._wireEndpointDrag?.fixedCompId),
+    );
+  }
+
+  // ─── 끝점 드래그 완료: 스냅 핀에 연결 또는 원본 와이어 복원 ─────────────
+
+  private async _commitWireEndpointDrag(
+    drag: NonNullable<WireEndpointDragState>,
+    mousePos: { x: number; y: number },
+    orig: { id: string; fromCompId: string; fromPin: string; toCompId: string; toPin: string; color?: string },
+  ) {
+    const SNAP_DIST = 15;
+    const nearest = this._findNearestPin(mousePos, drag.fixedCompId);
+    if (nearest && nearest.dist <= SNAP_DIST) {
+      // 가까운 핀에 연결
+      const color = orig.color ?? await this._resolveWireColor(drag.fixedPin);
+      circuitStore.addWire({
+        id:         `wire-${Date.now()}`,
+        fromCompId: drag.fixedCompId,
+        fromPin:    drag.fixedPin,
+        toCompId:   nearest.compId,
+        toPin:      nearest.pinName,
+        color,
+      });
+      await this._validateAndWarnConnection(drag.fixedCompId, drag.fixedPin, nearest.compId, nearest.pinName);
+    } else {
+      // 가까운 핀 없음 → 원본 와이어 복원
+      circuitStore.addWire({
+        id:         orig.id,
+        fromCompId: orig.fromCompId,
+        fromPin:    orig.fromPin,
+        toCompId:   orig.toCompId,
+        toPin:      orig.toPin,
+        color:      orig.color,
+      });
+    }
+    this._wireRenderer.renderDrawingWire(null, null);
+    this._renderPinPoints();
+  }
+
+  // ─── 마우스 위치에서 가장 가까운 핀 탐색 ────────────────────────────────
+
+  private _findNearestPin(
+    mousePos: { x: number; y: number },
+    excludeCompId?: string,
+  ): { x: number; y: number; compId: string; pinName: string; dist: number } | null {
+    let best: { x: number; y: number; compId: string; pinName: string; dist: number } | null = null;
+    for (const comp of circuitStore.components) {
+      if (comp.id === excludeCompId) continue;
+      const pins = getPinsForComp(this._elements, comp.id);
+      for (const [pinName, local] of pins) {
+        const px = comp.x + local.x;
+        const py = comp.y + local.y;
+        const dx = mousePos.x - px;
+        const dy = mousePos.y - py;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (!best || dist < best.dist) {
+          best = { x: px, y: py, compId: comp.id, pinName, dist };
+        }
+      }
+    }
+    return best;
   }
 
   // ─── 와이어 드로잉 로직 ───────────────────────────────────────────────────
 
   private async _handlePinClick(compId: string, pinName: string, ax: number, ay: number) {
     if (!this._wireDrawing) {
+      // 이미 연결된 와이어가 있는지 확인 → 가장 최근 와이어를 떼고 반대편에서 재드로잉
+      const existingWires = circuitStore.wires.filter(
+        w => (w.fromCompId === compId && w.fromPin === pinName) ||
+             (w.toCompId   === compId && w.toPin   === pinName)
+      );
+      if (existingWires.length > 0) {
+        const wire = existingWires[existingWires.length - 1];
+        const isFrom = wire.fromCompId === compId && wire.fromPin === pinName;
+        const otherCompId = isFrom ? wire.toCompId   : wire.fromCompId;
+        const otherPin    = isFrom ? wire.toPin       : wire.fromPin;
+
+        const otherEl   = this._elements.get(otherCompId);
+        const otherComp = circuitStore.components.find(c => c.id === otherCompId);
+        if (otherEl && otherComp) {
+          const positions = otherEl.getPinPositions?.();
+          const pos = positions?.get(otherPin);
+          if (pos) {
+            circuitStore.removeWire(wire.id);
+            // 반대편 핀 위치에서 새 드로잉 시작 (끊어진 쪽에서 다시 이어 붙이기)
+            this._wireDrawing = {
+              fromCompId: otherCompId,
+              fromPin:    otherPin,
+              fromX:      otherComp.x + pos.x,
+              fromY:      otherComp.y + pos.y,
+            };
+            this._container.style.cursor = 'crosshair';
+            this._renderPinPoints();
+            return;
+          }
+        }
+      }
+      // 기존 로직: 새 드로잉 시작
       this._wireDrawing = { fromCompId: compId, fromPin: pinName, fromX: ax, fromY: ay };
       this._container.style.cursor = 'crosshair';
       this._renderPinPoints();

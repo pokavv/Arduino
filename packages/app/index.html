@@ -766,6 +766,13 @@
       color: var(--color-text-tertiary);
     }
 
+    /* 다중선택 강조 표시 */
+    .multi-selected {
+      outline: 2px dashed var(--color-primary) !important;
+      outline-offset: 3px;
+      box-shadow: 0 0 0 4px var(--color-primary-subtle) !important;
+    }
+
     /* 유효성 검사 바 */
     #validation-bar {
       position: absolute;

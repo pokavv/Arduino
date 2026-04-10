@@ -46,7 +46,21 @@ export function buildElement(
   el.addEventListener('pointerdown', (e: PointerEvent) => {
     if (e.button !== 0 || ctx.getWireDrawing() || _interacting) return;
     e.stopPropagation();
-    circuitStore.selectComponent(comp.id);
+
+    // Shift+클릭: 다중선택 토글
+    if (e.shiftKey) {
+      circuitStore.toggleSelectComponent(comp.id);
+      return;
+    }
+
+    // 이미 다중선택 중이고 이 컴포넌트도 선택에 포함된 경우 → 그룹 드래그 준비
+    const alreadyInMultiSel =
+      circuitStore.selectedIds.size > 1 && circuitStore.selectedIds.has(comp.id);
+
+    if (!alreadyInMultiSel) {
+      circuitStore.selectComponent(comp.id);
+    }
+
     const cur = circuitStore.components.find(c => c.id === comp.id);
     const ox = cur?.x ?? 0, oy = cur?.y ?? 0;
     ctx.setDragging({

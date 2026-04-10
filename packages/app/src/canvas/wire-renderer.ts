@@ -4,6 +4,7 @@
 
 import { circuitStore, type PlacedWire } from '../stores/circuit-store.js';
 import { WIRE_AUTO_COLORS, WIRE_AUTO_DEFAULT } from './pin-colors.js';
+import type { WireEndpointDragState } from './canvas-interaction.js';
 
 // ─── 경로 계산 (module-level 순수 함수) ──────────────────────────────────────
 
@@ -65,6 +66,7 @@ export class WireRenderer {
     private _ctxMenuShow:   (wireId: string, clientX: number, clientY: number) => void,
     private _getPinAbsPos:        PinAbsPosResolver,
     private _getPinPosWithBase:   PinPosWithBaseResolver,
+    private _onEndpointDragStart?: (drag: NonNullable<WireEndpointDragState>) => void,
   ) {}
 
   // ─── 정적 와이어 렌더 ──────────────────────────────────────────────────────
@@ -111,10 +113,11 @@ export class WireRenderer {
       const from = this._getPinAbsPos(wire.fromCompId, wire.fromPin);
       const to   = this._getPinAbsPos(wire.toCompId,   wire.toPin);
       if (!from || !to) continue;
-      this.addEndpointDots(from, to, wireColor(wire));
+      this._addEndpointDotsForWire(wire, from, to);
     }
   }
 
+  /** renderWiresLive 전용: 색상만 전달하는 단순 버전 (드래그 중 빠른 렌더) */
   addEndpointDots(
     from: { x: number; y: number },
     to:   { x: number; y: number },
@@ -140,29 +143,135 @@ export class WireRenderer {
     }
   }
 
+  /** 와이어별 끝점 도트 + 드래그 핸들 렌더 */
+  private _addEndpointDotsForWire(
+    wire: PlacedWire,
+    from: { x: number; y: number },
+    to:   { x: number; y: number },
+  ) {
+    const color = wireColor(wire);
+    const endpoints = [
+      { pos: from, isFromEnd: true,  fixedCompId: wire.toCompId,   fixedPin: wire.toPin,   fixedPos: to   },
+      { pos: to,   isFromEnd: false, fixedCompId: wire.fromCompId, fixedPin: wire.fromPin, fixedPos: from },
+    ];
+
+    for (const ep of endpoints) {
+      const { pos } = ep;
+
+      // 히트 영역 (드래그 가능, 넓게)
+      const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      hitArea.setAttribute('cx', `${pos.x}`); hitArea.setAttribute('cy', `${pos.y}`);
+      hitArea.setAttribute('r', '8'); hitArea.setAttribute('fill', 'transparent');
+      hitArea.style.cursor = this._onEndpointDragStart ? 'grab' : 'default';
+      hitArea.style.pointerEvents = this._onEndpointDragStart ? 'all' : 'none';
+
+      // 글로우
+      const glow = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      glow.setAttribute('cx', `${pos.x}`); glow.setAttribute('cy', `${pos.y}`);
+      glow.setAttribute('r', '6'); glow.setAttribute('fill', color);
+      glow.setAttribute('opacity', '0.25');
+      glow.style.pointerEvents = 'none';
+
+      // 도트
+      const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      dot.setAttribute('cx', `${pos.x}`); dot.setAttribute('cy', `${pos.y}`);
+      dot.setAttribute('r', '4'); dot.setAttribute('fill', color);
+      dot.setAttribute('stroke', '#000'); dot.setAttribute('stroke-width', '1');
+      dot.setAttribute('opacity', '0.95');
+      dot.style.pointerEvents = 'none';
+
+      // 끝점 드래그 시작 핸들러
+      if (this._onEndpointDragStart) {
+        const onDragStart = this._onEndpointDragStart;
+        hitArea.addEventListener('pointerdown', (e: PointerEvent) => {
+          e.stopPropagation();
+          hitArea.setPointerCapture(e.pointerId);
+          onDragStart({
+            wireId:      wire.id,
+            isFromEnd:   ep.isFromEnd,
+            fixedCompId: ep.fixedCompId,
+            fixedPin:    ep.fixedPin,
+            startX:      ep.fixedPos.x,
+            startY:      ep.fixedPos.y,
+            _orig: {
+              id:         wire.id,
+              fromCompId: wire.fromCompId,
+              fromPin:    wire.fromPin,
+              toCompId:   wire.toCompId,
+              toPin:      wire.toPin,
+              color:      wire.color,
+            },
+          });
+        });
+        hitArea.addEventListener('mouseenter', () => {
+          glow.setAttribute('opacity', '0.5');
+          dot.setAttribute('r', '5.5');
+        });
+        hitArea.addEventListener('mouseleave', () => {
+          glow.setAttribute('opacity', '0.25');
+          dot.setAttribute('r', '4');
+        });
+      }
+
+      this._endpointLayer.appendChild(glow);
+      this._endpointLayer.appendChild(dot);
+      this._endpointLayer.appendChild(hitArea);
+    }
+  }
+
   // ─── 드로잉 중 점선 미리보기 렌더 ─────────────────────────────────────────
 
   renderDrawingWire(
     wireDrawing: { fromX: number; fromY: number } | null,
     mousePos: { x: number; y: number } | null,
+    nearestPin?: { x: number; y: number } | null,
   ) {
     while (this._drawLayer.firstChild) this._drawLayer.firstChild.remove();
     if (!wireDrawing || !mousePos) return;
 
     const { fromX, fromY } = wireDrawing;
-    const dx = mousePos.x - fromX;
-    const d  = `M${fromX},${fromY} C${fromX + dx * 0.4},${fromY} ${mousePos.x - dx * 0.4},${mousePos.y} ${mousePos.x},${mousePos.y}`;
+
+    // 마그넷 스냅: 가장 가까운 핀이 15px 이내면 스냅
+    const SNAP_DIST = 15;
+    const snapped = nearestPin !== null && nearestPin !== undefined && (() => {
+      const dx2 = mousePos.x - nearestPin.x;
+      const dy2 = mousePos.y - nearestPin.y;
+      return Math.sqrt(dx2 * dx2 + dy2 * dy2) <= SNAP_DIST;
+    })();
+
+    const endX = snapped ? nearestPin!.x : mousePos.x;
+    const endY = snapped ? nearestPin!.y : mousePos.y;
+    const strokeColor = snapped ? '#44ff88' : '#4af';
+
+    const dx = endX - fromX;
+    const d  = `M${fromX},${fromY} C${fromX + dx * 0.4},${fromY} ${endX - dx * 0.4},${endY} ${endX},${endY}`;
 
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.setAttribute('d', d); path.setAttribute('stroke', '#4af');
-    path.setAttribute('stroke-width', '1.8'); path.setAttribute('stroke-dasharray', '6 4');
-    path.setAttribute('fill', 'none'); path.setAttribute('opacity', '0.8');
+    path.setAttribute('d', d); path.setAttribute('stroke', strokeColor);
+    path.setAttribute('stroke-width', snapped ? '2.4' : '1.8');
+    path.setAttribute('stroke-dasharray', snapped ? '0' : '6 4');
+    path.setAttribute('fill', 'none'); path.setAttribute('opacity', '0.9');
     this._drawLayer.appendChild(path);
 
     const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     dot.setAttribute('cx', `${fromX}`); dot.setAttribute('cy', `${fromY}`);
     dot.setAttribute('r', '4'); dot.setAttribute('fill', '#ff0'); dot.setAttribute('opacity', '0.9');
     this._drawLayer.appendChild(dot);
+
+    // 스냅됐을 때 끝점 강조
+    if (snapped) {
+      const snapGlow = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      snapGlow.setAttribute('cx', `${endX}`); snapGlow.setAttribute('cy', `${endY}`);
+      snapGlow.setAttribute('r', '10'); snapGlow.setAttribute('fill', '#44ff88');
+      snapGlow.setAttribute('opacity', '0.3');
+      this._drawLayer.appendChild(snapGlow);
+
+      const snapDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      snapDot.setAttribute('cx', `${endX}`); snapDot.setAttribute('cy', `${endY}`);
+      snapDot.setAttribute('r', '5'); snapDot.setAttribute('fill', '#44ff88');
+      snapDot.setAttribute('opacity', '0.95');
+      this._drawLayer.appendChild(snapDot);
+    }
   }
 
   // ─── 경유점 미드포인트 계산 ────────────────────────────────────────────────

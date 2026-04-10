@@ -56,6 +56,7 @@ export class CircuitStore {
     components: [] as PlacedComponent[],
     wires: [] as PlacedWire[],
     selectedId: null as string | null,
+    selectedIds: new Set<string>(),   // 다중 선택된 컴포넌트 ID들
     selectedWireId: null as string | null,
     selectedPin: null as SelectedPin | null,
     simState: 'idle' as SimState,
@@ -125,6 +126,7 @@ export class CircuitStore {
       wires:      JSON.parse(JSON.stringify(snap.wires)),
       code:       snap.code,
       selectedId: null,
+      selectedIds: new Set(),
       selectedWireId: null,
     };
     this._notify();
@@ -134,6 +136,7 @@ export class CircuitStore {
   get components() { return this._state.components; }
   get wires() { return this._state.wires; }
   get selectedId() { return this._state.selectedId; }
+  get selectedIds(): ReadonlySet<string> { return this._state.selectedIds; }
   get selectedWireId() { return this._state.selectedWireId; }
   get simState() { return this._state.simState; }
   get serialOutput() { return this._state.serialOutput; }
@@ -204,7 +207,60 @@ export class CircuitStore {
   }
 
   selectComponent(id: string | null) {
-    this._state = { ...this._state, selectedId: id, selectedWireId: null };
+    this._state = {
+      ...this._state,
+      selectedId: id,
+      selectedIds: id ? new Set([id]) : new Set(),
+      selectedWireId: null,
+    };
+    this._notify();
+  }
+
+  /** Shift+클릭으로 선택 집합에 추가/제거 */
+  toggleSelectComponent(id: string) {
+    const ids = new Set(this._state.selectedIds);
+    if (ids.has(id)) ids.delete(id);
+    else ids.add(id);
+    this._state = {
+      ...this._state,
+      selectedIds: ids,
+      selectedId: id,
+      selectedWireId: null,
+    };
+    this._notify();
+  }
+
+  /** 다중 선택된 컴포넌트 일괄 삭제 */
+  removeSelectedComponents() {
+    if (this._state.selectedIds.size === 0) return;
+    this._pushHistory();
+    const ids = this._state.selectedIds;
+    this._state = {
+      ...this._state,
+      components: this._state.components.filter(c => !ids.has(c.id)),
+      wires: this._state.wires.filter(w => !ids.has(w.fromCompId) && !ids.has(w.toCompId)),
+      selectedId: null,
+      selectedIds: new Set(),
+    };
+    this._notify();
+  }
+
+  /** 다중선택 그룹 드래그 완료 시 히스토리에 현재 위치 기록 */
+  pushMultiMoveHistory() {
+    this._pushHistory();
+  }
+
+  /** 다중 선택된 컴포넌트 일괄 이동 (드래그 중 실시간 호출) */
+  moveSelectedComponents(dx: number, dy: number) {
+    if (this._state.selectedIds.size <= 1) return;
+    this._state = {
+      ...this._state,
+      components: this._state.components.map(c =>
+        this._state.selectedIds.has(c.id)
+          ? { ...c, x: Math.round((c.x + dx) / 8) * 8, y: Math.round((c.y + dy) / 8) * 8 }
+          : c
+      ),
+    };
     this._notify();
   }
 
@@ -229,6 +285,9 @@ export class CircuitStore {
   }
 
   addWire(wire: PlacedWire) {
+    // 자기 자신 핀 연결 방지
+    if (wire.fromCompId === wire.toCompId && wire.fromPin === wire.toPin) return;
+    // 완전 동일한 와이어 중복 방지 (방향 무관)
     const exists = this._state.wires.some(
       w => (w.fromCompId === wire.fromCompId && w.fromPin === wire.fromPin &&
              w.toCompId   === wire.toCompId   && w.toPin   === wire.toPin) ||
@@ -316,11 +375,16 @@ export class CircuitStore {
     this.selectComponent(newComp.id);
   }
 
-  /** 모든 부품 선택 (첫 번째 부품을 selectedId로 설정) */
+  /** 모든 부품 선택 (Ctrl+A) */
   selectAll() {
+    const ids = new Set(this._state.components.map(c => c.id));
     const first = this._state.components[0];
-    if (!first) return;
-    this._state = { ...this._state, selectedId: first.id };
+    this._state = {
+      ...this._state,
+      selectedIds: ids,
+      selectedId: first?.id ?? null,
+      selectedWireId: null,
+    };
     this._notify();
   }
 
@@ -331,6 +395,7 @@ export class CircuitStore {
       components: [],
       wires: [],
       selectedId: null,
+      selectedIds: new Set(),
       selectedWireId: null,
     };
     this._notify();
@@ -349,6 +414,7 @@ export class CircuitStore {
       wires: template.wires?.slice() ?? [],
       code: template.code,
       selectedId: null,
+      selectedIds: new Set(),
       selectedWireId: null,
       serialOutput: '',
       simState: 'idle',
@@ -450,6 +516,7 @@ export class CircuitStore {
       wires:      data.wires,
       code:       data.code ?? this._state.code,
       selectedId: null,
+      selectedIds: new Set(),
       selectedWireId: null,
       serialOutput: '',
       simState: 'idle',

@@ -30,6 +30,29 @@ export type WireDrawingState = {
   fromY: number;
 } | null;
 
+/** 와이어 끝점 드래그로 재연결하는 상태 */
+export type WireEndpointDragState = {
+  wireId: string;
+  /** true = 시작점(fromPin) 드래그, false = 끝점(toPin) 드래그 */
+  isFromEnd: boolean;
+  /** 고정된 반대쪽 부품 ID */
+  fixedCompId: string;
+  /** 고정된 반대쪽 핀 이름 */
+  fixedPin: string;
+  /** 고정된 반대쪽 핀의 캔버스 절대 좌표 (프리뷰 렌더 시작점) */
+  startX: number;
+  startY: number;
+  /** 원본 와이어 정보 (드래그 취소 시 복원용) */
+  _orig: {
+    id: string;
+    fromCompId: string;
+    fromPin: string;
+    toCompId: string;
+    toPin: string;
+    color?: string;
+  };
+} | null;
+
 export interface CanvasInteractionCallbacks {
   getTransform(): Transform;
   setTransform(t: Transform): void;
@@ -47,6 +70,20 @@ export interface CanvasInteractionCallbacks {
   getElementByCompId(id: string): HTMLElement | undefined;
   /** 빈 캔버스 배경 우클릭: clientX/Y는 화면 좌표, canvasX/Y는 캔버스 좌표 */
   showCanvasCtxMenu(clientX: number, clientY: number, canvasX: number, canvasY: number): void;
+  /** 와이어 끝점 드래그 시작 */
+  getWireEndpointDrag(): WireEndpointDragState;
+  setWireEndpointDrag(s: WireEndpointDragState): void;
+  /** 끝점 드래그 중 프리뷰 렌더 (fixedPin 절대 좌표 → 마우스 방향) */
+  renderWireEndpointPreview(
+    fixedPos: { x: number; y: number },
+    mousePos: { x: number; y: number },
+  ): void;
+  /** 끝점 드래그 완료: 스냅된 핀이 있으면 연결, 없으면 원복 */
+  commitWireEndpointDrag(
+    drag: NonNullable<WireEndpointDragState>,
+    mousePos: { x: number; y: number },
+    originalWire: { id: string; fromCompId: string; fromPin: string; toCompId: string; toPin: string; color?: string },
+  ): void;
 }
 
 export function bindCanvasEvents(
@@ -128,13 +165,29 @@ export function bindCanvasEvents(
       // 6px 임계값: 버튼 클릭 등 사소한 움직임에는 드래그 시작 안 함
       if (!d.moved && Math.sqrt(dx * dx + dy * dy) < 6) return;
       const cur = cb.getTransform();
-      d.liveX = Math.round((d.ox + dx / cur.scale) / CANVAS_GRID_SIZE) * CANVAS_GRID_SIZE;
-      d.liveY = Math.round((d.oy + dy / cur.scale) / CANVAS_GRID_SIZE) * CANVAS_GRID_SIZE;
-      d.moved = true;
-      cb.setDragging(d);
-      const el = cb.getElementByCompId(d.id);
-      if (el) { el.style.left = `${d.liveX}px`; el.style.top = `${d.liveY}px`; }
-      cb.renderWiresLive(d.id, d.liveX, d.liveY);
+      const newLiveX = Math.round((d.ox + dx / cur.scale) / CANVAS_GRID_SIZE) * CANVAS_GRID_SIZE;
+      const newLiveY = Math.round((d.oy + dy / cur.scale) / CANVAS_GRID_SIZE) * CANVAS_GRID_SIZE;
+
+      // 다중선택 그룹 드래그: 선택된 모든 컴포넌트를 함께 이동
+      if (circuitStore.selectedIds.size > 1 && circuitStore.selectedIds.has(d.id)) {
+        if (d.moved) {
+          const ddx = newLiveX - d.liveX;
+          const ddy = newLiveY - d.liveY;
+          if (ddx !== 0 || ddy !== 0) circuitStore.moveSelectedComponents(ddx, ddy);
+        }
+        d.liveX = newLiveX;
+        d.liveY = newLiveY;
+        d.moved = true;
+        cb.setDragging(d);
+      } else {
+        d.liveX = newLiveX;
+        d.liveY = newLiveY;
+        d.moved = true;
+        cb.setDragging(d);
+        const el = cb.getElementByCompId(d.id);
+        if (el) { el.style.left = `${d.liveX}px`; el.style.top = `${d.liveY}px`; }
+        cb.renderWiresLive(d.id, d.liveX, d.liveY);
+      }
     }
 
     const waypointDrag = cb.getWaypointDrag();
@@ -150,11 +203,20 @@ export function bindCanvasEvents(
     }
 
     if (cb.getWireDrawing()) cb.renderDrawingWire({ x: svgX, y: svgY });
+
+    // 와이어 끝점 드래그 중 프리뷰
+    const epDrag = cb.getWireEndpointDrag();
+    if (epDrag) {
+      cb.renderWireEndpointPreview(
+        { x: epDrag.startX, y: epDrag.startY },
+        { x: svgX, y: svgY },
+      );
+    }
   });
 
   // ─── 포인터 업 ─────────────────────────────────────────────────────────────
 
-  container.addEventListener('pointerup', () => {
+  container.addEventListener('pointerup', (e) => {
     if (_panning) {
       _panning = false;
       container.style.cursor = cb.getWireDrawing() ? 'crosshair' : 'default';
@@ -162,21 +224,53 @@ export function bindCanvasEvents(
     const dragging = cb.getDragging();
     if (dragging) {
       cb.setDragging(null);
-      if (dragging.moved) circuitStore.commitMove(dragging.id, dragging.liveX, dragging.liveY);
+      if (dragging.moved) {
+        if (circuitStore.selectedIds.size > 1 && circuitStore.selectedIds.has(dragging.id)) {
+          // 다중선택 그룹 드래그 완료: 히스토리 기록
+          circuitStore.pushMultiMoveHistory();
+        } else {
+          circuitStore.commitMove(dragging.id, dragging.liveX, dragging.liveY);
+        }
+      }
     }
     if (cb.getWaypointDrag()) {
       cb.setWaypointDrag(null);
+    }
+
+    // 와이어 끝점 드래그 완료
+    const epDrag = cb.getWireEndpointDrag();
+    if (epDrag) {
+      const rect = container.getBoundingClientRect();
+      const t2 = cb.getTransform();
+      const svgX2 = (e.clientX - rect.left - t2.x) / t2.scale;
+      const svgY2 = (e.clientY - rect.top  - t2.y) / t2.scale;
+      cb.commitWireEndpointDrag(epDrag, { x: svgX2, y: svgY2 }, epDrag._orig);
+      cb.setWireEndpointDrag(null);
+      container.style.cursor = 'default';
     }
   });
 
   // ─── 키보드 ────────────────────────────────────────────────────────────────
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && cb.getWireDrawing()) {
-      cb.setWireDrawing(null);
-      cb.renderDrawingWire(null);
-      container.style.cursor = 'default';
-      return;
+    if (e.key === 'Escape') {
+      // 드래그 중 Escape: 원래 위치로 복원
+      const dragging = cb.getDragging();
+      if (dragging) {
+        const el = cb.getElementByCompId(dragging.id);
+        if (el) { el.style.left = `${dragging.ox}px`; el.style.top = `${dragging.oy}px`; }
+        cb.setDragging(null);
+        // 와이어도 원본 위치로 다시 렌더
+        cb.renderWiresLive(dragging.id, dragging.ox, dragging.oy);
+        return;
+      }
+      // 와이어 그리기 취소
+      if (cb.getWireDrawing()) {
+        cb.setWireDrawing(null);
+        cb.renderDrawingWire(null);
+        container.style.cursor = 'default';
+        return;
+      }
     }
     // Ctrl+D: 선택된 부품 복제
     if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
