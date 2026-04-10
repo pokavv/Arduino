@@ -72,7 +72,7 @@ export class SimOled extends SimElement {
       }
       case 'PRINT': {
         const text = String(value);
-        const lines = text.split('\\n');
+        const lines = text.split('\n');
         for (let i = 0; i < lines.length; i++) {
           if (i > 0) { this._textX = 0; this._textY += 8 * this._textSize; }
           if (lines[i]) {
@@ -103,6 +103,10 @@ export class SimOled extends SimElement {
         }
         break;
       }
+      case 'DISPLAY':
+        // display() 명시적 호출 — 현재 프레임버퍼를 캔버스에 플러시
+        this.oledDisplay();
+        break;
     }
   }
 

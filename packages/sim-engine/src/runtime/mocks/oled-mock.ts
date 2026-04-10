@@ -20,7 +20,9 @@ class Adafruit_SSD1306 {
   clearDisplay() {
     if (this._id) postFn({ type:'COMPONENT_UPDATE', id:this._id, pin:'CLEAR', value:0 });
   }
-  display() {}
+  display() {
+    if (this._id) postFn({ type:'COMPONENT_UPDATE', id:this._id, pin:'DISPLAY', value:0 });
+  }
   setTextSize(s) { this._textSize = s || 1; }
   setTextColor(c) {}
   setCursor(x, y) {
