@@ -250,6 +250,12 @@ export class WireRenderer {
     const color = wireColor(wire);
     const d = buildWirePath(from, to, wire.style, wire.waypoints ?? []);
 
+    // 두께 계산: thin=1.5, normal=2.5(기본), thick=4
+    const baseStrokeWidth =
+      wire.thickness === 'thin'  ? 1.5 :
+      wire.thickness === 'thick' ? 4   : 2.5;
+    const shadowStrokeWidth = baseStrokeWidth + 1.5;
+
     // 히트 영역 (우클릭 포함)
     const hit = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     hit.setAttribute('d', d);
@@ -268,7 +274,7 @@ export class WireRenderer {
     const shadow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     shadow.setAttribute('d', d);
     shadow.setAttribute('stroke', '#000');
-    shadow.setAttribute('stroke-width', isSelected ? '5' : '4');
+    shadow.setAttribute('stroke-width', isSelected ? `${shadowStrokeWidth + 1}` : `${shadowStrokeWidth}`);
     shadow.setAttribute('fill', 'none');
     shadow.setAttribute('opacity', '0.35');
     shadow.style.pointerEvents = 'none';
@@ -277,7 +283,7 @@ export class WireRenderer {
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     path.setAttribute('d', d);
     path.setAttribute('stroke', isSelected ? '#ffffff' : color);
-    path.setAttribute('stroke-width', isSelected ? '3' : '2.5');
+    path.setAttribute('stroke-width', isSelected ? `${baseStrokeWidth + 0.5}` : `${baseStrokeWidth}`);
     path.setAttribute('fill', 'none');
     path.setAttribute('opacity', '0.95');
     path.style.pointerEvents = 'none';
@@ -285,5 +291,31 @@ export class WireRenderer {
 
     this._wiresLayer.appendChild(hit);
     this._wiresLayer.appendChild(path);
+
+    // 레이블 렌더링 — 와이어 중간 지점에 텍스트 표시
+    if (wire.label) {
+      const midX = (from.x + to.x) / 2;
+      const midY = (from.y + to.y) / 2;
+
+      // 레이블 배경
+      const labelBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      const labelText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      labelText.setAttribute('x', `${midX}`);
+      labelText.setAttribute('y', `${midY}`);
+      labelText.setAttribute('text-anchor', 'middle');
+      labelText.setAttribute('dominant-baseline', 'middle');
+      labelText.setAttribute('font-size', '9');
+      labelText.setAttribute('font-family', 'monospace');
+      labelText.setAttribute('fill', color);
+      labelText.setAttribute('stroke', '#111');
+      labelText.setAttribute('stroke-width', '2.5');
+      labelText.setAttribute('paint-order', 'stroke');
+      labelText.setAttribute('opacity', '0.95');
+      labelText.style.pointerEvents = 'none';
+      labelText.textContent = wire.label;
+
+      this._wiresLayer.appendChild(labelBg);
+      this._wiresLayer.appendChild(labelText);
+    }
   }
 }

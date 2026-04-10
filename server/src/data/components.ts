@@ -582,8 +582,10 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
     icon: '💫',
     element: 'sim-ir-led',
     width: 45, height: 68,
-    defaultProps: {},
-    props: [],
+    defaultProps: { power: 'normal' },
+    props: [
+      { key: 'power', label: '출력 강도', type: 'select', default: 'normal', options: ['low','normal','high'] },
+    ],
     pins: [
       { name: 'ANODE',   label: '+', x: 14, y: 60, type: 'input',  required: true, description: '양극 (+)', compatibleWith: ['digital','pwm','signal','power'] },
       { name: 'CATHODE', label: '−', x: 26, y: 60, type: 'ground', required: true, description: '음극 (−)', compatibleWith: ['ground'] },
@@ -603,8 +605,10 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
     icon: '👁️',
     element: 'sim-ir-receiver',
     width: 45, height: 68,
-    defaultProps: {},
-    props: [],
+    defaultProps: { frequency: 38 },
+    props: [
+      { key: 'frequency', label: '캐리어 주파수', type: 'select', default: 38, options: ['36','38','40','56'] },
+    ],
     pins: [
       { name: 'OUT', label: 'OUT', x: 10, y: 70, type: 'output',  required: true, description: '디지털 출력 (Active LOW)', compatibleWith: ['digital','signal'] },
       { name: 'VCC', label: 'VCC', x: 25, y: 70, type: 'power',   required: true, description: '전원 2.5~5.5V',           compatibleWith: ['power'] },
@@ -626,8 +630,10 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
     icon: '🧲',
     element: 'sim-hall-sensor',
     width: 45, height: 68,
-    defaultProps: {},
-    props: [],
+    defaultProps: { triggerPolarity: 'S' },
+    props: [
+      { key: 'triggerPolarity', label: '감지 극성', type: 'select', default: 'S', options: ['S','N','both'] },
+    ],
     pins: [
       { name: 'VCC', label: 'VCC', x: 10, y: 70, type: 'power',   required: true, description: '전원 4.5~24V',           compatibleWith: ['power'] },
       { name: 'GND', label: 'GND', x: 25, y: 70, type: 'ground',  required: true, description: 'GND',                    compatibleWith: ['ground'] },
@@ -702,8 +708,10 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
     icon: '🔢',
     element: 'sim-74hc595',
     width: 60, height: 114,
-    defaultProps: {},
-    props: [],
+    defaultProps: { outputEnable: true },
+    props: [
+      { key: 'outputEnable', label: '출력 인에이블', type: 'boolean', default: true },
+    ],
     pins: [
       { name: 'DS',    label: 'DS',    x:  8, y: 80, type: 'input',  required: true,  description: '직렬 데이터 입력 (SER)', compatibleWith: ['digital','signal','spi_mosi'] },
       { name: 'SH_CP', label: 'SHCP',  x: 18, y: 80, type: 'input',  required: true,  description: '시프트 클럭 (SRCLK)',    compatibleWith: ['digital','signal','spi_sck'] },
@@ -729,8 +737,10 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
     icon: '⚙️',
     element: 'sim-l298n',
     width: 150, height: 152,
-    defaultProps: {},
-    props: [],
+    defaultProps: { supplyVoltage: '12V' },
+    props: [
+      { key: 'supplyVoltage', label: '모터 전원', type: 'select', default: '12V', options: ['5V','9V','12V','24V'] },
+    ],
     pins: [
       { name: 'IN1', label: 'IN1', x:  8, y: 100, type: 'input',  required: true,  description: '모터A 방향 제어 1',  compatibleWith: ['digital','signal'] },
       { name: 'IN2', label: 'IN2', x: 20, y: 100, type: 'input',  required: true,  description: '모터A 방향 제어 2',  compatibleWith: ['digital','signal'] },
@@ -832,8 +842,12 @@ export const SEED_COMPONENTS: Omit<ComponentDef, '_createdAt' | '_updatedAt' | '
     icon: '🔄',
     element: 'sim-generic',
     width: 76, height: 60,
-    defaultProps: {},
-    props: [],
+    defaultProps: { i2cAddress: '0x68', accelRange: '2g', gyroRange: '250' },
+    props: [
+      { key: 'i2cAddress',  label: 'I2C 주소',        type: 'select', default: '0x68', options: ['0x68','0x69'] },
+      { key: 'accelRange',  label: '가속도 범위',      type: 'select', default: '2g',   options: ['2g','4g','8g','16g'] },
+      { key: 'gyroRange',   label: '자이로 범위(°/s)', type: 'select', default: '250',  options: ['250','500','1000','2000'] },
+    ],
     pins: [
       { name: 'VCC', label: 'VCC', x: 10, y: 0, type: 'power',   required: true,  description: '3.3V 또는 5V', compatibleWith: ['power'] },
       { name: 'GND', label: 'GND', x: 22, y: 0, type: 'ground',  required: true,  description: 'GND',          compatibleWith: ['ground'] },

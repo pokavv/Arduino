@@ -25,6 +25,10 @@ export interface PlacedWire {
   style?: 'bezier' | 'straight' | 'orthogonal';
   /** 커스텀 경유점: bezier용 제어점 또는 꺾임점 */
   waypoints?: Array<{ x: number; y: number }>;
+  /** 와이어 식별용 레이블 */
+  label?: string;
+  /** 두께: thin(1px) | normal(2px, 기본) | thick(3px) */
+  thickness?: 'thin' | 'normal' | 'thick';
 }
 
 /** 선택된 핀 노드 */
