@@ -17,7 +17,8 @@ export interface InputPinHandler {
  * SENSOR_UPDATE에서도 동일한 ctxKey를 사용해야 합니다.
  */
 export const INPUT_PIN_REGISTRY: Record<string, InputPinHandler[]> = {
-  'button':        [{ pin: 'PIN1A',  ctxKey: '__btn',    defaultValue: 0 }],
+  // INPUT_PULLUP 기준: 기본값 HIGH(1) = 안 눌림
+  'button':        [{ pin: 'PIN1A',  ctxKey: '__btn',    defaultValue: 1 }],
   'potentiometer': [{ pin: 'WIPER',  ctxKey: '__pot',    defaultValue: 512 }],
   'hall-sensor':   [{ pin: 'OUT',    ctxKey: '__sensor', defaultValue: 0 }],
   'pir-sensor':    [{ pin: 'OUT',    ctxKey: '__sensor', defaultValue: 0 }],

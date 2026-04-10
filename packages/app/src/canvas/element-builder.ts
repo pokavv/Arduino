@@ -77,17 +77,23 @@ export function buildElement(
   });
 
   if (comp.type === 'button') {
-    el.addEventListener('sim-press', () => {
+    const _sendButtonPinEvent = (value: number) => {
       const connMap = circuitStore.getDerivedConnections().get(comp.id);
-      const gpioPin = connMap?.['PIN1A'];
-      if (typeof gpioPin === 'number') simController.sendPinEvent(gpioPin, 1);
-      simController.sendSensorUpdate(comp.id, { value: 1 });
+      // PIN1A / PIN1B 는 내부 연결 — 둘 중 하나가 GPIO에 연결될 수 있음
+      for (const pinName of ['PIN1A', 'PIN1B'] as const) {
+        const gpioPin = connMap?.[pinName];
+        if (typeof gpioPin === 'number') simController.sendPinEvent(gpioPin, value);
+      }
+    };
+    el.addEventListener('sim-press', () => {
+      // INPUT_PULLUP 기준: 눌림 = LOW (0)
+      _sendButtonPinEvent(0);
+      simController.sendSensorUpdate(comp.id, { value: 0 });
     });
     el.addEventListener('sim-release', () => {
-      const connMap = circuitStore.getDerivedConnections().get(comp.id);
-      const gpioPin = connMap?.['PIN1A'];
-      if (typeof gpioPin === 'number') simController.sendPinEvent(gpioPin, 0);
-      simController.sendSensorUpdate(comp.id, { value: 0 });
+      // INPUT_PULLUP 기준: 안 눌림 = HIGH (1)
+      _sendButtonPinEvent(1);
+      simController.sendSensorUpdate(comp.id, { value: 1 });
     });
   }
 
