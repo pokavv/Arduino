@@ -126,6 +126,67 @@ export class CodeEditor {
       });
     }
 
+    // ─── 자동완성 제공자 등록 ─────────────────────────────────
+    window.monaco.languages.registerCompletionItemProvider('arduino', {
+      triggerCharacters: ['.'],
+      provideCompletionItems: (model: unknown, position: unknown) => {
+        const monaco = window.monaco;
+        const mk = monaco.languages.CompletionItemKind;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const word = (model as any).getWordUntilPosition(position);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const range = { startLineNumber: (position as any).lineNumber, endLineNumber: (position as any).lineNumber, startColumn: word.startColumn, endColumn: word.endColumn };
+        const suggestions = [
+          // ── 기본 구조 ──
+          { label: 'setup', kind: mk.Function, insertText: 'void setup() {\n  ${1}\n}', insertTextRules: 4, documentation: 'Arduino setup() 함수', range },
+          { label: 'loop',  kind: mk.Function, insertText: 'void loop() {\n  ${1}\n}',  insertTextRules: 4, documentation: 'Arduino loop() 함수', range },
+          // ── GPIO ──
+          { label: 'pinMode',       kind: mk.Function, insertText: 'pinMode(${1:pin}, ${2:OUTPUT});', insertTextRules: 4, documentation: 'pinMode(pin, mode)', range },
+          { label: 'digitalWrite',  kind: mk.Function, insertText: 'digitalWrite(${1:pin}, ${2:HIGH});', insertTextRules: 4, documentation: 'GPIO 디지털 출력', range },
+          { label: 'digitalRead',   kind: mk.Function, insertText: 'digitalRead(${1:pin})', insertTextRules: 4, documentation: 'GPIO 디지털 읽기', range },
+          { label: 'analogRead',    kind: mk.Function, insertText: 'analogRead(${1:pin})', insertTextRules: 4, documentation: 'ADC 아날로그 읽기 (0~1023)', range },
+          { label: 'analogWrite',   kind: mk.Function, insertText: 'analogWrite(${1:pin}, ${2:value});', insertTextRules: 4, documentation: 'PWM 출력 (0~255)', range },
+          // ── 타이밍 ──
+          { label: 'delay',           kind: mk.Function, insertText: 'delay(${1:ms});', insertTextRules: 4, documentation: '밀리초 지연', range },
+          { label: 'delayMicroseconds', kind: mk.Function, insertText: 'delayMicroseconds(${1:us});', insertTextRules: 4, documentation: '마이크로초 지연', range },
+          { label: 'millis',  kind: mk.Function, insertText: 'millis()', insertTextRules: 4, documentation: '경과 밀리초', range },
+          { label: 'micros',  kind: mk.Function, insertText: 'micros()', insertTextRules: 4, documentation: '경과 마이크로초', range },
+          // ── Serial ──
+          { label: 'Serial.begin',   kind: mk.Method, insertText: 'Serial.begin(${1:9600});', insertTextRules: 4, documentation: '시리얼 통신 시작', range },
+          { label: 'Serial.print',   kind: mk.Method, insertText: 'Serial.print(${1:value});', insertTextRules: 4, documentation: '시리얼 출력', range },
+          { label: 'Serial.println', kind: mk.Method, insertText: 'Serial.println(${1:value});', insertTextRules: 4, documentation: '시리얼 줄바꿈 출력', range },
+          { label: 'Serial.available', kind: mk.Method, insertText: 'Serial.available()', insertTextRules: 4, documentation: '수신 버퍼 바이트 수', range },
+          { label: 'Serial.read',    kind: mk.Method, insertText: 'Serial.read()', insertTextRules: 4, documentation: '시리얼 1바이트 읽기', range },
+          // ── 수학 ──
+          { label: 'map',       kind: mk.Function, insertText: 'map(${1:value}, ${2:fromLow}, ${3:fromHigh}, ${4:toLow}, ${5:toHigh})', insertTextRules: 4, documentation: '값 범위 변환', range },
+          { label: 'constrain', kind: mk.Function, insertText: 'constrain(${1:x}, ${2:lo}, ${3:hi})', insertTextRules: 4, documentation: '값 범위 제한', range },
+          { label: 'abs',       kind: mk.Function, insertText: 'abs(${1:x})', insertTextRules: 4, documentation: '절대값', range },
+          { label: 'min',       kind: mk.Function, insertText: 'min(${1:a}, ${2:b})', insertTextRules: 4, documentation: '최솟값', range },
+          { label: 'max',       kind: mk.Function, insertText: 'max(${1:a}, ${2:b})', insertTextRules: 4, documentation: '최댓값', range },
+          { label: 'sqrt',      kind: mk.Function, insertText: 'sqrt(${1:x})', insertTextRules: 4, documentation: '제곱근', range },
+          { label: 'random',    kind: mk.Function, insertText: 'random(${1:max})', insertTextRules: 4, documentation: '난수 생성', range },
+          // ── 상수 ──
+          { label: 'HIGH', kind: mk.Constant, insertText: 'HIGH', documentation: 'GPIO HIGH (1)', range },
+          { label: 'LOW',  kind: mk.Constant, insertText: 'LOW',  documentation: 'GPIO LOW (0)', range },
+          { label: 'INPUT',       kind: mk.Constant, insertText: 'INPUT',       documentation: '핀 입력 모드', range },
+          { label: 'OUTPUT',      kind: mk.Constant, insertText: 'OUTPUT',      documentation: '핀 출력 모드', range },
+          { label: 'INPUT_PULLUP',kind: mk.Constant, insertText: 'INPUT_PULLUP',documentation: '내부 풀업 입력', range },
+          { label: 'LED_BUILTIN', kind: mk.Constant, insertText: 'LED_BUILTIN', documentation: '내장 LED 핀', range },
+          // ── 타입 ──
+          { label: 'int',    kind: mk.Keyword, insertText: 'int ', range },
+          { label: 'long',   kind: mk.Keyword, insertText: 'long ', range },
+          { label: 'float',  kind: mk.Keyword, insertText: 'float ', range },
+          { label: 'double', kind: mk.Keyword, insertText: 'double ', range },
+          { label: 'bool',   kind: mk.Keyword, insertText: 'bool ', range },
+          { label: 'byte',   kind: mk.Keyword, insertText: 'byte ', range },
+          { label: 'char',   kind: mk.Keyword, insertText: 'char ', range },
+          { label: 'void',   kind: mk.Keyword, insertText: 'void ', range },
+          { label: 'String', kind: mk.Keyword, insertText: 'String ', range },
+        ];
+        return { suggestions };
+      },
+    });
+
     this._container.innerHTML = '';
     const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
     this._monacoEditor = window.monaco.editor.create(this._container, {

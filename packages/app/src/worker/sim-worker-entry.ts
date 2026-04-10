@@ -72,6 +72,11 @@ async function runSimulation(circuit: CircuitSnapshot, code: string) {
       }
     }
 
+    // preamble이 _ctx._gpioToComp 등을 참조하므로 _ctx에 저장
+    _ctx._gpioToComp        = _gpioToComp;
+    _ctx._i2cDevices        = _i2cDevices;
+    _ctx._serialInputBuffer = _serialInputBuffer;
+
     const preamble = buildPreamble(gpio, scheduler, post, circuit.boardType, _serialInputBuffer);
     const fullCode = `
 ${preamble}
@@ -92,11 +97,17 @@ while (true) {
     const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor as {
       new(...args: string[]): (...args: unknown[]) => Promise<void>
     };
-    const fn = new AsyncFunction(
-      'gpio', 'scheduler', 'postFn', '_ctx', '_serialInputBuffer', '_gpioToComp', '_i2cDevices',
-      fullCode
-    );
-    await fn(gpio, scheduler, post, _ctx, _serialInputBuffer, _gpioToComp, _i2cDevices);
+    let fn: (...args: unknown[]) => Promise<void>;
+    try {
+      fn = new AsyncFunction('gpio', 'scheduler', 'postFn', '_ctx', fullCode);
+    } catch (err) {
+      // AsyncFunction 생성 실패 = 구문(컴파일) 에러
+      const msg = err instanceof Error ? err.message : String(err);
+      const lineMatch = msg.match(/line\s+(\d+)/i);
+      post({ type: 'COMPILE_ERROR', message: msg, line: lineMatch ? +lineMatch[1] : undefined });
+      return;
+    }
+    await fn(gpio, scheduler, post, _ctx);
 
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') return;

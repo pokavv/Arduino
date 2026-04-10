@@ -225,6 +225,13 @@ export class ArduinoTranspiler {
     code = code.replace(/Serial\.available\s*\(\)/g, '__serial_available()');
     code = code.replace(/Serial\.read\s*\(\)/g, '__serial_read()');
     code = code.replace(/Serial\.write\s*\(([^)]*)\)/g, '__serial_write($1)');
+    code = code.replace(/Serial\.readStringUntil\s*\(([^)]*)\)/g, '__serial_readStringUntil($1)');
+    code = code.replace(/Serial\.readString\s*\(\)/g, '__serial_readString()');
+    code = code.replace(/Serial\.parseInt\s*\(\)/g, '__serial_parseInt()');
+    code = code.replace(/Serial\.parseFloat\s*\(\)/g, '__serial_parseFloat()');
+    code = code.replace(/Serial\.peek\s*\(\)/g, '__serial_peek()');
+    code = code.replace(/Serial\.flush\s*\(\)/g, '__serial_flush()');
+    code = code.replace(/Serial\.setTimeout\s*\([^)]*\)/g, '');
 
     // digitalRead/Write
     code = code.replace(/digitalWrite\s*\(([^,)]+),\s*([^)]+)\)/g, '__digitalWrite($1,$2)');
@@ -259,7 +266,21 @@ export class ArduinoTranspiler {
     code = code.replace(/\bsin\s*\(/g, 'Math.sin(');
     code = code.replace(/\bcos\s*\(/g, 'Math.cos(');
     code = code.replace(/\btan\s*\(/g, 'Math.tan(');
+    code = code.replace(/\basin\s*\(/g, 'Math.asin(');
+    code = code.replace(/\bacos\s*\(/g, 'Math.acos(');
+    code = code.replace(/\batan2?\s*\(/g, 'Math.atan2(');
+    code = code.replace(/\blog\s*\(/g, 'Math.log(');
+    code = code.replace(/\bexp\s*\(/g, 'Math.exp(');
+    code = code.replace(/\bfloor\s*\(/g, 'Math.floor(');
+    code = code.replace(/\bceil\s*\(/g, 'Math.ceil(');
+    code = code.replace(/\bround\s*\(/g, 'Math.round(');
+    code = code.replace(/\bisnan\s*\(/g, 'isNaN(');
+    code = code.replace(/\bisinf\s*\(/g, '(!isFinite(');
     code = code.replace(/\bPI\b/g, 'Math.PI');
+    code = code.replace(/\bTWO_PI\b/g, '(Math.PI*2)');
+    code = code.replace(/\bHALF_PI\b/g, '(Math.PI/2)');
+    code = code.replace(/\bDEG_TO_RAD\b/g, '(Math.PI/180)');
+    code = code.replace(/\bRAD_TO_DEG\b/g, '(180/Math.PI)');
     code = code.replace(/\brandom\s*\(/g, '__random(');
     code = code.replace(/\brandomSeed\s*\([^)]*\)/g, '');
 
@@ -293,10 +314,10 @@ export class ArduinoTranspiler {
     // .substring() — 동일
     // .indexOf() — 동일
     // .charAt() — 동일
-    // .toInt() — Arduino String.toInt()는 정수 파싱, charCodeAt과 다름
+    // .toInt() — Arduino String.toInt()는 정수 파싱
     code = code.replace(/(\w+)\.toInt\s*\(\)/g, 'parseInt($1, 10)');
     // .toFloat()
-    code = code.replace(/\.toFloat\s*\(\)/g, '__parseFloat(this)');
+    code = code.replace(/(\w+)\.toFloat\s*\(\)/g, 'parseFloat($1)');
     // String concatenation (+ already works in JS)
     return code;
   }

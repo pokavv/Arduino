@@ -141,6 +141,22 @@ const EEPROM = (() => {
   };
 })();
 
+// ─── Serial 확장 ────────────────────────────────────────────
+function __serial_readString() {
+  const buf = _serialInputBuffer.splice(0);
+  return buf.map(c => String.fromCharCode(c)).join('');
+}
+function __serial_readStringUntil(term) {
+  const code = typeof term === 'string' ? term.charCodeAt(0) : term;
+  const idx = _serialInputBuffer.indexOf(code);
+  if (idx === -1) return '';
+  return _serialInputBuffer.splice(0, idx + 1).slice(0, -1).map(c => String.fromCharCode(c)).join('');
+}
+function __serial_parseInt() { return parseInt(__serial_readString(), 10) || 0; }
+function __serial_parseFloat() { return parseFloat(__serial_readString()) || 0; }
+function __serial_peek() { return _serialInputBuffer[0] ?? -1; }
+function __serial_flush() {}
+
 // ─── Interrupt 스텁 ─────────────────────────────────────────
 const _interruptHandlers = {};
 function attachInterrupt(pin, fn, mode) {
@@ -148,6 +164,20 @@ function attachInterrupt(pin, fn, mode) {
 }
 function detachInterrupt(pin) { delete _interruptHandlers[pin]; }
 function digitalPinToInterrupt(pin) { return pin; }
+
+// ─── PROGMEM / F() 매크로 (no-op) ───────────────────────────
+function F(s) { return s; }
+function PSTR(s) { return s; }
+function pgm_read_byte(p) { return typeof p === 'number' ? p : 0; }
+function pgm_read_word(p) { return typeof p === 'number' ? p : 0; }
+const PROGMEM = '';
+
+// ─── 비트 연산 추가 상수 ──────────────────────────────────────
+const LSBFIRST = 0;
+const MSBFIRST = 1;
+const CHANGE = 1;
+const FALLING = 2;
+const RISING = 3;
 `;
 
   return `${coreSection}
