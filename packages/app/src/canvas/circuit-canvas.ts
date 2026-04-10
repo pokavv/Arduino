@@ -328,8 +328,9 @@ export class CircuitCanvas {
         const dy = e.clientY - d.startY;
         // 6px 임계값: 버튼 클릭 등 사소한 움직임에는 드래그 시작 안 함
         if (!d.moved && Math.sqrt(dx * dx + dy * dy) < 6) return;
-        d.liveX = d.ox + dx / this._transform.scale;
-        d.liveY = d.oy + dy / this._transform.scale;
+        const GRID = 8; // 8px 그리드 스냅
+        d.liveX = Math.round((d.ox + dx / this._transform.scale) / GRID) * GRID;
+        d.liveY = Math.round((d.oy + dy / this._transform.scale) / GRID) * GRID;
         d.moved = true;
         const el = this._elements.get(d.id);
         if (el) { el.style.left = `${d.liveX}px`; el.style.top = `${d.liveY}px`; }
@@ -367,6 +368,26 @@ export class CircuitCanvas {
         this._wireDrawing = null;
         this._renderDrawingWire(null);
         this._container.style.cursor = 'default';
+        return;
+      }
+      // Ctrl+D: 선택된 부품 복제
+      if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        e.preventDefault();
+        const selId = circuitStore.selectedId;
+        if (selId) {
+          const cur = circuitStore.components.find(c => c.id === selId);
+          if (cur) {
+            const newId = `${cur.type}-${Date.now()}`;
+            circuitStore.addComponent({
+              ...cur,
+              id: newId,
+              x: cur.x + 24,
+              y: cur.y + 24,
+              connections: {},
+            });
+            circuitStore.selectComponent(newId);
+          }
+        }
       }
     });
   }
@@ -418,6 +439,10 @@ export class CircuitCanvas {
       if (!this._elements.has(comp.id)) this._createElement(comp);
       const el = this._elements.get(comp.id);
       if (!el) continue;
+      // props를 Lit 엘리먼트에 동기화 (LED 색상 변경 등)
+      for (const [k, v] of Object.entries(comp.props)) {
+        if ((el as any)[k] !== v) (el as any)[k] = v;
+      }
       el.style.left      = `${comp.x}px`;
       el.style.top       = `${comp.y}px`;
       el.style.transform = `rotate(${comp.rotation ?? 0}deg)`;
