@@ -11,8 +11,8 @@ export class ArduinoTranspiler {
     result = this._transformStructs(result);
     result = this._transformStaticVars(result);
     result = this._transformArrayDecls(result);
-    result = this._transformTypes(result);
     result = this._transformForLoopDecls(result);
+    result = this._transformTypes(result);
     result = this._transformEnums(result);
     result = this._transformMultiVarDecls(result);
     result = this._transformArduinoAPI(result);
@@ -56,8 +56,12 @@ export class ArduinoTranspiler {
   }
 
   private _transformStructs(code: string): string {
+    // 정의된 struct 이름 수집 (키워드 없는 변수 선언 변환에 사용)
+    const structNames: string[] = [];
+
     // struct 정의: struct Point { int x; int y; }; → function Point() { this.x = 0; this.y = 0; }
     code = code.replace(/struct\s+(\w+)\s*\{([^}]+)\}\s*;?/g, (_, structName: string, body: string) => {
+      structNames.push(structName);
       const fields = body.split(';').map((s: string) => s.trim()).filter(Boolean);
       const assignments = fields.map((field: string) => {
         // 타입 키워드 + 변수명 파싱
@@ -72,7 +76,7 @@ export class ArduinoTranspiler {
           : '0';
         return `  this.${varName} = ${defaultVal};`;
       }).filter(Boolean);
-      return `function ${structName}() {\n${assignments.join('\n')}\n}`;
+      return `class ${structName} {\n  constructor() {\n${assignments.join('\n')}\n  }\n}`;
     });
 
     // struct 변수 선언 with initializer: struct Point p = {1, 2};
@@ -90,6 +94,15 @@ export class ArduinoTranspiler {
     code = code.replace(/struct\s+(\w+)\s+(\w+)\s*;/g, (_, typeName: string, varName: string) => {
       return `let ${varName} = new ${typeName}();`;
     });
+
+    // struct 키워드 없는 변수 선언: Point p; → let p = new Point();
+    // (함수 본문 내에서 struct 키워드 없이 선언하는 경우)
+    for (const name of structNames) {
+      code = code.replace(
+        new RegExp(`^(\\s*)\\b${name}\\s+(\\w+)\\s*;`, 'gm'),
+        (_: string, indent: string, varName: string) => `${indent}let ${varName} = new ${name}();`
+      );
+    }
 
     return code;
   }
@@ -122,10 +135,19 @@ export class ArduinoTranspiler {
     );
 
     // 함수 내부에서 해당 변수명 참조를 __static_ 접두사로 교체
+    // 문자열 리터럴 안의 내용은 건드리지 않도록 임시로 플레이스홀더로 치환
+    const strLiterals: string[] = [];
+    code = code.replace(/"[^"\\]*(?:\\.[^"\\]*)*"|'[^'\\]*(?:\\.[^'\\]*)*'/g, (m) => {
+      strLiterals.push(m);
+      return `\x00STR${strLiterals.length - 1}\x00`;
+    });
+
     for (const { varName } of statics) {
-      // 변수명만 단독으로 사용된 경우 교체 (선언부는 이미 제거됨)
       code = code.replace(new RegExp(`\\b${varName}\\b`, 'g'), `__static_${varName}`);
     }
+
+    // 문자열 리터럴 복원
+    code = code.replace(/\x00STR(\d+)\x00/g, (_, i) => strLiterals[Number(i)]);
 
     // 코드 최상단에 static 변수 선언 추가
     code = staticDecls.join('\n') + '\n' + code;
@@ -176,6 +198,12 @@ export class ArduinoTranspiler {
         return `${indent}${modifier} ${rest}`;
       }
     );
+
+    // cast 변환 (타입 키워드 제거 전에 처리해야 함)
+    code = code.replace(/\(int\)\s*([^\s,;)]+)/g, 'Math.trunc($1)');
+    code = code.replace(/\(float\)\s*([^\s,;)]+)/g, '($1)');
+    code = code.replace(/\(byte\)\s*([^\s,;)]+)/g, '(($1)&0xFF)');
+    code = code.replace(/\(long\)\s*([^\s,;)]+)/g, 'Math.trunc($1)');
 
     // 남은 타입 키워드 제거
     code = code.replace(typePattern, '');
@@ -340,12 +368,6 @@ export class ArduinoTranspiler {
     // float 리터럴 접미사 (1.5f → 1.5)
     code = code.replace(/(\d+\.\d*)[fF]\b/g, '$1');
     code = code.replace(/(\d+)[uUlL]+\b/g, '$1');
-
-    // cast: (int)x → Math.trunc(x), (float)x → (x)
-    code = code.replace(/\(int\)\s*([^\s,;)]+)/g, 'Math.trunc($1)');
-    code = code.replace(/\(float\)\s*([^\s,;)]+)/g, '($1)');
-    code = code.replace(/\(byte\)\s*([^\s,;)]+)/g, '(($1)&0xFF)');
-    code = code.replace(/\(long\)\s*([^\s,;)]+)/g, 'Math.trunc($1)');
 
     // isDigit/isAlpha/isSpace
     code = code.replace(/\bisDigit\s*\(([^)]+)\)/g, '/[0-9]/.test($1)');
