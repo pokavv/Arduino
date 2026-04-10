@@ -513,8 +513,18 @@ export class CircuitStore {
     wires: PlacedWire[],
   ): Map<string, Record<string, number | string>> {
     const result = new Map<string, Record<string, number | string>>();
-    for (const c of comps) result.set(c.id, {});
 
+    // ① 기준값: 컴포넌트에 저장된 connections 중 GPIO 번호(숫자)만 베이스라인으로 사용
+    //    (템플릿에서 wires 없이 직접 저장된 핀 번호를 시뮬레이션에 반영하기 위해)
+    for (const c of comps) {
+      const base: Record<string, number | string> = {};
+      for (const [pin, val] of Object.entries(c.connections ?? {})) {
+        if (typeof val === 'number') base[pin] = val;
+      }
+      result.set(c.id, base);
+    }
+
+    // ② 와이어 기반 연결 오버라이드 (항상 와이어가 우선)
     for (const wire of wires) {
       const fromIsBoard = comps.find(c => c.id === wire.fromCompId)?.type.startsWith('board') ?? false;
       const toIsBoard   = comps.find(c => c.id === wire.toCompId  )?.type.startsWith('board') ?? false;
@@ -531,6 +541,35 @@ export class CircuitStore {
         result.get(wire.toCompId  )![wire.toPin  ] = net;
       }
     }
+
+    // ③ Net 해소: 부품-부품 와이어 체인(Board→저항→LED)에서 GPIO 번호 전파
+    //    각 이터레이션마다 한 홉씩 전파 (최대 20번 반복으로 긴 체인도 처리)
+    let changed = true;
+    let iter = 0;
+    while (changed && iter++ < 20) {
+      changed = false;
+      // 이번 이터레이션의 현재 상태로 net→GPIO 맵 구축
+      const netToGpio = new Map<string, number>();
+      for (const [, connMap] of result) {
+        const gpios = Object.values(connMap).filter((v): v is number => typeof v === 'number');
+        const nets  = Object.values(connMap).filter((v): v is string => typeof v === 'string' && v.startsWith('net-'));
+        for (const net of nets) {
+          for (const gpio of gpios) {
+            if (!netToGpio.has(net)) netToGpio.set(net, gpio);
+          }
+        }
+      }
+      // net 참조를 GPIO 번호로 치환
+      for (const [compId, connMap] of result) {
+        for (const [pin, val] of Object.entries(connMap)) {
+          if (typeof val === 'string' && val.startsWith('net-') && netToGpio.has(val)) {
+            result.get(compId)![pin] = netToGpio.get(val)!;
+            changed = true;
+          }
+        }
+      }
+    }
+
     return result;
   }
 
@@ -559,6 +598,16 @@ export class CircuitStore {
         }
       }
     }
+    // 폴백: 보드가 하나뿐이고 컴포넌트에 직접 GPIO 연결이 있으면 해당 보드를 반환 (템플릿 호환)
+    const comp = this._state.components.find(c => c.id === compId);
+    if (comp && !isBoard(comp.type)) {
+      const hasGpio = Object.values(comp.connections ?? {}).some(v => typeof v === 'number');
+      const hasI2c  = typeof (comp.props as Record<string, unknown>)?.i2cAddress === 'number';
+      if (hasGpio || hasI2c) {
+        const boards = this._state.components.filter(c => isBoard(c.type));
+        if (boards.length === 1) return boards[0].id;
+      }
+    }
     return null;
   }
 
@@ -584,6 +633,18 @@ export class CircuitStore {
           visited.add(wire.fromCompId);
           queue.push(wire.fromCompId);
         }
+      }
+    }
+
+    // 와이어 없이 직접 GPIO 번호가 저장된 컴포넌트도 포함 (템플릿 호환)
+    // 보드가 하나뿐일 때 connections 필드에 숫자 또는 i2cAddress props를 가진 컴포넌트를 포함
+    const boardCount = this._state.components.filter(c => isBoard(c.type)).length;
+    if (boardCount === 1) {
+      for (const comp of this._state.components) {
+        if (visited.has(comp.id) || isBoard(comp.type)) continue;
+        const hasDirectGpio = Object.values(comp.connections ?? {}).some(v => typeof v === 'number');
+        const hasI2cAddr    = typeof (comp.props as Record<string, unknown>)?.i2cAddress === 'number';
+        if (hasDirectGpio || hasI2cAddr) visited.add(comp.id);
       }
     }
 

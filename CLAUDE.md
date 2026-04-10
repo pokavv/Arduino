@@ -277,8 +277,8 @@ MPU-6050, BMP280, MQ-2, 토양수분, 빗물감지, 로터리인코더, 4×4 키
 | blink | LED 깜빡이기 | arduino-uno | led |
 | button-led | 버튼으로 LED 제어 | arduino-uno | button, led |
 | potentiometer-led | 가변저항 밝기 제어 | arduino-uno | potentiometer, led |
-| dht-monitor | 온습도 모니터링 | arduino-uno | dht |
-| ultrasonic-distance | 초음파 거리 측정 | arduino-uno | ultrasonic |
+| dht22 | 온습도 모니터링 | arduino-uno | dht |
+| ultrasonic | 초음파 거리 측정 | arduino-uno | ultrasonic |
 | servo-sweep | 서보 모터 스윕 | arduino-uno | servo |
 | lcd-hello | LCD Hello World | arduino-uno | lcd |
 | neopixel-rainbow | NeoPixel 무지개 | arduino-uno | neopixel |
@@ -329,6 +329,56 @@ GET /api/templates/:id
 ### loadFromJson 검증
 - `version` 필드 없으면 `console.warn` (throw 아님)
 - `components`, `wires`가 배열 아니면 빈 배열로 대체
+
+### 연결 도출 시스템 (`_buildDerivedConnections`)
+3단계 알고리즘으로 동작:
+1. **베이스라인**: 컴포넌트 `connections` 필드의 숫자 값 (템플릿 호환 — 와이어 없이도 동작)
+2. **와이어 오버라이드**: `PlacedWire`에서 Board→컴포넌트 GPIO 번호 도출 (항상 우선)
+3. **Net 해소**: 부품-부품 체인(Board→저항→LED) 에서 GPIO 번호 전파 (최대 20 이터레이션)
+
+**템플릿 호환**:
+- `toSnapshotForBoard`: 보드가 1개일 때 wires 없어도 `connections`에 숫자가 있는 컴포넌트 / `i2cAddress` props가 있는 컴포넌트 포함
+- `findParentBoardForComp`: 보드가 1개일 때 wires 없어도 직접 GPIO/i2cAddress 연결된 컴포넌트의 부모 보드 반환
+
+### 글로벌 노출 (테스트/디버깅용)
+```typescript
+window.__circuitStore  // circuitStore 인스턴스 (app.ts 에서 노출)
+window.__monacoEditor  // Monaco 에디터 인스턴스 (code-editor.ts 에서 노출)
+```
+
+### Lit Element 속성 접근
+Lit `@property()` 는 기본적으로 `reflect: false` → `getAttribute()` 로 읽을 수 없음.
+```javascript
+el.angle        // ✅ JS property 직접 접근
+el.getAttribute('angle')  // ❌ null 반환
+```
+
+---
+
+## E2E 테스트
+
+Playwright 기반 헤드리스 브라우저 테스트. 실서버(`http://localhost:5173`)가 기동된 상태에서 실행.
+
+```bash
+# 의존성 (최초 1회)
+pnpm add -Dw playwright
+pnpm exec playwright install chromium
+
+# 실행 (서버 기동 후)
+node test-e2e.mjs
+```
+
+**테스트 파일**: `test-e2e.mjs` — 26개 섹션, 76개 assertion, 100% 통과
+
+**주요 헬퍼**:
+- `waitForStore(page)` — `window.__circuitStore` 노출 대기
+- `loadTemplate(page, template)` — `loadFromJson` 으로 회로 로드
+- `clickStop(page)` — 정지 버튼이 보일 때만 클릭
+
+**주의사항**:
+- 탭 버튼은 ID가 없음 → `.right-tab-btn[data-tab="serial"]` 셀렉터 사용
+- 탭 클릭은 `page.evaluate(() => btn.click())` 방식 사용 (Playwright locator 문제 회피)
+- `releasePointerCapture` 콘솔 에러는 무시 (합성 pointer 이벤트 부작용)
 
 ---
 
