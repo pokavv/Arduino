@@ -5,7 +5,7 @@
 
 const API = '/api/components';
 
-type Category = 'passive' | 'active' | 'sensor' | 'display' | 'actuator' | 'power' | 'mcu';
+type Category = 'passive' | 'active' | 'sensor' | 'display' | 'actuator' | 'power' | 'mcu' | 'output' | 'ic' | 'communication';
 type PinType = 'power'|'ground'|'digital'|'analog'|'pwm'|'i2c_sda'|'i2c_scl'|
                'spi_mosi'|'spi_miso'|'spi_sck'|'spi_ss'|'uart_tx'|'uart_rx'|
                'signal'|'output'|'input';
@@ -99,7 +99,7 @@ export class ComponentEditor {
               <input id="ce-name" type="text" placeholder="내 센서" class="ce-input"></div>
             <div class="ce-row"><label>카테고리</label>
               <select id="ce-category" class="ce-input">
-                ${['passive','active','sensor','display','actuator','power','mcu']
+                ${['passive','active','sensor','display','actuator','power','mcu','output','ic','communication']
                   .map(c => `<option value="${c}">${c}</option>`).join('')}
               </select>
             </div>

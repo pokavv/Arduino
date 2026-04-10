@@ -53,7 +53,7 @@ export interface ValidationEntry {
 export interface ComponentDef {
   id: string;
   name: string;
-  category: 'passive' | 'active' | 'sensor' | 'display' | 'actuator' | 'power' | 'mcu';
+  category: 'passive' | 'active' | 'sensor' | 'display' | 'actuator' | 'power' | 'mcu' | 'output' | 'ic' | 'communication';
   tags: string[];
   description: string;
   /** 팔레트 및 패널에 표시할 이모지 아이콘 */

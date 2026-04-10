@@ -6,10 +6,21 @@ import { fetchComponents, fetchTemplateDetail } from '../api/api-client.js';
 import type { CompSummary, TemplateInfo, TemplateDetail } from '../api/api-client.js';
 
 const CAT_LABELS: Record<string, string> = {
-  mcu: '보드', passive: '수동 소자', active: '능동 소자',
-  sensor: '센서', display: '디스플레이', actuator: '액추에이터', power: '전원',
+  mcu:           '보드',
+  passive:       '수동 소자',
+  output:        '출력 소자',
+  sensor:        '센서',
+  display:       '디스플레이',
+  actuator:      '액추에이터',
+  ic:            'IC / 반도체',
+  communication: '통신 모듈',
+  power:         '전원',
+  // 레거시 — 서버 DB에 잔존하는 구 카테고리 표시용
+  active:        '기타 (active)',
 };
-const CAT_ORDER = ['mcu','passive','active','sensor','display','actuator','power'];
+const CAT_ORDER = [
+  'mcu', 'passive', 'output', 'sensor', 'display', 'actuator', 'ic', 'communication', 'power', 'active',
+];
 
 let _canvas: CircuitCanvas;
 let _paletteList: HTMLElement;
