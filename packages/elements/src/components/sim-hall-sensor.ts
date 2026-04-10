@@ -35,6 +35,20 @@ export class SimHallSensor extends SimElement {
     ]);
   }
 
+  private _onToggle(e: PointerEvent) {
+    e.stopPropagation();
+    this.dispatchEvent(new CustomEvent('sim-interaction-start', { bubbles: true, composed: true }));
+    this.detected = !this.detected;
+    this.requestUpdate();
+    this.dispatchEvent(new CustomEvent('sim-change', {
+      bubbles: true, composed: true,
+      detail: { detected: this.detected },
+    }));
+    setTimeout(() => {
+      this.dispatchEvent(new CustomEvent('sim-interaction-end', { bubbles: true, composed: true }));
+    }, 60);
+  }
+
   override render() {
     const fieldOpacity = this.detected ? 0.7 : 0;
 
@@ -54,6 +68,19 @@ export class SimHallSensor extends SimElement {
             <stop offset="100%" stop-color="#4499ff" stop-opacity="0"/>
           </radialGradient>
         </defs>
+
+        <!-- 토글 버튼 영역 (상단 y=0~26px) -->
+        <rect x="2" y="2" width="41" height="22" rx="2" fill="#0c1420"/>
+        <text x="22.5" y="11" font-size="4.5" fill="#6688aa" font-family="monospace" text-anchor="middle">HALL SENSOR</text>
+        <g style="cursor:pointer" @pointerdown="${this._onToggle}">
+          <rect x="6" y="14" width="33" height="8" rx="3"
+            fill="${this.detected ? '#1a3a1a' : '#1a1a2a'}"
+            stroke="${this.detected ? '#44bb44' : '#334455'}" stroke-width="0.8"/>
+          <text x="22.5" y="20" font-size="5.5" fill="${this.detected ? '#44ff44' : '#556677'}"
+            font-family="monospace" text-anchor="middle" font-weight="bold">
+            ${this.detected ? '🧲 DETECTED' : 'NO FIELD'}
+          </text>
+        </g>
 
         <!-- 자기장 글로우 배경 (감지 시) -->
         <ellipse cx="22.5" cy="18" rx="22" ry="20"
