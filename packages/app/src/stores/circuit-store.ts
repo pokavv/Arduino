@@ -535,6 +535,34 @@ export class CircuitStore {
   }
 
   /**
+   * BFS로 특정 컴포넌트(버튼/센서)가 연결된 보드 컴포넌트의 ID를 반환
+   * 와이어 그래프를 탐색해 가장 가까운 보드를 찾는다.
+   * 연결된 보드가 없으면 null 반환.
+   */
+  findParentBoardForComp(compId: string): string | null {
+    const visited = new Set<string>([compId]);
+    const queue = [compId];
+    while (queue.length > 0) {
+      const cur = queue.shift()!;
+      if (cur !== compId) {
+        const curComp = this._state.components.find(c => c.id === cur);
+        if (curComp && isBoard(curComp.type)) return cur;
+      }
+      for (const wire of this._state.wires) {
+        if (wire.fromCompId === cur && !visited.has(wire.toCompId)) {
+          visited.add(wire.toCompId);
+          queue.push(wire.toCompId);
+        }
+        if (wire.toCompId === cur && !visited.has(wire.fromCompId)) {
+          visited.add(wire.fromCompId);
+          queue.push(wire.fromCompId);
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
    * 특정 보드에 연결된 컴포넌트만으로 CircuitSnapshot 생성
    * BFS로 해당 보드에서 와이어를 통해 도달 가능한 모든 컴포넌트를 포함
    */

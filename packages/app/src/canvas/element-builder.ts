@@ -12,32 +12,9 @@ export interface BuildElementContext {
   showCompCtxMenu(compId: string, clientX: number, clientY: number): void;
 }
 
-/**
- * BFS로 특정 컴포넌트가 연결된 보드 컴포넌트 ID를 찾는다.
- * 버튼/센서 이벤트를 올바른 보드의 Worker로 라우팅하는 데 사용.
- */
+/** 버튼/센서 이벤트를 올바른 보드 Worker로 라우팅하기 위한 헬퍼 */
 function findParentBoardId(compId: string): string | null {
-  const visited = new Set<string>([compId]);
-  const queue = [compId];
-
-  while (queue.length > 0) {
-    const cur = queue.shift()!;
-    // cur 자신이 보드이고 출발점이 아니면 반환
-    const curComp = circuitStore.components.find(c => c.id === cur);
-    if (curComp && isBoard(curComp.type) && cur !== compId) return cur;
-
-    for (const wire of circuitStore.wires) {
-      if (wire.fromCompId === cur && !visited.has(wire.toCompId)) {
-        visited.add(wire.toCompId);
-        queue.push(wire.toCompId);
-      }
-      if (wire.toCompId === cur && !visited.has(wire.fromCompId)) {
-        visited.add(wire.fromCompId);
-        queue.push(wire.fromCompId);
-      }
-    }
-  }
-  return null;
+  return circuitStore.findParentBoardForComp(compId);
 }
 
 /**
@@ -141,9 +118,10 @@ export function buildElement(
     }
   });
 
-  // ── 보드 RST 버튼: 해당 보드만 재시작
+  // ── 보드 RST 버튼: 해당 보드만 재시작 (라이브 simState로 체크)
   el.addEventListener('sim-reset', () => {
-    if (isBoard(comp.type) && comp.simState === 'running') {
+    const liveComp = circuitStore.components.find(c => c.id === comp.id);
+    if (isBoard(comp.type) && liveComp?.simState === 'running') {
       boardWorkerManager.stopBoard(comp.id);
       setTimeout(() => boardWorkerManager.startBoard(comp.id), 300);
     }

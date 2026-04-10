@@ -5,6 +5,13 @@ Wokwi / TinkerCAD Circuits / Proteus 수준의 Arduino 웹 시뮬레이터.
 
 ---
 
+## Claude 작업 규칙
+
+> **CRITICAL**: `codex:codex-rescue` 에이전트(Codex)를 절대 사용하지 않는다. **Claude Code 도구만** 사용한다.
+> **주의**: 서브에이전트를 쓸 경우 반드시 `general-purpose`, `Explore`, `Plan` 등 Claude 기반 에이전트만 사용한다.
+
+---
+
 ## 실행 방법
 
 > **주의**: 서버 기동/종료는 사용자가 직접 한다. Claude는 `pnpm dev` 등 서버 실행 명령을 대신 실행하지 않는다.

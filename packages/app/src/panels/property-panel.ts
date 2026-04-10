@@ -440,12 +440,13 @@ export class PropertyPanel {
 
   /** 시뮬레이션 실행 중이면 컴포넌트의 숫자/불리언 props를 엔진에 즉시 전송 */
   private _sendSensorUpdateIfRunning(compId: string) {
-    if (circuitStore.activeBoardSimState !== 'running') return;
     const updatedComp = circuitStore.components.find(c => c.id === compId);
     if (!updatedComp) return;
-    // 이 컴포넌트가 연결된 보드 Worker로 센서 업데이트 전송
-    const boardId = circuitStore.selectedBoardId;
+    // 이 컴포넌트가 실제로 연결된 보드를 BFS로 찾아 해당 Worker로 전송
+    const boardId = circuitStore.findParentBoardForComp(compId);
     if (!boardId) return;
+    const boardComp = circuitStore.components.find(c => c.id === boardId);
+    if (boardComp?.simState !== 'running') return;
     const numericData: Record<string, number> = {};
     for (const [k, v] of Object.entries(updatedComp.props)) {
       if (typeof v === 'number') numericData[k] = v;

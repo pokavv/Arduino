@@ -72,16 +72,42 @@ circuitStore.subscribe(() => {
   }
 });
 
-// 보드 선택 시 에디터 탭으로 자동 전환
+// 보드 선택 시 에디터 탭으로 자동 전환 + 보드 레이블 업데이트
+const BOARD_FRIENDLY_NAMES: Record<string, string> = {
+  'board-uno':     'Arduino Uno R3',
+  'board-nano':    'Arduino Nano',
+  'board-esp32c3': 'ESP32-C3 Super Mini',
+  'board-esp32':   'ESP32 DevKit V1',
+  'board-mega':    'Arduino Mega 2560',
+};
+
 let _prevBoardId: string | null = null;
 circuitStore.subscribe(() => {
   const cur = circuitStore.selectedBoardId;
-  if (cur && cur !== _prevBoardId) {
-    _prevBoardId = cur;
-    switchTab('editor');
-    codeEditor.relayout();
+  const label = document.getElementById('editor-board-label');
+
+  if (cur) {
+    const board = circuitStore.boards.find(b => b.id === cur);
+    const name = board ? (BOARD_FRIENDLY_NAMES[board.type] ?? board.type) : '보드';
+    const state = board?.simState ?? 'idle';
+    const stateIcon = state === 'running' ? '●' : state === 'error' ? '✕' : '○';
+    const stateColor = state === 'running' ? '#34D378' : state === 'error' ? '#FF5050' : '';
+    if (label) {
+      label.className = 'has-board';
+      label.innerHTML = `<span style="color:${stateColor};margin-right:2px">${stateIcon}</span>${name} <span style="color:var(--color-text-tertiary);font-size:10px;margin-left:4px">${cur}</span>`;
+    }
+    if (cur !== _prevBoardId) {
+      _prevBoardId = cur;
+      switchTab('editor');
+      codeEditor.relayout();
+    }
+  } else {
+    _prevBoardId = null;
+    if (label) {
+      label.className = '';
+      label.textContent = '보드를 클릭해 선택하세요';
+    }
   }
-  if (!cur) _prevBoardId = null;
 });
 
 function switchTab(tab: string) {

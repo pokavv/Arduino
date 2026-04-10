@@ -69,8 +69,8 @@ export class CircuitCanvas {
     this._render();
 
     // 보드별 Worker 콜백 등록 — boardWorkerManager가 각 보드의 Worker 이벤트를 여기로 전달
-    boardWorkerManager.registerPinStateHandler((_boardCompId, pin, value) => {
-      this._updatePinVisual(pin, value);
+    boardWorkerManager.registerPinStateHandler((boardCompId, pin, value) => {
+      this._updatePinVisual(boardCompId, pin, value);
     });
     boardWorkerManager.registerComponentUpdateHandler((_boardCompId, id, pin, value) => {
       const el = this._elements.get(id);
@@ -504,11 +504,13 @@ export class CircuitCanvas {
 
   // ─── 시뮬레이션 핀 시각 업데이트 ──────────────────────────────────────────
 
-  private _updatePinVisual(pin: number, value: number) {
+  private _updatePinVisual(boardCompId: string, pin: number, value: number) {
     const derived = circuitStore.getDerivedConnections();
     for (const [compId, connMap] of derived) {
       for (const [pinName, target] of Object.entries(connMap)) {
         if (target === pin) {
+          // 멀티보드: 해당 보드에 연결된 컴포넌트만 업데이트
+          if (circuitStore.findParentBoardForComp(compId) !== boardCompId) continue;
           const el = this._elements.get(compId);
           if (el) el.setPinState(pinName, value);
         }
