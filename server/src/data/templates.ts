@@ -753,6 +753,566 @@ void loop() {
 `,
   },
   {
+    id: 'joystick-read',
+    name: '조이스틱 값 읽기',
+    category: '아날로그',
+    boardId: 'arduino-uno',
+    description: '아날로그 조이스틱 XY 축과 버튼 값을 시리얼로 출력합니다',
+    components: [
+      { id: 'board-1', type: 'board-uno', x: 100, y: 100, rotation: 0, props: {}, connections: {} },
+      {
+        id: 'joystick-1', type: 'joystick', x: 360, y: 100,
+        rotation: 0,
+        props: { vrx: 512, vry: 512, sw: 1 },
+        connections: { VCC: '5V', GND: 'GND', VRX: 'A0', VRY: 'A1', SW: 2 },
+      },
+    ],
+    code: `// 아날로그 조이스틱 값 읽기
+// KY-023 조이스틱의 X/Y 축과 버튼 상태를 시리얼로 출력합니다
+// 회로: VCC→5V, GND→GND, VRX→A0, VRY→A1, SW→D2
+
+const int VRX_PIN = A0;  // X축 아날로그 핀
+const int VRY_PIN = A1;  // Y축 아날로그 핀
+const int SW_PIN  = 2;   // 버튼 디지털 핀
+
+void setup() {
+  pinMode(SW_PIN, INPUT_PULLUP);  // 버튼: 내부 풀업 (안 눌림=HIGH)
+  Serial.begin(9600);
+  Serial.println("조이스틱 시작!");
+  Serial.println("X\\tY\\t버튼");
+}
+
+void loop() {
+  int vrx = analogRead(VRX_PIN);   // X축 (0~1023)
+  int vry = analogRead(VRY_PIN);   // Y축 (0~1023)
+  int sw  = digitalRead(SW_PIN);   // 버튼 (LOW=눌림)
+
+  Serial.print(vrx);
+  Serial.print("\\t");
+  Serial.print(vry);
+  Serial.print("\\t");
+  Serial.println(sw == LOW ? "눌림" : "안눌림");
+
+  delay(200);
+}
+`,
+  },
+  {
+    id: 'pir-motion',
+    name: 'PIR 모션 감지',
+    category: '센서',
+    boardId: 'arduino-uno',
+    description: 'PIR 센서로 인체를 감지하면 LED를 켭니다',
+    components: [
+      { id: 'board-1', type: 'board-uno', x: 100, y: 100, rotation: 0, props: {}, connections: {} },
+      {
+        id: 'pir-1', type: 'pir-sensor', x: 360, y: 80,
+        rotation: 0,
+        props: { delay: 5, sensitivity: 'medium' },
+        connections: { VCC: '5V', GND: 'GND', OUT: 3 },
+      },
+      {
+        id: 'led-1', type: 'led', x: 420, y: 180,
+        rotation: 0,
+        props: { color: 'red' },
+        connections: { ANODE: 13, CATHODE: 'GND' },
+      },
+    ],
+    code: `// PIR 모션 감지 → LED 제어
+// HC-SR501 PIR 센서가 인체를 감지하면 LED를 켭니다
+// 회로: PIR OUT→D3, LED ANODE→D13, CATHODE→GND
+// 준비물: HC-SR501 PIR 센서, LED, 220Ω 저항
+
+#define PIR_PIN  3   // PIR 출력 핀 (HIGH=감지)
+#define LED_PIN  13  // 내장 LED 핀
+
+void setup() {
+  pinMode(PIR_PIN, INPUT);   // PIR 출력 → 입력 핀
+  pinMode(LED_PIN, OUTPUT);  // LED → 출력 핀
+  Serial.begin(9600);
+  Serial.println("PIR 모션 감지 시작!");
+  Serial.println("전원 인가 후 약 60초 안정화 시간이 필요합니다.");
+}
+
+void loop() {
+  int motion = digitalRead(PIR_PIN);  // 감지 여부 읽기
+
+  if (motion == HIGH) {
+    // 인체 감지됨
+    digitalWrite(LED_PIN, HIGH);
+    Serial.println("움직임 감지! LED ON");
+  } else {
+    // 감지 없음
+    digitalWrite(LED_PIN, LOW);
+  }
+
+  delay(100);
+}
+`,
+  },
+  {
+    id: 'hall-magnet',
+    name: '홀 센서 자석 감지',
+    category: '센서',
+    boardId: 'arduino-uno',
+    description: '홀 효과 센서로 자석 근접을 감지하면 LED를 켭니다',
+    components: [
+      { id: 'board-1', type: 'board-uno', x: 100, y: 100, rotation: 0, props: {}, connections: {} },
+      {
+        id: 'hall-1', type: 'hall-sensor', x: 360, y: 80,
+        rotation: 0,
+        props: {},
+        connections: { VCC: '5V', GND: 'GND', OUT: 4 },
+      },
+      {
+        id: 'led-1', type: 'led', x: 420, y: 180,
+        rotation: 0,
+        props: { color: 'green' },
+        connections: { ANODE: 13, CATHODE: 'GND' },
+      },
+    ],
+    code: `// 홀 효과 센서 자석 감지 → LED 제어
+// A3144 홀 센서 근처에 자석(S극)이 접근하면 OUT이 LOW가 됩니다
+// 회로: VCC→5V, GND→GND, OUT→D4, LED→D13
+// 준비물: A3144 홀 센서, 네오디뮴 자석, LED, 220Ω 저항, 10kΩ 풀업저항
+
+#define HALL_PIN  4   // 홀 센서 출력 핀 (Active LOW)
+#define LED_PIN   13  // 내장 LED 핀
+
+void setup() {
+  pinMode(HALL_PIN, INPUT_PULLUP);  // 오픈 컬렉터 출력 → 풀업 필요
+  pinMode(LED_PIN, OUTPUT);
+  Serial.begin(9600);
+  Serial.println("홀 효과 센서 시작!");
+  Serial.println("자석(S극)을 가져다 대보세요.");
+}
+
+void loop() {
+  int hallState = digitalRead(HALL_PIN);  // LOW=자석 감지
+
+  if (hallState == LOW) {
+    // 자석 감지 (Active LOW)
+    digitalWrite(LED_PIN, HIGH);
+    Serial.println("자석 감지! LED ON");
+  } else {
+    // 자석 없음
+    digitalWrite(LED_PIN, LOW);
+  }
+
+  delay(50);
+}
+`,
+  },
+  {
+    id: 'ir-remote',
+    name: 'IR 리모컨 수신',
+    category: '센서',
+    boardId: 'arduino-uno',
+    description: 'IR 수신기로 리모컨 신호를 감지하고 LED를 토글합니다',
+    components: [
+      { id: 'board-1', type: 'board-uno', x: 100, y: 100, rotation: 0, props: {}, connections: {} },
+      {
+        id: 'ir-recv-1', type: 'ir-receiver', x: 360, y: 80,
+        rotation: 0,
+        props: {},
+        connections: { OUT: 11, VCC: '5V', GND: 'GND' },
+      },
+      {
+        id: 'led-1', type: 'led', x: 420, y: 180,
+        rotation: 0,
+        props: { color: 'yellow' },
+        connections: { ANODE: 13, CATHODE: 'GND' },
+      },
+    ],
+    code: `// IR 리모컨 수신 + LED 토글
+// TSOP38238 IR 수신기로 38kHz 신호를 수신합니다
+// 회로: OUT→D11, VCC→5V, GND→GND, LED→D13
+// 준비물: TSOP38238, IR 리모컨, LED, 220Ω 저항
+// 라이브러리: IRremote by shirriff (라이브러리 매니저 설치)
+
+#include <IRremote.hpp>
+
+#define IR_RECV_PIN 11  // IR 수신기 OUT 핀
+#define LED_PIN     13  // LED 핀
+
+bool ledState = false;
+
+void setup() {
+  pinMode(LED_PIN, OUTPUT);
+  Serial.begin(9600);
+  IrReceiver.begin(IR_RECV_PIN, ENABLE_LED_FEEDBACK);
+  Serial.println("IR 리모컨 수신 대기 중...");
+}
+
+void loop() {
+  if (IrReceiver.decode()) {
+    // IR 신호 수신됨
+    uint32_t code = IrReceiver.decodedIRData.decodedRawData;
+    Serial.print("수신 코드: 0x");
+    Serial.println(code, HEX);
+
+    // LED 토글
+    ledState = !ledState;
+    digitalWrite(LED_PIN, ledState ? HIGH : LOW);
+    Serial.println(ledState ? "LED ON" : "LED OFF");
+
+    IrReceiver.resume();  // 다음 신호 수신 준비
+  }
+}
+`,
+  },
+  {
+    id: 'seven-segment-count',
+    name: '7-세그먼트 카운터',
+    category: '디스플레이',
+    boardId: 'arduino-uno',
+    description: '7-세그먼트 디스플레이에 0~9 숫자를 1초 간격으로 표시합니다',
+    components: [
+      { id: 'board-1', type: 'board-uno', x: 100, y: 100, rotation: 0, props: {}, connections: {} },
+      {
+        id: 'seg-1', type: 'seven-segment', x: 360, y: 100,
+        rotation: 0,
+        props: { color: '#ff2020', type: 'cathode' },
+        connections: { A: 2, B: 3, C: 4, D: 5, E: 6, F: 7, G: 8, COM: 'GND' },
+      },
+    ],
+    code: `// 7-세그먼트 디스플레이 0~9 카운터
+// 공통 음극(CC) 7-세그먼트에 숫자를 1초 간격으로 표시합니다
+// 회로: A→D2, B→D3, C→D4, D→D5, E→D6, F→D7, G→D8, COM→GND
+// 각 세그먼트 핀에 330Ω 저항 직렬 연결 필수
+
+// 세그먼트 핀 배열 (순서: A, B, C, D, E, F, G)
+const int SEG_PINS[7] = { 2, 3, 4, 5, 6, 7, 8 };
+
+// 숫자 0~9 세그먼트 패턴 (공통 음극: 1=켜짐)
+// 순서: A  B  C  D  E  F  G
+const byte DIGITS[10] = {
+  0b1111110,  // 0: A,B,C,D,E,F 켜짐
+  0b0110000,  // 1: B,C 켜짐
+  0b1101101,  // 2: A,B,D,E,G 켜짐
+  0b1111001,  // 3: A,B,C,D,G 켜짐
+  0b0110011,  // 4: B,C,F,G 켜짐
+  0b1011011,  // 5: A,C,D,F,G 켜짐
+  0b1011111,  // 6: A,C,D,E,F,G 켜짐
+  0b1110000,  // 7: A,B,C 켜짐
+  0b1111111,  // 8: 모두 켜짐
+  0b1111011,  // 9: A,B,C,D,F,G 켜짐
+};
+
+// 숫자 표시 함수
+void displayDigit(int num) {
+  byte pattern = DIGITS[num];
+  for (int i = 0; i < 7; i++) {
+    // 비트를 MSB(A)부터 LSB(G) 순으로 읽기
+    digitalWrite(SEG_PINS[i], (pattern >> (6 - i)) & 1);
+  }
+}
+
+void setup() {
+  for (int i = 0; i < 7; i++) {
+    pinMode(SEG_PINS[i], OUTPUT);
+  }
+  Serial.begin(9600);
+  Serial.println("7-세그먼트 카운터 시작!");
+}
+
+void loop() {
+  for (int digit = 0; digit <= 9; digit++) {
+    displayDigit(digit);
+    Serial.println(digit);
+    delay(1000);  // 1초 대기
+  }
+}
+`,
+  },
+  {
+    id: 'oled-hello',
+    name: 'OLED Hello World',
+    category: '디스플레이',
+    boardId: 'esp32-c3-supermini',
+    description: 'ESP32-C3에서 SSD1306 OLED에 Hello World를 출력합니다',
+    components: [
+      { id: 'board-1', type: 'board-esp32c3', x: 100, y: 100, rotation: 0, props: {}, connections: {} },
+      {
+        id: 'oled-1', type: 'oled', x: 360, y: 80,
+        rotation: 0,
+        props: { i2cAddress: 0x3C },
+        connections: { GND: 'GND', VCC: '3V3', SCL: 'G7', SDA: 'G6' },
+      },
+    ],
+    code: `// OLED Hello World — ESP32-C3 Super Mini
+// SSD1306 I2C OLED 128×64에 Hello World를 출력합니다
+// 회로: SDA→G6, SCL→G7, VCC→3.3V, GND→GND
+// 라이브러리: Adafruit GFX Library + Adafruit SSD1306
+
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128  // OLED 가로 픽셀
+#define SCREEN_HEIGHT 64  // OLED 세로 픽셀
+#define OLED_ADDR    0x3C // I2C 주소 (보통 0x3C 또는 0x3D)
+
+// ESP32-C3 Super Mini I2C 핀
+#define I2C_SDA 6  // G6
+#define I2C_SCL 7  // G7
+
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+
+void setup() {
+  Serial.begin(115200);
+
+  // ESP32-C3: Wire.begin(SDA, SCL) 핀 지정 필요
+  Wire.begin(I2C_SDA, I2C_SCL);
+
+  // OLED 초기화
+  if (!display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR)) {
+    Serial.println("OLED 초기화 실패! 연결을 확인하세요.");
+    while (true);
+  }
+
+  display.clearDisplay();
+
+  // 타이틀 출력
+  display.setTextSize(2);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0, 0);
+  display.println("Hello,");
+  display.println("World!");
+
+  // 부가 정보
+  display.setTextSize(1);
+  display.setCursor(0, 48);
+  display.print("ESP32-C3 OLED");
+  display.display();
+
+  Serial.println("OLED 초기화 완료!");
+}
+
+void loop() {
+  // 업타임(초) 갱신
+  display.fillRect(0, 48, 128, 16, SSD1306_BLACK);  // 하단 지우기
+  display.setCursor(0, 48);
+  display.setTextSize(1);
+  display.print("uptime: ");
+  display.print(millis() / 1000);
+  display.print("s");
+  display.display();
+
+  Serial.print("uptime: ");
+  Serial.print(millis() / 1000);
+  Serial.println("s");
+
+  delay(1000);
+}
+`,
+  },
+  {
+    id: 'l298n-motor',
+    name: 'L298N 모터 드라이버',
+    category: '모터',
+    boardId: 'arduino-uno',
+    description: 'L298N으로 DC 모터를 정방향/역방향/정지 제어합니다',
+    components: [
+      { id: 'board-1', type: 'board-uno', x: 100, y: 100, rotation: 0, props: {}, connections: {} },
+      {
+        id: 'l298n-1', type: 'l298n', x: 360, y: 80,
+        rotation: 0,
+        props: {},
+        connections: { ENA: 9, IN1: 4, IN2: 5, IN3: 6, IN4: 7, ENB: 10, VCC: '5V', GND: 'GND' },
+      },
+      {
+        id: 'motor-a', type: 'dc-motor', x: 540, y: 80,
+        rotation: 0,
+        props: { voltage: '5V' },
+        connections: { PLUS: 'l298n-1.OUT1', MINUS: 'l298n-1.OUT2' },
+      },
+      {
+        id: 'motor-b', type: 'dc-motor', x: 540, y: 200,
+        rotation: 0,
+        props: { voltage: '5V' },
+        connections: { PLUS: 'l298n-1.OUT3', MINUS: 'l298n-1.OUT4' },
+      },
+    ],
+    code: `// L298N 모터 드라이버 — DC 모터 제어
+// 모터A를 정방향→역방향→정지 순으로 반복합니다
+// 회로: ENA→D9(PWM), IN1→D4, IN2→D5, IN3→D6, IN4→D7, ENB→D10(PWM)
+//       L298N VCC→5V, GND→GND, 모터A→OUT1/OUT2, 모터B→OUT3/OUT4
+
+// 모터 A 핀 정의
+#define ENA 9   // PWM 속도 제어 (0~255)
+#define IN1 4   // 방향 제어 1
+#define IN2 5   // 방향 제어 2
+
+// 모터 B 핀 정의
+#define ENB 10  // PWM 속도 제어
+#define IN3 6
+#define IN4 7
+
+// 모터A 정방향 (IN1=HIGH, IN2=LOW)
+void motorA_forward(int speed) {
+  analogWrite(ENA, speed);
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+}
+
+// 모터A 역방향 (IN1=LOW, IN2=HIGH)
+void motorA_backward(int speed) {
+  analogWrite(ENA, speed);
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, HIGH);
+}
+
+// 모터A 정지
+void motorA_stop() {
+  analogWrite(ENA, 0);
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
+}
+
+void setup() {
+  pinMode(ENA, OUTPUT); pinMode(IN1, OUTPUT); pinMode(IN2, OUTPUT);
+  pinMode(ENB, OUTPUT); pinMode(IN3, OUTPUT); pinMode(IN4, OUTPUT);
+  Serial.begin(9600);
+  Serial.println("L298N 모터 드라이버 시작!");
+}
+
+void loop() {
+  Serial.println("→ 정방향 (200/255 속도)");
+  motorA_forward(200);
+  delay(2000);
+
+  Serial.println("■ 정지");
+  motorA_stop();
+  delay(500);
+
+  Serial.println("← 역방향 (200/255 속도)");
+  motorA_backward(200);
+  delay(2000);
+
+  Serial.println("■ 정지");
+  motorA_stop();
+  delay(500);
+}
+`,
+  },
+  {
+    id: 'stepper-motor',
+    name: '스텝 모터 제어',
+    category: '모터',
+    boardId: 'arduino-uno',
+    description: '28BYJ-48 스텝 모터를 4상 시퀀스로 정방향 회전합니다',
+    components: [
+      { id: 'board-1', type: 'board-uno', x: 100, y: 100, rotation: 0, props: {}, connections: {} },
+      {
+        id: 'stepper-1', type: 'stepper-motor', x: 360, y: 100,
+        rotation: 0,
+        props: { speed: 15 },
+        connections: { IN1: 8, IN2: 9, IN3: 10, IN4: 11, VCC: '5V' },
+      },
+    ],
+    code: `// 28BYJ-48 스텝 모터 정방향 회전
+// ULN2003 드라이버를 통해 4상 풀스텝 시퀀스로 구동합니다
+// 회로: IN1→D8, IN2→D9, IN3→D10, IN4→D11, VCC→5V, GND→GND
+// 준비물: 28BYJ-48 + ULN2003 드라이버 모듈
+
+#include <Stepper.h>
+
+// 28BYJ-48: 내부 기어비 64:1, 스텝 각도 5.625°
+// → 1회전에 필요한 스텝 수: 64 × (360 / 5.625) = 4096
+#define STEPS_PER_REV 4096
+
+// 핀 순서: IN1, IN3, IN2, IN4 (Stepper 라이브러리 권장)
+Stepper stepper(STEPS_PER_REV, 8, 10, 9, 11);
+
+void setup() {
+  stepper.setSpeed(15);  // RPM (최대 약 15RPM)
+  Serial.begin(9600);
+  Serial.println("28BYJ-48 스텝 모터 시작!");
+}
+
+void loop() {
+  // 정방향 1회전 (4096 스텝)
+  Serial.println("→ 정방향 1회전");
+  stepper.step(STEPS_PER_REV);
+  delay(500);
+
+  // 역방향 1회전 (-4096 스텝)
+  Serial.println("← 역방향 1회전");
+  stepper.step(-STEPS_PER_REV);
+  delay(500);
+}
+`,
+  },
+  {
+    id: 'mpu6050-accel',
+    name: 'MPU-6050 가속도계',
+    category: '센서',
+    boardId: 'arduino-uno',
+    description: 'MPU-6050 IMU에서 3축 가속도 값을 I2C로 읽어 시리얼 출력합니다',
+    components: [
+      { id: 'board-1', type: 'board-uno', x: 100, y: 100, rotation: 0, props: {}, connections: {} },
+      {
+        id: 'mpu-1', type: 'mpu6050', x: 360, y: 100,
+        rotation: 0,
+        props: {},
+        connections: { VCC: '5V', GND: 'GND', SCL: 'A5/SCL', SDA: 'A4/SDA' },
+      },
+    ],
+    code: `// MPU-6050 가속도계 값 읽기 (Wire 직접 사용)
+// I2C 통신으로 MPU-6050의 3축 가속도계를 읽습니다
+// 회로: SDA→A4, SCL→A5, VCC→5V, GND→GND
+// I2C 주소: 0x68 (AD0=GND) 또는 0x69 (AD0=VCC)
+
+#include <Wire.h>
+
+#define MPU_ADDR 0x68  // AD0=GND 시 0x68
+
+// 레지스터 주소
+#define REG_PWR_MGMT_1 0x6B
+#define REG_ACCEL_XOUT 0x3B
+
+int16_t ax, ay, az;  // 가속도 원시값 (±32768 = ±2g 기준)
+
+void setup() {
+  Wire.begin();
+  Serial.begin(9600);
+
+  // MPU-6050 슬립 모드 해제
+  Wire.beginTransmission(MPU_ADDR);
+  Wire.write(REG_PWR_MGMT_1);
+  Wire.write(0x00);  // 슬립 해제
+  Wire.endTransmission(true);
+
+  Serial.println("MPU-6050 가속도계 시작!");
+  Serial.println("AX\\tAY\\tAZ\\t(g×16384)");
+}
+
+void loop() {
+  // 가속도 레지스터 읽기 (6바이트: X_H, X_L, Y_H, Y_L, Z_H, Z_L)
+  Wire.beginTransmission(MPU_ADDR);
+  Wire.write(REG_ACCEL_XOUT);
+  Wire.endTransmission(false);
+  Wire.requestFrom(MPU_ADDR, 6, true);
+
+  ax = (Wire.read() << 8) | Wire.read();  // X축
+  ay = (Wire.read() << 8) | Wire.read();  // Y축
+  az = (Wire.read() << 8) | Wire.read();  // Z축
+
+  // 가속도(g) 변환: ±2g 범위 → 나누기 16384
+  float gx = ax / 16384.0;
+  float gy = ay / 16384.0;
+  float gz = az / 16384.0;
+
+  Serial.print(gx, 2); Serial.print("g\\t");
+  Serial.print(gy, 2); Serial.print("g\\t");
+  Serial.print(gz, 2); Serial.println("g");
+
+  delay(500);
+}
+`,
+  },
+  {
     id: 'neopixel-rainbow',
     name: 'NeoPixel 무지개 애니메이션',
     category: 'NeoPixel',

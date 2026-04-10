@@ -7,21 +7,24 @@ Wokwi / TinkerCAD Circuits / Proteus 수준의 Arduino 웹 시뮬레이터.
 
 ## 실행 방법
 
+> **주의**: 서버 기동/종료는 사용자가 직접 한다. Claude는 `pnpm dev` 등 서버 실행 명령을 대신 실행하지 않는다.
+
 ```bash
-# 의존성 설치
-pnpm install
-
-# 백엔드 서버 (포트 3001)
-pnpm --filter server dev
-
-# 프론트엔드 앱 (포트 5173)
-pnpm --filter @sim/app dev
-
-# 동시 실행
+cd /c/Users/park1024/Documents/Arduino/projects/web-simulator
 pnpm dev
 ```
 
-브라우저에서 `http://localhost:5173` 접속
+브라우저: `http://localhost:5173`
+
+개별 실행이 필요한 경우:
+
+```bash
+# 백엔드만 (포트 3001)
+pnpm --filter server dev
+
+# 프론트엔드만 (포트 5173)
+pnpm --filter @sim/app dev
+```
 
 ---
 
@@ -98,34 +101,82 @@ RUNTIME_ERROR { message } ← 오류
 
 ## 지원 보드
 
-| ID | 이름 | MCU | ADC |
-|----|------|-----|-----|
-| arduino-uno | Arduino Uno R3 | ATmega328P | 10비트 |
-| arduino-nano | Arduino Nano | ATmega328P | 10비트 |
-| esp32-c3-supermini | ESP32-C3 Super Mini | ESP32-C3 | 12비트 |
-| esp32-devkit | ESP32 DevKit V1 | ESP32 | 12비트 |
+| ID | 이름 | MCU | ADC | 전용 Element |
+|----|------|-----|-----|-------------|
+| arduino-uno | Arduino Uno R3 | ATmega328P | 10비트 | `<sim-board-uno>` |
+| arduino-nano | Arduino Nano | ATmega328P | 10비트 | `<sim-board-nano>` |
+| esp32-c3-supermini | ESP32-C3 Super Mini | ESP32-C3 (RISC-V) | 12비트 | `<sim-board-esp32c3>` |
+| esp32-devkit | ESP32 DevKit V1 | ESP32 (Xtensa LX6) | 12비트 | `<sim-board-esp32>` |
 
 ---
 
 ## 지원 컴포넌트
 
+### 전용 SVG 컴포넌트 (30종)
+
+**수동 소자**
 | 태그 | 설명 |
 |------|------|
 | `<sim-led>` | LED (빨강/초록/파랑/노랑/흰/주황/보라) |
-| `<sim-rgb-led>` | RGB LED |
-| `<sim-button>` | 푸시 버튼 |
+| `<sim-rgb-led>` | RGB LED (공통 양극/음극) |
+| `<sim-button>` | 6mm 택트 스위치 |
 | `<sim-resistor>` | 저항 (컬러 밴드 자동 계산) |
+| `<sim-capacitor>` | 전해 커패시터 |
+| `<sim-diode>` | 정류 다이오드 1N4007 |
+
+**반도체 / 드라이버**
+| 태그 | 설명 |
+|------|------|
+| `<sim-transistor-npn>` | NPN 트랜지스터 TO-92 (2N2222) |
+| `<sim-relay>` | 5V 릴레이 모듈 (COM/NO/NC) |
+
+**센서**
+| 태그 | 설명 |
+|------|------|
+| `<sim-dht>` | DHT11 / DHT22 온습도 센서 |
+| `<sim-ultrasonic>` | HC-SR04 초음파 거리 센서 |
+| `<sim-ir-led>` | IR 발광 다이오드 |
+| `<sim-ir-receiver>` | TSOP38238 IR 수신기 |
+| `<sim-hall-sensor>` | A3144 홀 효과 센서 |
+| `<sim-lm35>` | LM35 온도 센서 (10mV/°C) |
+| `<sim-pir-sensor>` | HC-SR501 PIR 모션 센서 |
+| `<sim-sound-sensor>` | KY-037 소리 감지 모듈 |
+
+**액추에이터**
+| 태그 | 설명 |
+|------|------|
+| `<sim-servo>` | SG90 마이크로 서보 (0~180°) |
 | `<sim-buzzer>` | 부저 (WebAudio API) |
 | `<sim-potentiometer>` | 가변저항 |
-| `<sim-seven-segment>` | 7-세그먼트 |
-| `<sim-lcd>` | I2C LCD 1602/2004 |
-| `<sim-oled>` | SSD1306 OLED 128x64 |
-| `<sim-dht>` | DHT11/DHT22 |
-| `<sim-ultrasonic>` | HC-SR04 |
-| `<sim-servo>` | SG90 서보 |
-| `<sim-neopixel>` | WS2812B NeoPixel |
-| `<sim-board-uno>` | Arduino Uno R3 보드 |
-| `<sim-board-esp32c3>` | ESP32-C3 Super Mini 보드 |
+| `<sim-dc-motor>` | DC 모터 (±255 속도/방향) |
+| `<sim-stepper>` | 28BYJ-48 스텝 모터 |
+| `<sim-neopixel>` | WS2812B NeoPixel RGB |
+
+**디스플레이**
+| 태그 | 설명 |
+|------|------|
+| `<sim-seven-segment>` | 7-세그먼트 디스플레이 |
+| `<sim-lcd>` | I2C LCD 1602 / 2004 |
+| `<sim-oled>` | SSD1306 OLED 128×64 |
+
+**복합 모듈 / IC**
+| 태그 | 설명 |
+|------|------|
+| `<sim-joystick>` | KY-023 아날로그 조이스틱 |
+| `<sim-74hc595>` | 74HC595 8비트 시프트 레지스터 |
+| `<sim-l298n>` | L298N 듀얼 모터 드라이버 |
+
+**보드**
+| 태그 | 설명 |
+|------|------|
+| `<sim-board-uno>` | Arduino Uno R3 |
+| `<sim-board-nano>` | Arduino Nano |
+| `<sim-board-esp32c3>` | ESP32-C3 Super Mini |
+| `<sim-board-esp32>` | ESP32 DevKit V1 |
+
+### sim-generic 컴포넌트 (15종, 서버 데이터만 정의)
+
+MPU-6050, BMP280, MQ-2, 토양수분, 빗물감지, 로터리인코더, 4×4 키패드, HC-05 블루투스, RFID RC522, TM1637, MAX7219, SD카드 모듈, Arduino Nano(서버), ESP32 DevKit(서버), AMS1117
 
 ---
 

@@ -4,11 +4,16 @@ import '@sim/elements';
 import { CircuitCanvas } from './canvas/circuit-canvas.js';
 import { CodeEditor } from './editor/code-editor.js';
 import { PropertyPanel } from './panels/property-panel.js';
-import { componentEditor } from './panels/component-editor.js';
 import { circuitStore } from './stores/circuit-store.js';
 import { simController } from './stores/sim-controller.js';
 import { circuitValidator } from './stores/circuit-validator.js';
 import { fetchCompDef } from './stores/comp-def-cache.js';
+
+import { initTheme } from './ui/theme-manager.js';
+import { initToolbar } from './ui/toolbar.js';
+import { initStatusBar } from './ui/status-bar.js';
+import { initPalette, appendTemplateSection } from './ui/palette.js';
+import { initSerialMonitor } from './ui/serial-monitor.js';
 
 const API_BASE = '/api';
 
@@ -19,51 +24,17 @@ declare global {
   }
 }
 
-// ── 테마 (라이트/다크) ──────────────────────────────────────────────
-(function initTheme() {
-  const saved = localStorage.getItem('sim-theme');
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const theme = saved ?? (prefersDark ? 'dark' : 'light');
-  document.documentElement.setAttribute('data-theme', theme);
-})();
-
-function toggleTheme() {
-  const html = document.documentElement;
-  const current = html.getAttribute('data-theme') ?? 'dark';
-  const next = current === 'dark' ? 'light' : 'dark';
-  html.setAttribute('data-theme', next);
-  localStorage.setItem('sim-theme', next);
-  const btn = document.getElementById('btn-theme');
-  if (btn) btn.textContent = next === 'dark' ? '🌙' : '☀️';
-  // Monaco 테마 동기화
-  if (window.monaco) {
-    window.monaco.editor.setTheme(next === 'dark' ? 'vs-dark' : 'vs');
-  }
-}
-
-document.getElementById('btn-theme')?.addEventListener('click', toggleTheme);
-
-// 초기 버튼 아이콘 반영
-{
-  const initialTheme = document.documentElement.getAttribute('data-theme') ?? 'dark';
-  const btn = document.getElementById('btn-theme');
-  if (btn) btn.textContent = initialTheme === 'dark' ? '🌙' : '☀️';
-}
-
 interface BoardInfo  { id: string; name: string; vendor: string; mcu: string; }
 interface TemplateInfo { id: string; name: string; category: string; boardId: string; description: string; }
-interface TemplateDetail extends TemplateInfo { components: object[]; code: string; }
-
-interface CompSummary {
-  id: string; name: string; category: string;
-  description: string; icon: string; _builtIn: boolean;
-}
 
 // ─────────────────────────────────────────────────────────────────
 // 앱 초기화 — index.html의 DOM이 이미 있으므로 즉시 실행
 // ─────────────────────────────────────────────────────────────────
 
-// ① 캔버스
+// ① 테마
+initTheme();
+
+// ② 캔버스
 const canvasEl = document.getElementById('canvas')!;
 const canvas = new CircuitCanvas(canvasEl);
 
@@ -77,131 +48,13 @@ canvasEl.addEventListener('drop', (e) => {
   addComponent(type, pos.x - 30, pos.y - 30);
 });
 
-// ② 코드 에디터
+// ③ 코드 에디터
 const editorEl = document.getElementById('editor')!;
 const codeEditor = new CodeEditor(editorEl);
 
-// ③ 속성 패널
+// ④ 속성 패널
 const propPanelEl = document.getElementById('property-panel')!;
 new PropertyPanel(propPanelEl);
-
-// ④ 팔레트 — 서버에서 동적 로드
-const paletteList = document.getElementById('palette-list')!;
-
-async function loadPalette() {
-  try {
-    const data = await fetch(`${API_BASE}/components`).then(r => r.json()) as { components: CompSummary[] };
-    renderPalette(data.components);
-    // 팔레트 로드 후 모든 컴포넌트 def를 미리 캐시에 저장 → 드래그 시 즉시 올바른 태그 사용
-    for (const comp of data.components) {
-      fetchCompDef(comp.id).catch(() => null);
-    }
-  } catch {
-    paletteList.innerHTML = `<div style="padding:12px 16px;color:var(--color-error);font-size:11px;">서버에 연결할 수 없습니다.<br>pnpm dev로 서버를 시작하세요.</div>`;
-  }
-}
-
-function renderPalette(comps: CompSummary[]) {
-  const groups: Record<string, CompSummary[]> = {};
-  for (const c of comps) {
-    (groups[c.category] ??= []).push(c);
-  }
-
-  paletteList.innerHTML = '';
-
-  const addBtn = document.createElement('button');
-  addBtn.className = 'palette-add-btn';
-  addBtn.textContent = '+ 새 부품 등록';
-  addBtn.addEventListener('click', () => componentEditor.openNew(() => loadPalette()));
-  paletteList.appendChild(addBtn);
-
-  const CAT_LABELS: Record<string, string> = {
-    mcu: '보드', passive: '수동 소자', active: '능동 소자',
-    sensor: '센서', display: '디스플레이', actuator: '액추에이터', power: '전원',
-  };
-  const CAT_ORDER = ['mcu','passive','active','sensor','display','actuator','power'];
-
-  for (const cat of CAT_ORDER) {
-    if (!groups[cat]?.length) continue;
-
-    const title = document.createElement('div');
-    title.className = 'palette-category';
-    title.textContent = CAT_LABELS[cat] ?? cat;
-    paletteList.appendChild(title);
-
-    for (const comp of groups[cat]) {
-      const item = document.createElement('div');
-      item.className = 'palette-item';
-      item.dataset.compId = comp.id;
-      item.dataset.label  = comp.name.toLowerCase();
-
-      const icon = comp.icon ?? '📦';
-      item.innerHTML = `
-        <span class="palette-icon">${icon}</span>
-        <span class="palette-label">${comp.name}</span>
-        <button class="palette-edit-btn" title="편집">✏️</button>
-      `;
-      item.title = comp.description || comp.name;
-      item.draggable = true;
-
-      item.addEventListener('dragstart', (e) => {
-        e.dataTransfer?.setData('component-type', comp.id);
-      });
-      item.addEventListener('dblclick', () => {
-        const cx = canvas.viewCenterX + (Math.random() - 0.5) * 60;
-        const cy = canvas.viewCenterY + (Math.random() - 0.5) * 60;
-        addComponent(comp.id, cx, cy);
-      });
-      item.querySelector('.palette-edit-btn')?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        componentEditor.openEdit(comp.id, () => loadPalette());
-      });
-
-      paletteList.appendChild(item);
-    }
-  }
-
-  // 검색 필터 초기화
-  applyPaletteSearch();
-}
-
-// ── 팔레트 검색 ───────────────────────────────────────────────────
-const paletteSearchEl = document.getElementById('palette-search') as HTMLInputElement;
-paletteSearchEl.addEventListener('input', applyPaletteSearch);
-
-function applyPaletteSearch() {
-  const q = paletteSearchEl.value.toLowerCase().trim();
-  let lastCategory: HTMLElement | null = null;
-  let lastCategoryVisible = false;
-
-  for (const el of paletteList.children) {
-    const div = el as HTMLElement;
-    if (div.classList.contains('palette-category')) {
-      if (lastCategory) lastCategory.style.display = lastCategoryVisible ? '' : 'none';
-      lastCategory = div;
-      lastCategoryVisible = false;
-      continue;
-    }
-    if (div.classList.contains('palette-item')) {
-      const label = div.dataset.label ?? '';
-      const visible = !q || label.includes(q);
-      div.style.display = visible ? '' : 'none';
-      if (visible) lastCategoryVisible = true;
-    }
-  }
-  if (lastCategory) lastCategory.style.display = lastCategoryVisible ? '' : 'none';
-}
-
-loadPalette();
-
-// ── 시리얼 모니터 ─────────────────────────────────────────────────
-const serialOutput = document.getElementById('serial-output')!;
-circuitStore.subscribe(() => {
-  if (serialOutput.textContent !== circuitStore.serialOutput) {
-    serialOutput.textContent = circuitStore.serialOutput;
-    serialOutput.scrollTop = serialOutput.scrollHeight;
-  }
-});
 
 // ── 탭 전환 ──────────────────────────────────────────────────────
 document.querySelectorAll<HTMLButtonElement>('.right-tab-btn').forEach(btn => {
@@ -269,175 +122,17 @@ function setupPanelResize(handle: HTMLElement, panel: HTMLElement, side: 'left' 
   }
 }
 
-// ── 버튼 이벤트 ─────────────────────────────────────────────────
-document.getElementById('btn-new')!.addEventListener('click', () => {
-  if (!confirm('현재 회로를 지우고 새로 시작할까요?')) return;
-  simController.stop();
-  circuitStore.clearCircuit();
-});
+// ⑤ 툴바 버튼 이벤트
+initToolbar(circuitStore, simController, canvas, switchTab);
 
-document.getElementById('btn-run')!.addEventListener('click', () => {
-  if (circuitStore.simState === 'running') {
-    simController.stop();
-  } else {
-    circuitStore.clearSerial();
-    simController.start();
-    switchTab('serial'); // 실행 시 시리얼 탭으로
-  }
-});
+// ⑥ 하단 상태바
+initStatusBar(circuitStore);
 
-document.getElementById('btn-clear-serial')!.addEventListener('click', () => circuitStore.clearSerial());
+// ⑦ 팔레트
+initPalette(canvas, addComponent);
 
-// 시리얼 입력 전송
-const serialInputEl = document.getElementById('serial-input') as HTMLInputElement;
-function sendSerialInput() {
-  const text = serialInputEl.value;
-  if (text) { simController.sendSerial(text + '\n'); serialInputEl.value = ''; }
-}
-document.getElementById('btn-serial-send')!.addEventListener('click', sendSerialInput);
-serialInputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendSerialInput(); });
-
-document.getElementById('btn-zoom-in')!.addEventListener('click',  () => canvas.zoomIn());
-document.getElementById('btn-zoom-out')!.addEventListener('click', () => canvas.zoomOut());
-document.getElementById('btn-fit')!.addEventListener('click',      () => canvas.fitView());
-
-// Undo / Redo
-document.getElementById('btn-undo')!.addEventListener('click', () => circuitStore.undo());
-document.getElementById('btn-redo')!.addEventListener('click', () => circuitStore.redo());
-
-// 저장
-document.getElementById('btn-save')!.addEventListener('click', () => {
-  const json = circuitStore.saveToJson();
-  const blob = new Blob([json], { type: 'application/json' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url; a.download = `circuit-${Date.now()}.json`; a.click();
-  URL.revokeObjectURL(url);
-});
-
-// 불러오기
-const fileInput = document.getElementById('file-input') as HTMLInputElement;
-document.getElementById('btn-load')!.addEventListener('click', () => fileInput.click());
-fileInput.addEventListener('change', () => {
-  const file = fileInput.files?.[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    try {
-      simController.stop(); // 실행 중인 Worker 종료 후 회로 로드
-      circuitStore.loadFromJson(reader.result as string);
-      const hint = document.getElementById('canvas-hint');
-      if (hint) hint.style.display = 'none';
-      setTimeout(() => canvas.fitView(), 100);
-    } catch {
-      alert('파일 형식이 올바르지 않습니다.');
-    }
-  };
-  reader.readAsText(file);
-  fileInput.value = '';
-});
-
-// 키보드 단축키
-document.addEventListener('keydown', (e) => {
-  const active = document.activeElement?.tagName;
-  const isEditing = active === 'INPUT' || active === 'TEXTAREA';
-
-  if ((e.ctrlKey || e.metaKey) && !isEditing) {
-    if (e.key === 'z') { e.preventDefault(); circuitStore.undo(); return; }
-    if (e.key === 'y') { e.preventDefault(); circuitStore.redo(); return; }
-    if (e.key === 's') { e.preventDefault(); document.getElementById('btn-save')!.click(); return; }
-  }
-
-  if ((e.key === 'Delete' || e.key === 'Backspace') && !isEditing) {
-    const selComp = circuitStore.selectedId;
-    const selWire = circuitStore.selectedWireId;
-    if (selComp) circuitStore.removeComponent(selComp);
-    if (selWire) circuitStore.removeWire(selWire);
-  }
-});
-
-// Undo/Redo 버튼 상태
-circuitStore.subscribe(() => {
-  const undoBtn = document.getElementById('btn-undo') as HTMLButtonElement | null;
-  const redoBtn = document.getElementById('btn-redo') as HTMLButtonElement | null;
-  if (undoBtn) undoBtn.style.opacity = circuitStore.canUndo ? '1' : '0.3';
-  if (redoBtn) redoBtn.style.opacity = circuitStore.canRedo ? '1' : '0.3';
-});
-
-// 실행 상태 → 버튼/인디케이터/상태 표시줄 업데이트
-const RUN_ICON_PLAY = `<svg id="run-icon" width="11" height="12" viewBox="0 0 11 12" fill="currentColor" style="flex-shrink:0"><path d="M2 1.5l8 4.5-8 4.5V1.5z"/></svg>`;
-const RUN_ICON_STOP = `<svg id="run-icon" width="11" height="11" viewBox="0 0 11 11" fill="currentColor" style="flex-shrink:0"><rect x="2" y="2" width="7" height="7" rx="1.5"/></svg>`;
-
-circuitStore.subscribe(() => {
-  const state = circuitStore.simState;
-  const runBtn = document.getElementById('btn-run') as HTMLButtonElement | null;
-  const statusEl = document.getElementById('status-indicator');
-  const sbStatus = document.getElementById('sb-sim-status');
-  const serialDot = document.getElementById('serial-conn-dot');
-  const serialLabel = document.getElementById('serial-conn-label');
-
-  if (runBtn) {
-    if (state === 'running') {
-      runBtn.innerHTML = `${RUN_ICON_STOP} 정지`;
-      runBtn.className = 'toolbar-btn running';
-    } else if (state === 'error') {
-      runBtn.innerHTML = `${RUN_ICON_PLAY} 실행`;
-      runBtn.className = 'toolbar-btn error';
-    } else {
-      runBtn.innerHTML = `${RUN_ICON_PLAY} 실행`;
-      runBtn.className = 'toolbar-btn';
-    }
-  }
-
-  if (statusEl) {
-    statusEl.id = 'status-indicator';
-    statusEl.className = state === 'running' ? 'running' : state === 'error' ? 'error' : '';
-    statusEl.title = state === 'running' ? '실행 중' : state === 'error' ? '오류' : '정지';
-  }
-
-  if (sbStatus) {
-    if (state === 'running') {
-      sbStatus.textContent = '● 실행 중';
-      sbStatus.style.background = 'rgba(52,211,120,0.25)';
-    } else if (state === 'error') {
-      sbStatus.textContent = '✕ 오류';
-      sbStatus.style.background = 'rgba(255,80,80,0.25)';
-    } else {
-      sbStatus.textContent = '준비';
-      sbStatus.style.background = '';
-    }
-  }
-
-  if (serialDot && serialLabel) {
-    if (state === 'running') {
-      serialDot.classList.add('connected');
-      serialLabel.textContent = '연결됨';
-    } else {
-      serialDot.classList.remove('connected');
-      serialLabel.textContent = '연결 대기';
-    }
-  }
-
-  // 상태 표시줄 — 부품/와이어 개수 업데이트
-  const sbComp = document.getElementById('sb-comp-count');
-  const sbWire = document.getElementById('sb-wire-count');
-  if (sbComp) sbComp.innerHTML = sbComp.innerHTML.replace(/부품 \d+개/, `부품 ${circuitStore.components.length}개`);
-  if (sbWire) sbWire.innerHTML = sbWire.innerHTML.replace(/와이어 \d+개/, `와이어 ${circuitStore.wires.length}개`);
-});
-
-// 회로 변경 → 부품/와이어 개수 업데이트
-circuitStore.subscribe(() => {
-  const sbComp = document.getElementById('sb-comp-count');
-  const sbWire = document.getElementById('sb-wire-count');
-  if (sbComp) {
-    const cnt = circuitStore.components.length;
-    sbComp.innerHTML = sbComp.innerHTML.replace(/부품 \d+개/, `부품 ${cnt}개`);
-  }
-  if (sbWire) {
-    const cnt = circuitStore.wires.length;
-    sbWire.innerHTML = sbWire.innerHTML.replace(/와이어 \d+개/, `와이어 ${cnt}개`);
-  }
-});
+// ⑧ 시리얼 모니터
+initSerialMonitor(circuitStore, simController);
 
 setTimeout(() => canvas.fitView(), 150);
 
@@ -513,7 +208,29 @@ async function loadServerData() {
       }
     }
     boardSelect.addEventListener('change', () => {
-      circuitStore.setBoard(boardSelect.value);
+      const previousBoardId = circuitStore.boardId;
+      const nextBoardId = boardSelect.value;
+
+      // 회로에 컴포넌트가 있으면 사용자에게 초기화 여부 확인
+      if (circuitStore.components.length > 0) {
+        const confirmed = confirm(
+          '보드를 변경하면 현재 회로가 초기화됩니다. 계속하시겠습니까?'
+        );
+        if (!confirmed) {
+          // 보드 변경 취소 — select 값 되돌리기
+          boardSelect.value = previousBoardId;
+          return;
+        }
+        // 확인: 실행 중인 Worker 종료 후 회로 초기화
+        simController.stop();
+        circuitStore.clearCircuit();
+      } else if (circuitStore.simState === 'running') {
+        // 컴포넌트는 없지만 실행 중인 경우 Worker만 종료
+        simController.stop();
+      }
+
+      circuitStore.setBoard(nextBoardId);
+
       const sbBoard = document.getElementById('sb-board');
       if (sbBoard) {
         const selected = boardSelect.options[boardSelect.selectedIndex];
@@ -526,41 +243,7 @@ async function loadServerData() {
 
     // 템플릿 — 팔레트 아래에 로드 버튼으로 추가
     if (templates.length > 0) {
-      appendTemplateSection(templates);
+      appendTemplateSection(templates, canvas, simController, circuitStore);
     }
   } catch { /* 서버 없으면 무시 */ }
-}
-
-function appendTemplateSection(templates: TemplateInfo[]) {
-  const div = document.createElement('div');
-  div.innerHTML = `<div class="palette-category">예제 템플릿</div>`;
-
-  const categories = [...new Set(templates.map(t => t.category))];
-  for (const cat of categories) {
-    const catDiv = document.createElement('div');
-    catDiv.innerHTML = `<div class="palette-category" style="color:#555;padding-left:16px">${cat}</div>`;
-    div.appendChild(catDiv);
-
-    for (const t of templates.filter(tpl => tpl.category === cat)) {
-      const item = document.createElement('div');
-      item.className = 'palette-item';
-      item.dataset.label = t.name.toLowerCase();
-      item.innerHTML = `<span class="palette-icon">📋</span><span class="palette-label">${t.name}</span>`;
-      item.title = t.description ?? t.name;
-      item.style.cursor = 'pointer';
-      item.addEventListener('click', async () => {
-        try {
-          const detail = await fetch(`${API_BASE}/templates/${t.id}`).then(r => r.json()) as TemplateDetail;
-          simController.stop(); // 실행 중인 Worker 종료 후 템플릿 로드
-          circuitStore.loadTemplate(detail);
-          const hint = document.getElementById('canvas-hint');
-          if (hint) hint.style.display = 'none';
-          setTimeout(() => canvas.fitView(), 100);
-        } catch { /* 무시 */ }
-      });
-      div.appendChild(item);
-    }
-  }
-
-  paletteList.appendChild(div);
 }

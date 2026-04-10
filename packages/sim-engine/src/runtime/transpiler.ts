@@ -8,6 +8,8 @@ export class ArduinoTranspiler {
 
     result = this._stripComments(result);
     result = this._transformPreprocessor(result);
+    result = this._transformStructs(result);
+    result = this._transformStaticVars(result);
     result = this._transformArrayDecls(result);
     result = this._transformTypes(result);
     result = this._transformForLoopDecls(result);
@@ -32,15 +34,102 @@ export class ArduinoTranspiler {
   private _transformPreprocessor(code: string): string {
     // #include 제거
     code = code.replace(/#include\s*[<"][^>"]*[>"]\s*/g, '');
-    // #define 상수
-    code = code.replace(/#define\s+(\w+)\s+(.+)/g, (_, name, value) => {
-      const trimmed = value.trim();
-      // 함수형 매크로는 건너뜀
-      if (trimmed.includes('(')) return '';
-      return `const ${name} = ${trimmed};`;
+
+    // 함수형 매크로: #define MACRO(a, b) body → const MACRO = (a, b) => body;
+    // 단순 한 줄 본문만 처리 (멀티라인 매크로는 skip)
+    code = code.replace(/#define\s+(\w+)\s*\(([^)]*)\)\s*(.+)/g, (_, name, params, body) => {
+      const trimmedBody = body.trim();
+      // 백슬래시 라인 연속이면 멀티라인 매크로 → skip
+      if (trimmedBody.endsWith('\\')) return '';
+      const paramList = params.split(',').map((p: string) => p.trim()).filter(Boolean).join(', ');
+      return `const ${name} = (${paramList}) => ${trimmedBody};`;
     });
-    // #pragma 등 제거
+
+    // 일반 상수 매크로: #define NAME value
+    code = code.replace(/#define\s+(\w+)\s+(.+)/g, (_, name, value) => {
+      return `const ${name} = ${value.trim()};`;
+    });
+
+    // #pragma 등 나머지 전처리기 지시자 제거
     code = code.replace(/#\w+[^\n]*/g, '');
+    return code;
+  }
+
+  private _transformStructs(code: string): string {
+    // struct 정의: struct Point { int x; int y; }; → function Point() { this.x = 0; this.y = 0; }
+    code = code.replace(/struct\s+(\w+)\s*\{([^}]+)\}\s*;?/g, (_, structName: string, body: string) => {
+      const fields = body.split(';').map((s: string) => s.trim()).filter(Boolean);
+      const assignments = fields.map((field: string) => {
+        // 타입 키워드 + 변수명 파싱
+        const match = field.match(/(?:unsigned\s+)?(?:int|long|short|byte|char|float|double|bool|boolean|String|uint8_t|uint16_t|uint32_t|int8_t|int16_t|int32_t)\s+(\w+)/);
+        if (!match) return null;
+        const [fullMatch, varName] = match;
+        // 타입에 따른 기본값 결정
+        const defaultVal = /float|double/.test(fullMatch) ? '0.0'
+          : /bool/.test(fullMatch) ? 'false'
+          : /char/.test(fullMatch) ? "''"
+          : /String/.test(fullMatch) ? '""'
+          : '0';
+        return `  this.${varName} = ${defaultVal};`;
+      }).filter(Boolean);
+      return `function ${structName}() {\n${assignments.join('\n')}\n}`;
+    });
+
+    // struct 변수 선언 with initializer: struct Point p = {1, 2};
+    code = code.replace(
+      /struct\s+(\w+)\s+(\w+)\s*=\s*\{([^}]*)\}\s*;/g,
+      (_, typeName: string, varName: string, initValues: string) => {
+        const vals = initValues.split(',').map((v: string) => v.trim());
+        // 생성자 호출 후 순서대로 필드 할당 (필드 이름 불명이므로 Object.values 방식 사용)
+        const assigns = vals.map((v: string, i: number) => `Object.values(${varName})[${i}] !== undefined && (Object.keys(${varName})[${i}] in ${varName}) && (${varName}[Object.keys(${varName})[${i}]] = ${v});`);
+        return `let ${varName} = new ${typeName}();\n${assigns.join('\n')}`;
+      }
+    );
+
+    // struct 변수 선언 without initializer: struct Point p;
+    code = code.replace(/struct\s+(\w+)\s+(\w+)\s*;/g, (_, typeName: string, varName: string) => {
+      return `let ${varName} = new ${typeName}();`;
+    });
+
+    return code;
+  }
+
+  private _transformStaticVars(code: string): string {
+    // static 변수를 모듈 스코프로 끌어올리기
+    // 수집된 static 선언을 코드 최상단에 추가하고, 원래 위치는 제거
+    const staticDecls: string[] = [];
+    const staticPattern = /^(\s*)static\s+(?:unsigned\s+)?(?:int|long|short|byte|char|float|double|bool|boolean|uint8_t|uint16_t|uint32_t|int8_t|int16_t|int32_t)\s+(\w+)\s*=\s*([^;]+);/gm;
+
+    // 먼저 모든 static 변수를 수집
+    let match: RegExpExecArray | null;
+    const statics: Array<{ varName: string; initVal: string }> = [];
+    while ((match = staticPattern.exec(code)) !== null) {
+      const varName = match[2];
+      const initVal = match[3].trim();
+      // 중복 방지
+      if (!statics.some(s => s.varName === varName)) {
+        statics.push({ varName, initVal });
+        staticDecls.push(`let __static_${varName} = ${initVal};`);
+      }
+    }
+
+    if (statics.length === 0) return code;
+
+    // 원래 위치의 static 선언 제거 (제거 후 해당 줄은 빈 줄)
+    code = code.replace(
+      /^(\s*)static\s+(?:unsigned\s+)?(?:int|long|short|byte|char|float|double|bool|boolean|uint8_t|uint16_t|uint32_t|int8_t|int16_t|int32_t)\s+(\w+)\s*=\s*([^;]+);/gm,
+      ''
+    );
+
+    // 함수 내부에서 해당 변수명 참조를 __static_ 접두사로 교체
+    for (const { varName } of statics) {
+      // 변수명만 단독으로 사용된 경우 교체 (선언부는 이미 제거됨)
+      code = code.replace(new RegExp(`\\b${varName}\\b`, 'g'), `__static_${varName}`);
+    }
+
+    // 코드 최상단에 static 변수 선언 추가
+    code = staticDecls.join('\n') + '\n' + code;
+
     return code;
   }
 
@@ -71,7 +160,8 @@ export class ArduinoTranspiler {
   }
 
   private _transformTypes(code: string): string {
-    const typePattern = /\b(unsigned\s+)?(int|long|short|byte|char|float|double|boolean|bool|uint8_t|uint16_t|uint32_t|int8_t|int16_t|int32_t|size_t|word)\b/g;
+    // String 타입도 포함 — Arduino String class를 JS string으로 취급
+    const typePattern = /\b(unsigned\s+)?(int|long|short|byte|char|float|double|boolean|bool|uint8_t|uint16_t|uint32_t|int8_t|int16_t|int32_t|size_t|word|String)\b/g;
 
     // 변수 선언: type name = ... → let name = ...
     // 함수 반환 타입 포함
@@ -251,11 +341,21 @@ export class ArduinoTranspiler {
     // -> dereference → .
     code = code.replace(/->/g, '.');
 
-    // & address-of (단순화)
-    code = code.replace(/&(\w+)/g, '$1');
+    // 함수 파라미터 목록 내 & (참조 파라미터): void foo(int &x, float &y) → void foo(int x, float y)
+    // 단순한 비트연산(&, &&, &=)은 건드리지 않도록 파라미터 목록 내부만 처리
+    code = code.replace(/\(([^)]+)\)/g, (match: string, inner: string) => {
+      // 파라미터 목록으로 보이는 경우 (타입+변수명 패턴)에만 & 제거
+      // inner가 연산식일 경우를 최소화하기 위해 타입 키워드 앞뒤 & 만 처리
+      const cleaned = inner.replace(
+        /\b((?:unsigned\s+)?(?:int|long|short|byte|char|float|double|bool|boolean|String|uint8_t|uint16_t|uint32_t|int8_t|int16_t|int32_t|size_t|word))\s*[&*]\s*(\w+)/g,
+        '$1 $2'
+      );
+      return `(${cleaned})`;
+    });
 
-    // * dereference (단순화)
-    code = code.replace(/\*(\w+)/g, '$1');
+    // * pointer dereference: *ptr = val → ptr = val (포인터 역참조 단순화, 선언 외 사용)
+    // 단항 * (피연산자 앞)만 제거하되 ** 이중 포인터, *= 복합대입은 건드리지 않음
+    code = code.replace(/(?<![*=])\*(?![*=])(\w+)/g, '$1');
 
     return code;
   }

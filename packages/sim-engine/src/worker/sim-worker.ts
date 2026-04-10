@@ -5,6 +5,16 @@ import { GpioController } from '../runtime/gpio.js';
 import { buildPreamble } from '../runtime/preamble.js';
 import { INPUT_PIN_REGISTRY } from '../runtime/input-pin-registry.js';
 
+/**
+ * 센서 타입별 data 키 → _ctx 키 접두사 매핑 레지스트리
+ * 새 센서 추가 시 이 레지스트리만 수정하면 됨 (worker 핸들러 코드 수정 불필요)
+ */
+const SENSOR_DATA_MAP: Record<string, Record<string, string>> = {
+  dht:       { temperature: '__dht_temp',       humidity: '__dht_hum' },
+  ultrasonic:{ distanceCm:  '__ultrasonic_dist' },
+  servo:     { angle:       '__servo_angle'      },
+};
+
 function post(msg: WorkerToMain) {
   (self as unknown as Worker).postMessage(msg);
 }
@@ -137,17 +147,20 @@ while (true) {
     case 'SENSOR_UPDATE': {
       const id = msg.componentId;
       const comp = _pendingCircuit?.components.find(c => c.id === id);
-      // 타입별 특화 ctx 키 업데이트
-      if (comp?.type === 'dht') {
-        if (msg.data.temperature !== undefined) _ctx[`__dht_temp_${id}`] = msg.data.temperature;
-        if (msg.data.humidity    !== undefined) _ctx[`__dht_hum_${id}`]  = msg.data.humidity;
-      } else if (comp?.type === 'ultrasonic') {
-        if (msg.data.distanceCm !== undefined) _ctx[`__ultrasonic_dist_${id}`] = msg.data.distanceCm;
-      } else if (comp?.type === 'servo') {
-        if (msg.data.angle !== undefined) _ctx[`__servo_angle_${id}`] = msg.data.angle;
-      } else if (comp && msg.data.value !== undefined) {
-        const handlers = INPUT_PIN_REGISTRY[comp.type] ?? [];
-        for (const h of handlers) _ctx[`${h.ctxKey}_${comp.id}`] = msg.data.value;
+      if (comp) {
+        // SENSOR_DATA_MAP에 등록된 타입: data 키 → _ctx 키 접두사로 자동 매핑
+        const mapping = SENSOR_DATA_MAP[comp.type];
+        if (mapping) {
+          for (const [dataKey, ctxPrefix] of Object.entries(mapping)) {
+            if (msg.data[dataKey] !== undefined) {
+              _ctx[`${ctxPrefix}_${id}`] = msg.data[dataKey];
+            }
+          }
+        } else if (msg.data.value !== undefined) {
+          // 레지스트리 미등록 타입: INPUT_PIN_REGISTRY 핸들러 기반 폴백
+          const handlers = INPUT_PIN_REGISTRY[comp.type] ?? [];
+          for (const h of handlers) _ctx[`${h.ctxKey}_${comp.id}`] = msg.data.value;
+        }
       }
       // 범용: 항상 전체 데이터 저장
       _ctx[`__sensor_${id}`] = msg.data;

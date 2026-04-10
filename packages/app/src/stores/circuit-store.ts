@@ -142,7 +142,33 @@ export class CircuitStore {
   get selectedPin(): SelectedPin | null { return this._state.selectedPin; }
 
   setBoard(boardId: string) {
-    this._state = { ...this._state, boardId };
+    if (this._state.boardId === boardId) return;
+
+    // 보드가 바뀌면 기존 와이어의 핀 참조가 새 보드와 호환되지 않을 수 있으므로
+    // 보드 컴포넌트(type이 'board'로 시작)와 연결된 와이어를 모두 제거
+    const boardCompIds = new Set(
+      this._state.components
+        .filter(c => c.type.startsWith('board'))
+        .map(c => c.id)
+    );
+    const incompatibleWires = this._state.wires.filter(
+      w => boardCompIds.has(w.fromCompId) || boardCompIds.has(w.toCompId)
+    );
+
+    if (incompatibleWires.length > 0) {
+      // 호환되지 않는 와이어가 있으면 히스토리에 저장 후 제거
+      this._pushHistory();
+      this._state = {
+        ...this._state,
+        boardId,
+        wires: this._state.wires.filter(
+          w => !boardCompIds.has(w.fromCompId) && !boardCompIds.has(w.toCompId)
+        ),
+      };
+    } else {
+      this._state = { ...this._state, boardId };
+    }
+
     this._notify();
   }
 

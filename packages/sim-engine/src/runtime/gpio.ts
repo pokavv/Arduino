@@ -1,4 +1,5 @@
 import type { WorkerToMain } from '../types.js';
+import { normalizePin } from './pin-utils.js';
 
 type PostFn = (msg: WorkerToMain) => void;
 
@@ -70,10 +71,8 @@ export class GpioController {
     return this._pinValues.get(pin) ?? 0;
   }
 
-  /** 핀 번호 정규화 (G9 → 9, D9 → 9) */
+  /** 핀 번호 정규화 (G9 → 9, D9 → 9) — pin-utils.ts의 normalizePin 위임 */
   static normalizePin(pin: string | number): number {
-    if (typeof pin === 'number') return pin;
-    const n = parseInt(pin.replace(/^[A-Za-z]+/, ''), 10);
-    return isNaN(n) ? -1 : n;
+    return normalizePin(pin);
   }
 }
