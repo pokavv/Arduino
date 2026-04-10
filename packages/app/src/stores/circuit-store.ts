@@ -10,6 +10,10 @@ export interface PlacedComponent {
   props: Record<string, unknown>;
   connections: Record<string, number | string>;
   element?: HTMLElement;
+  // 보드 컴포넌트 전용 (일반 컴포넌트는 undefined)
+  code?: string;
+  simState?: SimState;
+  serialOutput?: string;
 }
 
 /** 두 핀 사이의 와이어 */
@@ -19,15 +23,10 @@ export interface PlacedWire {
   fromPin: string;
   toCompId: string;
   toPin: string;
-  /** 자동 결정: GND=#666, VCC=#e44, GPIO=#4af, 3V3=#f84 */
   color?: string;
-  /** 라우팅 스타일 — bezier(기본) | straight | orthogonal */
   style?: 'bezier' | 'straight' | 'orthogonal';
-  /** 커스텀 경유점: bezier용 제어점 또는 꺾임점 */
   waypoints?: Array<{ x: number; y: number }>;
-  /** 와이어 식별용 레이블 */
   label?: string;
-  /** 두께: thin(1px) | normal(2px, 기본) | thick(3px) */
   thickness?: 'thin' | 'normal' | 'thick';
 }
 
@@ -39,29 +38,45 @@ export interface SelectedPin {
 
 export type SimState = 'idle' | 'running' | 'error';
 
+// ─── 보드 판별 헬퍼 ───────────────────────────────────────────────
+const BOARD_COMP_TYPES = new Set([
+  'board-uno', 'board-nano', 'board-esp32c3', 'board-esp32', 'board-mega',
+]);
+
+export function isBoard(compType: string): boolean {
+  return BOARD_COMP_TYPES.has(compType);
+}
+
+/** 컴포넌트 타입 → 엔진용 boardType ID 매핑 */
+export function boardTypeFromCompType(compType: string): string {
+  const MAP: Record<string, string> = {
+    'board-uno':     'arduino-uno',
+    'board-nano':    'arduino-nano',
+    'board-esp32c3': 'esp32-c3-supermini',
+    'board-esp32':   'esp32-devkit',
+    'board-mega':    'arduino-mega',
+  };
+  return MAP[compType] ?? compType;
+}
+
 /**
  * 회로 상태 저장소 (Reactive Signal 패턴)
  */
 type CircuitStateSnapshot = {
-  boardId: string;
   components: PlacedComponent[];
   wires: PlacedWire[];
-  code: string;
 };
 
 export class CircuitStore {
   private _listeners = new Set<() => void>();
   private _state = {
-    boardId: 'arduino-uno',
-    components: [] as PlacedComponent[],
-    wires: [] as PlacedWire[],
-    selectedId: null as string | null,
-    selectedIds: new Set<string>(),   // 다중 선택된 컴포넌트 ID들
-    selectedWireId: null as string | null,
-    selectedPin: null as SelectedPin | null,
-    simState: 'idle' as SimState,
-    serialOutput: '',
-    code: DEFAULT_CODE,
+    components:      [] as PlacedComponent[],
+    wires:           [] as PlacedWire[],
+    selectedId:      null as string | null,
+    selectedIds:     new Set<string>(),
+    selectedWireId:  null as string | null,
+    selectedPin:     null as SelectedPin | null,
+    selectedBoardId: null as string | null,   // 현재 에디터에서 보고 있는 보드의 compId
   };
 
   /** 클립보드 (메모리, 탭 간 공유 안 됨) */
@@ -81,20 +96,15 @@ export class CircuitStore {
     for (const fn of this._listeners) fn();
   }
 
-  /** 현재 회로 상태를 히스토리에 저장 (Undo 가능한 작업 전 호출) */
   private _pushHistory() {
     const snap: CircuitStateSnapshot = {
-      boardId:    this._state.boardId,
       components: JSON.parse(JSON.stringify(this._state.components)),
       wires:      JSON.parse(JSON.stringify(this._state.wires)),
-      code:       this._state.code,
     };
-    // 현재 인덱스 이후 미래 히스토리 제거
     this._history = this._history.slice(0, this._historyIndex + 1);
     this._history.push(snap);
     if (this._history.length > CircuitStore.MAX_HISTORY) {
       this._history.shift();
-      // shift() 로 앞 항목을 제거했으므로 인덱스를 마지막 항목에 맞춤
       this._historyIndex = this._history.length - 1;
     } else {
       this._historyIndex++;
@@ -121,26 +131,30 @@ export class CircuitStore {
   private _applySnapshot(snap: CircuitStateSnapshot) {
     this._state = {
       ...this._state,
-      boardId:    snap.boardId,
-      components: JSON.parse(JSON.stringify(snap.components)),
-      wires:      JSON.parse(JSON.stringify(snap.wires)),
-      code:       snap.code,
-      selectedId: null,
-      selectedIds: new Set(),
+      components:     JSON.parse(JSON.stringify(snap.components)),
+      wires:          JSON.parse(JSON.stringify(snap.wires)),
+      selectedId:     null,
+      selectedIds:    new Set(),
       selectedWireId: null,
     };
+    // selectedBoardId 유효성 확인
+    if (this._state.selectedBoardId) {
+      const stillExists = this._state.components.some(c => c.id === this._state.selectedBoardId);
+      if (!stillExists) {
+        this._state.selectedBoardId = this._state.components.find(c => isBoard(c.type))?.id ?? null;
+      }
+    }
     this._notify();
   }
 
-  get boardId() { return this._state.boardId; }
-  get components() { return this._state.components; }
-  get wires() { return this._state.wires; }
-  get selectedId() { return this._state.selectedId; }
+  // ─── 기본 접근자 ────────────────────────────────────────────────
+  get components()     { return this._state.components; }
+  get wires()          { return this._state.wires; }
+  get selectedId()     { return this._state.selectedId; }
   get selectedIds(): ReadonlySet<string> { return this._state.selectedIds; }
   get selectedWireId() { return this._state.selectedWireId; }
-  get simState() { return this._state.simState; }
-  get serialOutput() { return this._state.serialOutput; }
-  get code() { return this._state.code; }
+  get selectedPin(): SelectedPin | null { return this._state.selectedPin; }
+  get selectedBoardId(): string | null { return this._state.selectedBoardId; }
 
   get selectedComponent(): PlacedComponent | null {
     return this._state.components.find(c => c.id === this._state.selectedId) ?? null;
@@ -150,107 +164,140 @@ export class CircuitStore {
     return this._state.wires.find(w => w.id === this._state.selectedWireId) ?? null;
   }
 
-  get selectedPin(): SelectedPin | null { return this._state.selectedPin; }
+  // ─── 보드별 접근자 ───────────────────────────────────────────────
 
-  setBoard(boardId: string) {
-    if (this._state.boardId === boardId) return;
+  /** 현재 선택된 보드 컴포넌트 */
+  get activeBoard(): PlacedComponent | null {
+    if (!this._state.selectedBoardId) return null;
+    return this._state.components.find(c => c.id === this._state.selectedBoardId) ?? null;
+  }
 
-    // 보드가 바뀌면 기존 와이어의 핀 참조가 새 보드와 호환되지 않을 수 있으므로
-    // 보드 컴포넌트(type이 'board'로 시작)와 연결된 와이어를 모두 제거
-    const boardCompIds = new Set(
-      this._state.components
-        .filter(c => c.type.startsWith('board'))
-        .map(c => c.id)
-    );
-    const incompatibleWires = this._state.wires.filter(
-      w => boardCompIds.has(w.fromCompId) || boardCompIds.has(w.toCompId)
-    );
+  /** 현재 선택된 보드의 코드 (없으면 기본 코드) */
+  get activeBoardCode(): string {
+    return this.activeBoard?.code ?? DEFAULT_CODE;
+  }
 
-    if (incompatibleWires.length > 0) {
-      // 호환되지 않는 와이어가 있으면 히스토리에 저장 후 제거
-      this._pushHistory();
-      this._state = {
-        ...this._state,
-        boardId,
-        wires: this._state.wires.filter(
-          w => !boardCompIds.has(w.fromCompId) && !boardCompIds.has(w.toCompId)
-        ),
-      };
-    } else {
-      this._state = { ...this._state, boardId };
-    }
+  /** 현재 선택된 보드의 simState */
+  get activeBoardSimState(): SimState {
+    return this.activeBoard?.simState ?? 'idle';
+  }
 
+  /** 현재 선택된 보드의 시리얼 출력 */
+  get activeBoardSerial(): string {
+    return this.activeBoard?.serialOutput ?? '';
+  }
+
+  /** 모든 보드 컴포넌트 목록 */
+  get boards(): PlacedComponent[] {
+    return this._state.components.filter(c => isBoard(c.type));
+  }
+
+  /** 실행 중인 보드 목록 */
+  get runningBoards(): PlacedComponent[] {
+    return this._state.components.filter(c => isBoard(c.type) && c.simState === 'running');
+  }
+
+  // ─── 보드 선택 ──────────────────────────────────────────────────
+
+  selectBoard(compId: string | null) {
+    this._state = { ...this._state, selectedBoardId: compId };
     this._notify();
   }
 
-  setCode(code: string) {
-    this._state = { ...this._state, code };
-    this._notify();
-  }
+  // ─── 보드별 상태 업데이트 ──────────────────────────────────────
 
-  setSimState(simState: SimState) {
-    this._state = { ...this._state, simState };
-    this._notify();
-  }
-
-  appendSerial(text: string) {
+  setCodeForBoard(compId: string, code: string) {
     this._state = {
       ...this._state,
-      serialOutput: this._state.serialOutput + text,
+      components: this._state.components.map(c =>
+        c.id === compId && isBoard(c.type) ? { ...c, code } : c
+      ),
     };
     this._notify();
   }
 
-  clearSerial() {
-    this._state = { ...this._state, serialOutput: '' };
+  setSimStateForBoard(compId: string, state: SimState) {
+    this._state = {
+      ...this._state,
+      components: this._state.components.map(c =>
+        c.id === compId ? { ...c, simState: state } : c
+      ),
+    };
     this._notify();
   }
+
+  appendSerialForBoard(compId: string, text: string) {
+    this._state = {
+      ...this._state,
+      components: this._state.components.map(c => {
+        if (c.id !== compId) return c;
+        let serial = (c.serialOutput ?? '') + text;
+        if (serial.length > 50000) serial = serial.slice(-40000);
+        return { ...c, serialOutput: serial };
+      }),
+    };
+    this._notify();
+  }
+
+  clearSerialForBoard(compId: string) {
+    this._state = {
+      ...this._state,
+      components: this._state.components.map(c =>
+        c.id === compId ? { ...c, serialOutput: '' } : c
+      ),
+    };
+    this._notify();
+  }
+
+  // ─── 컴포넌트 조작 ──────────────────────────────────────────────
 
   selectComponent(id: string | null) {
     this._state = {
       ...this._state,
-      selectedId: id,
-      selectedIds: id ? new Set([id]) : new Set(),
+      selectedId:     id,
+      selectedIds:    id ? new Set([id]) : new Set(),
       selectedWireId: null,
     };
     this._notify();
   }
 
-  /** Shift+클릭으로 선택 집합에 추가/제거 */
   toggleSelectComponent(id: string) {
     const ids = new Set(this._state.selectedIds);
     if (ids.has(id)) ids.delete(id);
     else ids.add(id);
     this._state = {
       ...this._state,
-      selectedIds: ids,
-      selectedId: id,
+      selectedIds:    ids,
+      selectedId:     id,
       selectedWireId: null,
     };
     this._notify();
   }
 
-  /** 다중 선택된 컴포넌트 일괄 삭제 */
   removeSelectedComponents() {
     if (this._state.selectedIds.size === 0) return;
     this._pushHistory();
     const ids = this._state.selectedIds;
+    // 삭제되는 보드가 selectedBoardId이면 다른 보드로 이동
+    let newBoardId = this._state.selectedBoardId;
+    if (newBoardId && ids.has(newBoardId)) {
+      newBoardId = this._state.components.find(c => isBoard(c.type) && !ids.has(c.id))?.id ?? null;
+    }
     this._state = {
       ...this._state,
-      components: this._state.components.filter(c => !ids.has(c.id)),
-      wires: this._state.wires.filter(w => !ids.has(w.fromCompId) && !ids.has(w.toCompId)),
-      selectedId: null,
-      selectedIds: new Set(),
+      components:      this._state.components.filter(c => !ids.has(c.id)),
+      wires:           this._state.wires.filter(w => !ids.has(w.fromCompId) && !ids.has(w.toCompId)),
+      selectedId:      null,
+      selectedIds:     new Set(),
+      selectedBoardId: newBoardId,
     };
     this._notify();
   }
 
-  /** 다중선택 그룹 드래그 완료 시 히스토리에 현재 위치 기록 */
   pushMultiMoveHistory() {
     this._pushHistory();
   }
 
-  /** 다중 선택된 컴포넌트 일괄 이동 (드래그 중 실시간 호출) */
   moveSelectedComponents(dx: number, dy: number) {
     if (this._state.selectedIds.size <= 1) return;
     this._state = {
@@ -285,9 +332,7 @@ export class CircuitStore {
   }
 
   addWire(wire: PlacedWire) {
-    // 자기 자신 핀 연결 방지
     if (wire.fromCompId === wire.toCompId && wire.fromPin === wire.toPin) return;
-    // 완전 동일한 와이어 중복 방지 (방향 무관)
     const exists = this._state.wires.some(
       w => (w.fromCompId === wire.fromCompId && w.fromPin === wire.fromPin &&
              w.toCompId   === wire.toCompId   && w.toPin   === wire.toPin) ||
@@ -312,15 +357,32 @@ export class CircuitStore {
 
   addComponent(comp: PlacedComponent) {
     this._pushHistory();
+    // 보드 컴포넌트면 기본 필드 초기화
+    let finalComp = comp;
+    if (isBoard(comp.type)) {
+      finalComp = {
+        ...comp,
+        code:         comp.code ?? DEFAULT_CODE,
+        simState:     comp.simState ?? 'idle',
+        serialOutput: comp.serialOutput ?? '',
+      };
+    }
+    const newComponents = [...this._state.components, finalComp];
+    // 최초 보드 추가 시 자동 선택
+    let newBoardId = this._state.selectedBoardId;
+    if (isBoard(comp.type) && !newBoardId) {
+      newBoardId = finalComp.id;
+    }
     this._state = {
       ...this._state,
-      components: [...this._state.components, comp],
+      components:      newComponents,
+      selectedBoardId: newBoardId,
     };
     this._notify();
+    return finalComp;
   }
 
   updateComponent(id: string, patch: Partial<PlacedComponent>) {
-    // 위치 변경만이면 히스토리 저장 안 함 (드래그 중 매 프레임마다 저장 방지)
     const isPositionOnly = Object.keys(patch).every(k => k === 'x' || k === 'y');
     if (!isPositionOnly) this._pushHistory();
     this._state = {
@@ -332,7 +394,6 @@ export class CircuitStore {
     this._notify();
   }
 
-  /** 드래그 완료 시 호출 — 위치 변경을 히스토리에 기록 */
   commitMove(id: string, x: number, y: number) {
     this._pushHistory();
     this._state = {
@@ -346,22 +407,27 @@ export class CircuitStore {
 
   removeComponent(id: string) {
     this._pushHistory();
+    const comp = this._state.components.find(c => c.id === id);
+    let newBoardId = this._state.selectedBoardId;
+    if (comp && isBoard(comp.type) && newBoardId === id) {
+      // 다른 보드로 포커스 이동
+      newBoardId = this._state.components.find(c => isBoard(c.type) && c.id !== id)?.id ?? null;
+    }
     this._state = {
       ...this._state,
-      components: this._state.components.filter(c => c.id !== id),
-      wires: this._state.wires.filter(w => w.fromCompId !== id && w.toCompId !== id),
-      selectedId: this._state.selectedId === id ? null : this._state.selectedId,
+      components:      this._state.components.filter(c => c.id !== id),
+      wires:           this._state.wires.filter(w => w.fromCompId !== id && w.toCompId !== id),
+      selectedId:      this._state.selectedId === id ? null : this._state.selectedId,
+      selectedBoardId: newBoardId,
     };
     this._notify();
   }
 
-  /** 부품을 클립보드에 복사 */
   copyComponent(id: string) {
     const comp = this._state.components.find(c => c.id === id);
     if (comp) this.clipboardComp = JSON.parse(JSON.stringify(comp));
   }
 
-  /** 클립보드 부품을 canvasX/Y 위치에 붙여넣기 */
   pasteComponent(canvasX: number, canvasY: number) {
     if (!this.clipboardComp) return;
     const newComp: PlacedComponent = {
@@ -370,19 +436,20 @@ export class CircuitStore {
       x: canvasX,
       y: canvasY,
       connections: {},
+      // 보드 복사 시 시뮬 상태 초기화
+      ...(isBoard(this.clipboardComp.type) ? { simState: 'idle' as SimState, serialOutput: '' } : {}),
     };
     this.addComponent(newComp);
     this.selectComponent(newComp.id);
   }
 
-  /** 모든 부품 선택 (Ctrl+A) */
   selectAll() {
     const ids = new Set(this._state.components.map(c => c.id));
     const first = this._state.components[0];
     this._state = {
       ...this._state,
-      selectedIds: ids,
-      selectedId: first?.id ?? null,
+      selectedIds:    ids,
+      selectedId:     first?.id ?? null,
       selectedWireId: null,
     };
     this._notify();
@@ -392,11 +459,12 @@ export class CircuitStore {
     this._pushHistory();
     this._state = {
       ...this._state,
-      components: [],
-      wires: [],
-      selectedId: null,
-      selectedIds: new Set(),
-      selectedWireId: null,
+      components:      [],
+      wires:           [],
+      selectedId:      null,
+      selectedIds:     new Set(),
+      selectedWireId:  null,
+      selectedBoardId: null,
     };
     this._notify();
   }
@@ -407,28 +475,43 @@ export class CircuitStore {
     code: string;
     wires?: PlacedWire[];
   }) {
+    const comps = (template.components as PlacedComponent[]).map(c => {
+      if (isBoard(c.type)) {
+        return {
+          ...c,
+          code:         template.code,
+          simState:     'idle' as SimState,
+          serialOutput: '',
+        };
+      }
+      return c;
+    });
     this._state = {
       ...this._state,
-      boardId: template.boardId,
-      components: (template.components as PlacedComponent[]).slice(),
-      wires: template.wires?.slice() ?? [],
-      code: template.code,
-      selectedId: null,
-      selectedIds: new Set(),
-      selectedWireId: null,
-      serialOutput: '',
-      simState: 'idle',
+      components:      comps,
+      wires:           template.wires?.slice() ?? [],
+      selectedId:      null,
+      selectedIds:     new Set(),
+      selectedWireId:  null,
+      selectedBoardId: comps.find(c => isBoard(c.type))?.id ?? null,
     };
     this._notify();
   }
 
+  // ─── 연결 도출 ──────────────────────────────────────────────────
+
   /**
    * 와이어로부터 도출된 연결 정보 반환
-   * 반환: compId → { pinName → GPIO번호/특수값 }
+   * compId → { pinName → GPIO번호/특수값 }
    */
   getDerivedConnections(): Map<string, Record<string, number | string>> {
-    const comps  = this._state.components;
-    const wires  = this._state.wires;
+    return this._buildDerivedConnections(this._state.components, this._state.wires);
+  }
+
+  private _buildDerivedConnections(
+    comps: PlacedComponent[],
+    wires: PlacedWire[],
+  ): Map<string, Record<string, number | string>> {
     const result = new Map<string, Record<string, number | string>>();
     for (const c of comps) result.set(c.id, {});
 
@@ -452,74 +535,108 @@ export class CircuitStore {
   }
 
   /**
-   * 시뮬레이션 엔진에 전달할 스냅샷 생성
-   * connections는 캔버스에 그린 와이어에서 자동으로 도출됨
-   * (하드코딩된 comp.connections는 무시)
+   * 특정 보드에 연결된 컴포넌트만으로 CircuitSnapshot 생성
+   * BFS로 해당 보드에서 와이어를 통해 도달 가능한 모든 컴포넌트를 포함
    */
-  toSnapshot(): CircuitSnapshot {
-    const derived = this.getDerivedConnections();
+  toSnapshotForBoard(boardCompId: string): CircuitSnapshot | null {
+    const boardComp = this._state.components.find(c => c.id === boardCompId);
+    if (!boardComp || !isBoard(boardComp.type)) return null;
+
+    // BFS: boardCompId에서 연결된 모든 컴포넌트 ID 수집
+    const visited = new Set<string>([boardCompId]);
+    const queue = [boardCompId];
+    while (queue.length > 0) {
+      const cur = queue.shift()!;
+      for (const wire of this._state.wires) {
+        if (wire.fromCompId === cur && !visited.has(wire.toCompId)) {
+          visited.add(wire.toCompId);
+          queue.push(wire.toCompId);
+        }
+        if (wire.toCompId === cur && !visited.has(wire.fromCompId)) {
+          visited.add(wire.fromCompId);
+          queue.push(wire.fromCompId);
+        }
+      }
+    }
+
+    const connectedComps = this._state.components.filter(c => visited.has(c.id));
+    const connectedWires = this._state.wires.filter(
+      w => visited.has(w.fromCompId) && visited.has(w.toCompId)
+    );
+    const derived = this._buildDerivedConnections(connectedComps, connectedWires);
+
     return {
-      boardType: this._state.boardId,
-      components: this._state.components.map(c => ({
-        id:   c.id,
-        type: c.type,
-        props: c.props,
-        connections: derived.get(c.id) ?? {},
-      } as ComponentSnapshot)),
+      boardType: boardTypeFromCompType(boardComp.type),
+      components: connectedComps
+        .filter(c => !isBoard(c.type))
+        .map(c => ({
+          id:          c.id,
+          type:        c.type,
+          props:       c.props,
+          connections: derived.get(c.id) ?? {},
+        } as ComponentSnapshot)),
     };
   }
 
+  // ─── 저장/불러오기 ──────────────────────────────────────────────
 
-  // ─── 회로 저장/불러오기 ────────────────────────────────────────
-
-  /** 전체 회로 상태를 JSON 문자열로 직렬화 */
   saveToJson(): string {
     return JSON.stringify({
-      version: 1,
-      boardId: this._state.boardId,
+      version:    2,
       components: this._state.components,
-      wires: this._state.wires,
-      code: this._state.code,
+      wires:      this._state.wires,
     }, null, 2);
   }
 
-  /** JSON 문자열에서 회로 복원 */
   loadFromJson(json: string) {
     const data = JSON.parse(json) as {
       version?: number;
-      boardId: string;
+      boardId?: string;
       components: PlacedComponent[];
       wires: PlacedWire[];
-      code: string;
+      code?: string;
     };
 
-    // 버전 필드 확인 (없으면 경고만)
-    if (data.version === undefined) {
-      console.warn('[CircuitStore] loadFromJson: version 필드가 없습니다. 구버전 형식일 수 있습니다.');
-    }
-
-    // 필수 필드 배열 검증 — 실패 시 빈 배열로 부분 복구
     if (!Array.isArray(data.components)) {
-      console.warn('[CircuitStore] loadFromJson: components가 배열이 아닙니다. 빈 배열로 대체합니다.');
+      console.warn('[CircuitStore] loadFromJson: components가 배열이 아닙니다.');
       data.components = [];
     }
     if (!Array.isArray(data.wires)) {
-      console.warn('[CircuitStore] loadFromJson: wires가 배열이 아닙니다. 빈 배열로 대체합니다.');
+      console.warn('[CircuitStore] loadFromJson: wires가 배열이 아닙니다.');
       data.wires = [];
+    }
+
+    let comps: PlacedComponent[];
+
+    if (!data.version || data.version === 1) {
+      // 구버전 호환: 전역 code를 보드 컴포넌트에 이관
+      comps = data.components.map(c => {
+        if (isBoard(c.type)) {
+          return { ...c, code: data.code ?? DEFAULT_CODE, simState: 'idle' as SimState, serialOutput: '' };
+        }
+        return c;
+      });
+    } else {
+      // 버전 2
+      comps = data.components.map(c => ({
+        ...c,
+        ...(isBoard(c.type) ? {
+          simState:     'idle' as SimState,
+          serialOutput: c.serialOutput ?? '',
+          code:         c.code ?? DEFAULT_CODE,
+        } : {}),
+      }));
     }
 
     this._pushHistory();
     this._state = {
       ...this._state,
-      boardId:    data.boardId ?? this._state.boardId,
-      components: data.components,
-      wires:      data.wires,
-      code:       data.code ?? this._state.code,
-      selectedId: null,
-      selectedIds: new Set(),
-      selectedWireId: null,
-      serialOutput: '',
-      simState: 'idle',
+      components:      comps,
+      wires:           data.wires,
+      selectedId:      null,
+      selectedIds:     new Set(),
+      selectedWireId:  null,
+      selectedBoardId: comps.find(c => isBoard(c.type))?.id ?? null,
     };
     this._notify();
   }
@@ -527,20 +644,16 @@ export class CircuitStore {
 
 /**
  * 보드 핀 이름 → 시뮬레이션 GPIO 번호 또는 특수 문자열
- * 예: 'D13' → 13, 'G8' → 8, 'A0' → ADC번호, 'GND' → 'GND', '5V' → 'VCC'
- *
- * GND/VCC/3V3 특수 핀을 먼저 처리한 후
- * 나머지 핀 번호 파싱은 @sim/engine의 resolveBoardPin()에 위임합니다.
  */
 function _resolveBoardPin(pinName: string): number | string | null {
-  if (/^GND$/i.test(pinName))                        return 'GND';
-  if (/^5V$|^VIN$|^VCC$/i.test(pinName))             return 'VCC';
-  if (/^3[Vv]3$|^3\.3[Vv]$/i.test(pinName))          return '3V3';
+  if (/^GND$/i.test(pinName))              return 'GND';
+  if (/^5V$|^VIN$|^VCC$/i.test(pinName))  return 'VCC';
+  if (/^3[Vv]3$|^3\.3[Vv]$/i.test(pinName)) return '3V3';
   return _resolveBoardPinUtil(pinName);
 }
 
 const DEFAULT_CODE = `// Arduino 시뮬레이터
-// 코드를 작성하고 ▶ 실행 버튼을 누르세요
+// 보드를 클릭하고 코드를 작성한 뒤 ▶ 업로드 버튼을 누르세요
 
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);

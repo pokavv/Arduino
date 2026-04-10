@@ -1,10 +1,10 @@
 // ── 상단 툴바 버튼 이벤트 ────────────────────────────────────────────
 import type { CircuitCanvas } from '../canvas/circuit-canvas.js';
 import type { circuitStore as CircuitStoreType } from '../stores/circuit-store.js';
-import type { simController as SimControllerType } from '../stores/sim-controller.js';
+import type { boardWorkerManager as BoardWorkerManagerType } from '../stores/board-worker-manager.js';
 
 type CircuitStore = typeof CircuitStoreType;
-type SimController = typeof SimControllerType;
+type BoardWorkerManager = typeof BoardWorkerManagerType;
 
 const RUN_ICON_PLAY = `<svg id="run-icon" width="11" height="12" viewBox="0 0 11 12" fill="currentColor" style="flex-shrink:0"><path d="M2 1.5l8 4.5-8 4.5V1.5z"/></svg>`;
 const RUN_ICON_STOP = `<svg id="run-icon" width="11" height="11" viewBox="0 0 11 11" fill="currentColor" style="flex-shrink:0"><rect x="2" y="2" width="7" height="7" rx="1.5"/></svg>`;
@@ -12,25 +12,31 @@ const RUN_ICON_STOP = `<svg id="run-icon" width="11" height="11" viewBox="0 0 11
 /** 상단 툴바 버튼 이벤트 바인딩 및 상태 구독 */
 export function initToolbar(
   circuitStore: CircuitStore,
-  simController: SimController,
+  boardWorkerManager: BoardWorkerManager,
   canvas: CircuitCanvas,
   switchTab: (tab: string) => void,
 ): void {
   // ── 새로 만들기
   document.getElementById('btn-new')!.addEventListener('click', () => {
     if (!confirm('현재 회로를 지우고 새로 시작할까요?')) return;
-    simController.stop();
+    boardWorkerManager.stopAll();
     circuitStore.clearCircuit();
   });
 
-  // ── 실행/정지
+  // ── 업로드/정지
   document.getElementById('btn-run')!.addEventListener('click', () => {
-    if (circuitStore.simState === 'running') {
-      simController.stop();
+    const boardId = circuitStore.selectedBoardId;
+    if (!boardId) {
+      alert('보드를 선택하세요.\n캔버스에서 보드 컴포넌트를 클릭하면 선택됩니다.');
+      return;
+    }
+    const state = circuitStore.activeBoardSimState;
+    if (state === 'running') {
+      boardWorkerManager.stopBoard(boardId);
     } else {
-      circuitStore.clearSerial();
-      simController.start();
-      switchTab('serial'); // 실행 시 시리얼 탭으로
+      circuitStore.clearSerialForBoard(boardId);
+      boardWorkerManager.startBoard(boardId);
+      switchTab('serial');
     }
   });
 
@@ -62,7 +68,7 @@ export function initToolbar(
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        simController.stop(); // 실행 중인 Worker 종료 후 회로 로드
+        boardWorkerManager.stopAll();
         circuitStore.loadFromJson(reader.result as string);
         const hint = document.getElementById('canvas-hint');
         if (hint) hint.style.display = 'none';
@@ -104,11 +110,20 @@ export function initToolbar(
 
     if ((e.key === 'Delete' || e.key === 'Backspace') && !isEditing) {
       if (circuitStore.selectedIds.size > 1) {
+        // 삭제될 보드들의 Worker 정리
+        for (const id of circuitStore.selectedIds) {
+          const comp = circuitStore.components.find(c => c.id === id);
+          if (comp?.type.startsWith('board')) boardWorkerManager.disposeBoard(id);
+        }
         circuitStore.removeSelectedComponents();
       } else {
         const selComp = circuitStore.selectedId;
         const selWire = circuitStore.selectedWireId;
-        if (selComp) circuitStore.removeComponent(selComp);
+        if (selComp) {
+          const comp = circuitStore.components.find(c => c.id === selComp);
+          if (comp?.type.startsWith('board')) boardWorkerManager.disposeBoard(selComp);
+          circuitStore.removeComponent(selComp);
+        }
         if (selWire) circuitStore.removeWire(selWire);
       }
     }
@@ -124,8 +139,8 @@ export function initToolbar(
 
   // ── 실행 상태 → 버튼/인디케이터 업데이트 구독
   circuitStore.subscribe(() => {
-    const state = circuitStore.simState;
-    const runBtn = document.getElementById('btn-run') as HTMLButtonElement | null;
+    const state = circuitStore.activeBoardSimState;
+    const runBtn   = document.getElementById('btn-run') as HTMLButtonElement | null;
     const statusEl = document.getElementById('status-indicator');
 
     if (runBtn) {
@@ -133,18 +148,17 @@ export function initToolbar(
         runBtn.innerHTML = `${RUN_ICON_STOP} 정지`;
         runBtn.className = 'toolbar-btn running';
       } else if (state === 'error') {
-        runBtn.innerHTML = `${RUN_ICON_PLAY} 실행`;
+        runBtn.innerHTML = `${RUN_ICON_PLAY} 업로드`;
         runBtn.className = 'toolbar-btn error';
       } else {
-        runBtn.innerHTML = `${RUN_ICON_PLAY} 실행`;
+        runBtn.innerHTML = `${RUN_ICON_PLAY} 업로드`;
         runBtn.className = 'toolbar-btn';
       }
     }
 
     if (statusEl) {
-      statusEl.id = 'status-indicator';
       statusEl.className = state === 'running' ? 'running' : state === 'error' ? 'error' : '';
-      statusEl.title = state === 'running' ? '실행 중' : state === 'error' ? '오류' : '정지';
+      statusEl.title     = state === 'running' ? '실행 중' : state === 'error' ? '오류' : '정지';
     }
   });
 }

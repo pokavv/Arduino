@@ -7,7 +7,7 @@ type CircuitStore = typeof CircuitStoreType;
 export function initStatusBar(circuitStore: CircuitStore): void {
   // ── 시뮬레이션 상태 + 시리얼 연결 표시 + 부품/와이어 개수 구독
   circuitStore.subscribe(() => {
-    const state = circuitStore.simState;
+    const state = circuitStore.activeBoardSimState;
     const sbStatus = document.getElementById('sb-sim-status');
     const serialDot = document.getElementById('serial-conn-dot');
     const serialLabel = document.getElementById('serial-conn-label');

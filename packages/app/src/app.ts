@@ -5,7 +5,7 @@ import { CircuitCanvas } from './canvas/circuit-canvas.js';
 import { CodeEditor } from './editor/code-editor.js';
 import { PropertyPanel } from './panels/property-panel.js';
 import { circuitStore } from './stores/circuit-store.js';
-import { simController } from './stores/sim-controller.js';
+import { boardWorkerManager } from './stores/board-worker-manager.js';
 import { circuitValidator } from './stores/circuit-validator.js';
 import { fetchCompDef } from './stores/comp-def-cache.js';
 
@@ -14,8 +14,8 @@ import { initToolbar } from './ui/toolbar.js';
 import { initStatusBar } from './ui/status-bar.js';
 import { initPalette, appendTemplateSection } from './ui/palette.js';
 import { initSerialMonitor } from './ui/serial-monitor.js';
-import { fetchBoards, fetchTemplates } from './api/api-client.js';
-import type { BoardInfo, TemplateInfo } from './api/api-client.js';
+import { fetchTemplates } from './api/api-client.js';
+import type { TemplateInfo } from './api/api-client.js';
 
 declare global {
   interface Window {
@@ -25,7 +25,7 @@ declare global {
 }
 
 // ─────────────────────────────────────────────────────────────────
-// 앱 초기화 — index.html의 DOM이 이미 있으므로 즉시 실행
+// 앱 초기화
 // ─────────────────────────────────────────────────────────────────
 
 // ① 테마
@@ -65,11 +65,23 @@ document.querySelectorAll<HTMLButtonElement>('.right-tab-btn').forEach(btn => {
   });
 });
 
-// 에러/경고 시 시리얼 탭으로 자동 전환
+// 에러 발생 시 시리얼 탭으로 자동 전환
 circuitStore.subscribe(() => {
-  if (circuitStore.simState === 'error') {
+  if (circuitStore.activeBoardSimState === 'error') {
     switchTab('serial');
   }
+});
+
+// 보드 선택 시 에디터 탭으로 자동 전환
+let _prevBoardId: string | null = null;
+circuitStore.subscribe(() => {
+  const cur = circuitStore.selectedBoardId;
+  if (cur && cur !== _prevBoardId) {
+    _prevBoardId = cur;
+    switchTab('editor');
+    codeEditor.relayout();
+  }
+  if (!cur) _prevBoardId = null;
 });
 
 function switchTab(tab: string) {
@@ -120,7 +132,7 @@ function setupPanelResize(handle: HTMLElement, panel: HTMLElement, side: 'left' 
 }
 
 // ⑤ 툴바 버튼 이벤트
-initToolbar(circuitStore, simController, canvas, switchTab);
+initToolbar(circuitStore, boardWorkerManager, canvas, switchTab);
 
 // ⑥ 하단 상태바
 initStatusBar(circuitStore);
@@ -129,11 +141,11 @@ initStatusBar(circuitStore);
 initPalette(canvas, addComponent);
 
 // ⑧ 시리얼 모니터
-initSerialMonitor(circuitStore, simController);
+initSerialMonitor(circuitStore, boardWorkerManager);
 
 setTimeout(() => canvas.fitView(), 150);
 
-// ── 서버 데이터 로드 (보드/템플릿) ───────────────────────────────
+// ── 서버 데이터 로드 (템플릿) ─────────────────────────────────────
 loadServerData();
 
 // ── 유효성 검사 바 ─────────────────────────────────────────────────
@@ -157,7 +169,6 @@ function renderValidation(results: import('./stores/circuit-validator.js').Valid
 
 circuitStore.subscribe(() => renderValidation(circuitValidator.validate()));
 
-// validateAsync는 서버 fetch를 포함하므로 500ms 디바운스 적용
 let _validateAsyncTimer: ReturnType<typeof setTimeout> | null = null;
 circuitStore.subscribe(() => {
   if (_validateAsyncTimer) clearTimeout(_validateAsyncTimer);
@@ -173,7 +184,6 @@ console.log('%c⚡ Arduino Web Simulator 준비 완료', 'color:#4a9eff;font-siz
 
 async function addComponent(type: string, x: number, y: number) {
   const id = `${type}-${Date.now()}`;
-  // fetchCompDef는 캐시에 저장하므로 이후 _createElement에서 바로 올바른 태그 사용 가능
   const def = await fetchCompDef(type).catch(() => null);
   const serverDefaults: Record<string, unknown> = def?.defaultProps ?? {};
 
@@ -184,63 +194,11 @@ async function addComponent(type: string, x: number, y: number) {
   });
 }
 
-
 async function loadServerData() {
-  const boardSelect = document.getElementById('board-select') as HTMLSelectElement | null;
-  if (!boardSelect) return;
-
   try {
-    const [boards, templates] = await Promise.all([
-      fetchBoards().catch(() => [] as BoardInfo[]),
-      fetchTemplates().catch(() => [] as TemplateInfo[]),
-    ]);
-
-    if (boards.length > 0) {
-      boardSelect.innerHTML = '';
-      for (const b of boards) {
-        const opt = document.createElement('option');
-        opt.value = b.id; opt.textContent = b.name;
-        if (b.id === 'arduino-uno') opt.selected = true;
-        boardSelect.appendChild(opt);
-      }
-    }
-    boardSelect.addEventListener('change', () => {
-      const previousBoardId = circuitStore.boardId;
-      const nextBoardId = boardSelect.value;
-
-      // 회로에 컴포넌트가 있으면 사용자에게 초기화 여부 확인
-      if (circuitStore.components.length > 0) {
-        const confirmed = confirm(
-          '보드를 변경하면 현재 회로가 초기화됩니다. 계속하시겠습니까?'
-        );
-        if (!confirmed) {
-          // 보드 변경 취소 — select 값 되돌리기
-          boardSelect.value = previousBoardId;
-          return;
-        }
-        // 확인: 실행 중인 Worker 종료 후 회로 초기화
-        simController.stop();
-        circuitStore.clearCircuit();
-      } else if (circuitStore.simState === 'running') {
-        // 컴포넌트는 없지만 실행 중인 경우 Worker만 종료
-        simController.stop();
-      }
-
-      circuitStore.setBoard(nextBoardId);
-
-      const sbBoard = document.getElementById('sb-board');
-      if (sbBoard) {
-        const selected = boardSelect.options[boardSelect.selectedIndex];
-        // SVG 아이콘 유지하고 텍스트만 변경
-        const svg = sbBoard.querySelector('svg');
-        sbBoard.textContent = selected?.textContent ?? boardSelect.value;
-        if (svg) sbBoard.prepend(svg);
-      }
-    });
-
-    // 템플릿 — 팔레트 아래에 로드 버튼으로 추가
+    const templates = await fetchTemplates().catch(() => [] as TemplateInfo[]);
     if (templates.length > 0) {
-      appendTemplateSection(templates, canvas, simController, circuitStore);
+      appendTemplateSection(templates, canvas, boardWorkerManager, circuitStore);
     }
   } catch { /* 서버 없으면 무시 */ }
 }

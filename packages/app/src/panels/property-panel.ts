@@ -1,7 +1,7 @@
 import { circuitStore, type PlacedComponent, type PlacedWire } from '../stores/circuit-store.js';
 import { getCachedCompDef, fetchCompDef } from '../stores/comp-def-cache.js';
 import type { CompDef } from '../api/api-client.js';
-import { simController } from '../stores/sim-controller.js';
+import { boardWorkerManager } from '../stores/board-worker-manager.js';
 
 /** property-panel 내부에서 사용하는 CompDef 별칭 (기존 코드 호환) */
 type ComponentDefRemote = CompDef;
@@ -440,9 +440,12 @@ export class PropertyPanel {
 
   /** 시뮬레이션 실행 중이면 컴포넌트의 숫자/불리언 props를 엔진에 즉시 전송 */
   private _sendSensorUpdateIfRunning(compId: string) {
-    if (circuitStore.simState !== 'running') return;
+    if (circuitStore.activeBoardSimState !== 'running') return;
     const updatedComp = circuitStore.components.find(c => c.id === compId);
     if (!updatedComp) return;
+    // 이 컴포넌트가 연결된 보드 Worker로 센서 업데이트 전송
+    const boardId = circuitStore.selectedBoardId;
+    if (!boardId) return;
     const numericData: Record<string, number> = {};
     for (const [k, v] of Object.entries(updatedComp.props)) {
       if (typeof v === 'number') numericData[k] = v;
@@ -450,7 +453,7 @@ export class PropertyPanel {
       else if (typeof v === 'string' && !isNaN(parseFloat(v))) numericData[k] = parseFloat(v);
     }
     if (Object.keys(numericData).length > 0) {
-      simController.sendSensorUpdate(compId, numericData);
+      boardWorkerManager.sendSensorUpdateToBoard(boardId, compId, numericData);
     }
   }
 

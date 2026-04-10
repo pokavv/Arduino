@@ -1,8 +1,6 @@
 // ─── 부품 엘리먼트 생성 및 이벤트 바인딩 ──────────────────────────────────────
-// _buildElement 로직 분리: Lit Custom Element 생성 + 이벤트 리스너 등록
-
-import { circuitStore, type PlacedComponent } from '../stores/circuit-store.js';
-import { simController } from '../stores/sim-controller.js';
+import { circuitStore, isBoard, type PlacedComponent } from '../stores/circuit-store.js';
+import { boardWorkerManager } from '../stores/board-worker-manager.js';
 import { type CompDef } from '../stores/comp-def-cache.js';
 import { type SimElementLike } from './sim-element-types.js';
 import { type DraggingState, type WireDrawingState } from './canvas-interaction.js';
@@ -15,8 +13,35 @@ export interface BuildElementContext {
 }
 
 /**
+ * BFS로 특정 컴포넌트가 연결된 보드 컴포넌트 ID를 찾는다.
+ * 버튼/센서 이벤트를 올바른 보드의 Worker로 라우팅하는 데 사용.
+ */
+function findParentBoardId(compId: string): string | null {
+  const visited = new Set<string>([compId]);
+  const queue = [compId];
+
+  while (queue.length > 0) {
+    const cur = queue.shift()!;
+    // cur 자신이 보드이고 출발점이 아니면 반환
+    const curComp = circuitStore.components.find(c => c.id === cur);
+    if (curComp && isBoard(curComp.type) && cur !== compId) return cur;
+
+    for (const wire of circuitStore.wires) {
+      if (wire.fromCompId === cur && !visited.has(wire.toCompId)) {
+        visited.add(wire.toCompId);
+        queue.push(wire.toCompId);
+      }
+      if (wire.toCompId === cur && !visited.has(wire.fromCompId)) {
+        visited.add(wire.fromCompId);
+        queue.push(wire.fromCompId);
+      }
+    }
+  }
+  return null;
+}
+
+/**
  * 지정 tag로 Lit Custom Element를 생성하고 이벤트 리스너를 등록한다.
- * 공유 상태는 ctx를 통해 주입받아 파사드와의 결합을 최소화한다.
  */
 export function buildElement(
   comp: PlacedComponent,
@@ -31,7 +56,6 @@ export function buildElement(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (el as any)['compId'] = comp.id;
 
-  // sim-interaction-start/end: 포텐셔미터 노브 등 내부 인터랙션 중 드래그 차단
   let _interacting = false;
   el.addEventListener('sim-interaction-start', () => { _interacting = true; });
   el.addEventListener('sim-interaction-end',   () => { _interacting = false; });
@@ -53,12 +77,16 @@ export function buildElement(
       return;
     }
 
-    // 이미 다중선택 중이고 이 컴포넌트도 선택에 포함된 경우 → 그룹 드래그 준비
     const alreadyInMultiSel =
       circuitStore.selectedIds.size > 1 && circuitStore.selectedIds.has(comp.id);
 
     if (!alreadyInMultiSel) {
       circuitStore.selectComponent(comp.id);
+    }
+
+    // 보드 컴포넌트 클릭 시 에디터 포커스 전환
+    if (!e.shiftKey && !alreadyInMultiSel && isBoard(comp.type)) {
+      circuitStore.selectBoard(comp.id);
     }
 
     const cur = circuitStore.components.find(c => c.id === comp.id);
@@ -76,46 +104,48 @@ export function buildElement(
     el.releasePointerCapture(e.pointerId);
   });
 
+  // ── 버튼 이벤트 — 연결된 보드 Worker로 라우팅
   if (comp.type === 'button') {
     const _sendButtonPinEvent = (value: number) => {
       const connMap = circuitStore.getDerivedConnections().get(comp.id);
-      // PIN1A / PIN1B 는 내부 연결 — 둘 중 하나가 GPIO에 연결될 수 있음
+      const boardId = findParentBoardId(comp.id);
       for (const pinName of ['PIN1A', 'PIN1B'] as const) {
         const gpioPin = connMap?.[pinName];
-        if (typeof gpioPin === 'number') simController.sendPinEvent(gpioPin, value);
+        if (typeof gpioPin === 'number' && boardId) {
+          boardWorkerManager.sendPinEventToBoard(boardId, gpioPin, value);
+        }
       }
+      if (boardId) boardWorkerManager.sendSensorUpdateToBoard(boardId, comp.id, { value });
     };
-    el.addEventListener('sim-press', () => {
-      // INPUT_PULLUP 기준: 눌림 = LOW (0)
-      _sendButtonPinEvent(0);
-      simController.sendSensorUpdate(comp.id, { value: 0 });
-    });
-    el.addEventListener('sim-release', () => {
-      // INPUT_PULLUP 기준: 안 눌림 = HIGH (1)
-      _sendButtonPinEvent(1);
-      simController.sendSensorUpdate(comp.id, { value: 1 });
-    });
+    el.addEventListener('sim-press',   () => _sendButtonPinEvent(0));  // INPUT_PULLUP: 눌림=LOW
+    el.addEventListener('sim-release', () => _sendButtonPinEvent(1));  // INPUT_PULLUP: 안눌림=HIGH
   }
 
+  // ── 센서 값 변경 — 연결된 보드 Worker로 라우팅
   el.addEventListener('sim-change', (e: Event) => {
-    simController.sendSensorUpdate(comp.id, (e as CustomEvent).detail);
+    const boardId = findParentBoardId(comp.id);
+    if (boardId) boardWorkerManager.sendSensorUpdateToBoard(boardId, comp.id, (e as CustomEvent).detail);
   });
 
-  // 보드 BOOT 버튼: GPIO 직접 주입
+  // ── 보드 BOOT 버튼: GPIO 직접 주입
   el.addEventListener('sim-pin-press', (e: Event) => {
     const gpio = (e as CustomEvent).detail?.gpio;
-    if (typeof gpio === 'number') simController.sendPinEvent(gpio, 0);
+    if (typeof gpio === 'number' && isBoard(comp.type)) {
+      boardWorkerManager.sendPinEventToBoard(comp.id, gpio, 0);
+    }
   });
   el.addEventListener('sim-pin-release', (e: Event) => {
     const gpio = (e as CustomEvent).detail?.gpio;
-    if (typeof gpio === 'number') simController.sendPinEvent(gpio, 1);
+    if (typeof gpio === 'number' && isBoard(comp.type)) {
+      boardWorkerManager.sendPinEventToBoard(comp.id, gpio, 1);
+    }
   });
 
-  // 보드 RST 버튼: 시뮬레이션 재시작
+  // ── 보드 RST 버튼: 해당 보드만 재시작
   el.addEventListener('sim-reset', () => {
-    if (circuitStore.simState === 'running') {
-      simController.stop();
-      setTimeout(() => simController.start(), 300);
+    if (isBoard(comp.type) && comp.simState === 'running') {
+      boardWorkerManager.stopBoard(comp.id);
+      setTimeout(() => boardWorkerManager.startBoard(comp.id), 300);
     }
   });
 

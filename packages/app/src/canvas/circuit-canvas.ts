@@ -3,7 +3,7 @@
 // 세부 로직은 wire-renderer / pin-renderer / canvas-interaction / context-menus 참고.
 
 import { circuitStore, type PlacedComponent } from '../stores/circuit-store.js';
-import { simController } from '../stores/sim-controller.js'; // onPinState / onComponentUpdate 콜백 등록용
+import { boardWorkerManager } from '../stores/board-worker-manager.js';
 import { fetchCompDef, getCachedCompDef } from '../stores/comp-def-cache.js';
 
 import { type SimElementLike } from './sim-element-types.js';
@@ -68,11 +68,14 @@ export class CircuitCanvas {
     circuitStore.subscribe(() => this._render());
     this._render();
 
-    simController.onPinState = (pin, value) => this._updatePinVisual(pin, value);
-    simController.onComponentUpdate = (id, pin, value) => {
+    // 보드별 Worker 콜백 등록 — boardWorkerManager가 각 보드의 Worker 이벤트를 여기로 전달
+    boardWorkerManager.registerPinStateHandler((_boardCompId, pin, value) => {
+      this._updatePinVisual(pin, value);
+    });
+    boardWorkerManager.registerComponentUpdateHandler((_boardCompId, id, pin, value) => {
       const el = this._elements.get(id);
       if (el) el.setPinState(pin, value);
-    };
+    });
   }
 
   // ─── DOM 구성 ─────────────────────────────────────────────────────────────

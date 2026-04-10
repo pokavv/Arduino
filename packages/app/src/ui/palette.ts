@@ -141,7 +141,7 @@ export function applyPaletteSearch(): void {
 export function appendTemplateSection(
   templates: TemplateInfo[],
   canvas: CircuitCanvas,
-  simController: { stop: () => void },
+  boardWorkerManager: { stopAll: () => void },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   circuitStore: { loadTemplate: (d: any) => void },
 ): void {
@@ -164,7 +164,7 @@ export function appendTemplateSection(
       item.addEventListener('click', async () => {
         try {
           const detail = await fetchTemplateDetail(t.id);
-          simController.stop(); // 실행 중인 Worker 종료 후 템플릿 로드
+          boardWorkerManager.stopAll(); // 실행 중인 Worker 종료 후 템플릿 로드
           circuitStore.loadTemplate(detail);
           const hint = document.getElementById('canvas-hint');
           if (hint) hint.style.display = 'none';
