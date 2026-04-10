@@ -245,7 +245,8 @@ export class ArduinoTranspiler {
 
     // PWM (ESP32)
     code = code.replace(/ledcSetup\s*\([^)]*\)/g, '');
-    code = code.replace(/ledcAttachPin\s*\([^)]*\)/g, '');
+    // ledcAttachPin(pin, channel) → __ledcPinMap[channel] = pin (핀-채널 매핑 저장)
+    code = code.replace(/ledcAttachPin\s*\(\s*([^,)]+)\s*,\s*([^)]+)\s*\)/g, '__ledcPinMap[$2]=$1');
     code = code.replace(/ledcWrite\s*\(([^,)]+),\s*([^)]+)\)/g, '__analogWrite(__ledcPinMap[$1]??$1,$2)');
 
     // millis/micros/delay/delayMicroseconds
@@ -275,7 +276,7 @@ export class ArduinoTranspiler {
     code = code.replace(/\bceil\s*\(/g, 'Math.ceil(');
     code = code.replace(/\bround\s*\(/g, 'Math.round(');
     code = code.replace(/\bisnan\s*\(/g, 'isNaN(');
-    code = code.replace(/\bisinf\s*\(/g, '(!isFinite(');
+    code = code.replace(/\bisinf\s*\(([^)]*)\)/g, '(!isFinite($1))');
     code = code.replace(/\bPI\b/g, 'Math.PI');
     code = code.replace(/\bTWO_PI\b/g, '(Math.PI*2)');
     code = code.replace(/\bHALF_PI\b/g, '(Math.PI/2)');
