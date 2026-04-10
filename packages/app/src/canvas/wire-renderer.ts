@@ -3,6 +3,7 @@
 // WireRenderer:  SVG wiresLayer / endpointLayer에 와이어 및 끝점 도트를 렌더링
 
 import { circuitStore, type PlacedWire } from '../stores/circuit-store.js';
+import { WIRE_AUTO_COLORS, WIRE_AUTO_DEFAULT } from './pin-colors.js';
 
 // ─── 경로 계산 (module-level 순수 함수) ──────────────────────────────────────
 
@@ -45,20 +46,10 @@ export function buildWirePath(
 export function wireColor(wire: PlacedWire): string {
   if (wire.color) return wire.color;
   const p = wire.fromPin;
-  if (/^GND/i.test(p))              return '#666';
-  if (/^VCC$|^5V$|^VIN$/i.test(p)) return '#e44';
-  if (/^3V3$|^3\.3/i.test(p))      return '#f84';
-  if (/^SDA$/i.test(p))             return '#4f4';
-  if (/^SCL$/i.test(p))             return '#4ff';
-  if (/^SIGNAL$|^PWM/i.test(p))    return '#ff0';
-  if (/^WIPER$|^A\d/i.test(p))     return '#a4f';
-  if (/MOSI/i.test(p))              return '#f4f';
-  if (/MISO/i.test(p))              return '#f4a';
-  if (/^SCK$|^SCLK/i.test(p))      return '#ff8';
-  if (/^TX$/i.test(p))              return '#fa8';
-  if (/^RX$/i.test(p))              return '#f84';
-  if (/^DATA$|^DIN$/i.test(p))      return '#8af';
-  return '#4af';
+  for (const [pattern, color] of WIRE_AUTO_COLORS) {
+    if (pattern.test(p)) return color;
+  }
+  return WIRE_AUTO_DEFAULT;
 }
 
 // ─── WireRenderer ─────────────────────────────────────────────────────────────

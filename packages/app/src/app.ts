@@ -14,8 +14,8 @@ import { initToolbar } from './ui/toolbar.js';
 import { initStatusBar } from './ui/status-bar.js';
 import { initPalette, appendTemplateSection } from './ui/palette.js';
 import { initSerialMonitor } from './ui/serial-monitor.js';
-
-const API_BASE = '/api';
+import { fetchBoards, fetchTemplates } from './api/api-client.js';
+import type { BoardInfo, TemplateInfo } from './api/api-client.js';
 
 declare global {
   interface Window {
@@ -23,9 +23,6 @@ declare global {
     monaco: any;
   }
 }
-
-interface BoardInfo  { id: string; name: string; vendor: string; mcu: string; }
-interface TemplateInfo { id: string; name: string; category: string; boardId: string; description: string; }
 
 // ─────────────────────────────────────────────────────────────────
 // 앱 초기화 — index.html의 DOM이 이미 있으므로 즉시 실행
@@ -194,8 +191,8 @@ async function loadServerData() {
 
   try {
     const [boards, templates] = await Promise.all([
-      fetch(`${API_BASE}/boards`).then(r => r.ok ? r.json() : []).catch(() => []) as Promise<BoardInfo[]>,
-      fetch(`${API_BASE}/templates`).then(r => r.ok ? r.json() : []).catch(() => []) as Promise<TemplateInfo[]>,
+      fetchBoards().catch(() => [] as BoardInfo[]),
+      fetchTemplates().catch(() => [] as TemplateInfo[]),
     ]);
 
     if (boards.length > 0) {

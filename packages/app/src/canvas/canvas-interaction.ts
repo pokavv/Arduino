@@ -3,6 +3,9 @@
 
 import { circuitStore } from '../stores/circuit-store.js';
 
+/** 컴포넌트 드래그 시 적용되는 그리드 스냅 크기 (px) */
+export const CANVAS_GRID_SIZE = 8;
+
 export type Transform = { x: number; y: number; scale: number };
 
 export type DraggingState = {
@@ -109,10 +112,9 @@ export function bindCanvasEvents(
       const dy = e.clientY - d.startY;
       // 6px 임계값: 버튼 클릭 등 사소한 움직임에는 드래그 시작 안 함
       if (!d.moved && Math.sqrt(dx * dx + dy * dy) < 6) return;
-      const GRID = 8; // 8px 그리드 스냅
       const cur = cb.getTransform();
-      d.liveX = Math.round((d.ox + dx / cur.scale) / GRID) * GRID;
-      d.liveY = Math.round((d.oy + dy / cur.scale) / GRID) * GRID;
+      d.liveX = Math.round((d.ox + dx / cur.scale) / CANVAS_GRID_SIZE) * CANVAS_GRID_SIZE;
+      d.liveY = Math.round((d.oy + dy / cur.scale) / CANVAS_GRID_SIZE) * CANVAS_GRID_SIZE;
       d.moved = true;
       cb.setDragging(d);
       const el = cb.getElementByCompId(d.id);

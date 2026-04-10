@@ -1,4 +1,5 @@
 import type { CircuitSnapshot, ComponentSnapshot } from '@sim/engine';
+import { resolveBoardPin as _resolveBoardPinUtil } from '../../../sim-engine/src/runtime/pin-utils.js';
 
 export interface PlacedComponent {
   id: string;
@@ -390,12 +391,28 @@ export class CircuitStore {
       wires: PlacedWire[];
       code: string;
     };
+
+    // 버전 필드 확인 (없으면 경고만)
+    if (data.version === undefined) {
+      console.warn('[CircuitStore] loadFromJson: version 필드가 없습니다. 구버전 형식일 수 있습니다.');
+    }
+
+    // 필수 필드 배열 검증 — 실패 시 빈 배열로 부분 복구
+    if (!Array.isArray(data.components)) {
+      console.warn('[CircuitStore] loadFromJson: components가 배열이 아닙니다. 빈 배열로 대체합니다.');
+      data.components = [];
+    }
+    if (!Array.isArray(data.wires)) {
+      console.warn('[CircuitStore] loadFromJson: wires가 배열이 아닙니다. 빈 배열로 대체합니다.');
+      data.wires = [];
+    }
+
     this._pushHistory();
     this._state = {
       ...this._state,
       boardId:    data.boardId ?? this._state.boardId,
-      components: data.components ?? [],
-      wires:      data.wires ?? [],
+      components: data.components,
+      wires:      data.wires,
       code:       data.code ?? this._state.code,
       selectedId: null,
       selectedWireId: null,
@@ -408,22 +425,16 @@ export class CircuitStore {
 
 /**
  * 보드 핀 이름 → 시뮬레이션 GPIO 번호 또는 특수 문자열
- * 예: 'D13' → 13, 'G8' → 8, 'A0' → 0(ADC), 'GND' → 'GND', '5V' → 'VCC'
+ * 예: 'D13' → 13, 'G8' → 8, 'A0' → ADC번호, 'GND' → 'GND', '5V' → 'VCC'
+ *
+ * GND/VCC/3V3 특수 핀을 먼저 처리한 후
+ * 나머지 핀 번호 파싱은 @sim/engine의 resolveBoardPin()에 위임합니다.
  */
 function _resolveBoardPin(pinName: string): number | string | null {
-  if (/^GND$/i.test(pinName))                     return 'GND';
-  if (/^5V$|^VIN$|^VCC$/i.test(pinName))          return 'VCC';
-  if (/^3[Vv]3$|^3\.3[Vv]$/i.test(pinName))       return '3V3';
-  // D0-D13 (Arduino Uno 디지털 핀)
-  const d = pinName.match(/^D(\d+)(?:~)?$/);
-  if (d) return parseInt(d[1], 10);
-  // G0-G21 (ESP32-C3 GPIO)
-  const g = pinName.match(/^G(\d+)$/);
-  if (g) return parseInt(g[1], 10);
-  // A0-A5 (Uno 아날로그 핀 → ADC 채널 번호)
-  const a = pinName.match(/^A(\d+)(?:\/.*)?$/);
-  if (a) return parseInt(a[1], 10);
-  return null;
+  if (/^GND$/i.test(pinName))                        return 'GND';
+  if (/^5V$|^VIN$|^VCC$/i.test(pinName))             return 'VCC';
+  if (/^3[Vv]3$|^3\.3[Vv]$/i.test(pinName))          return '3V3';
+  return _resolveBoardPinUtil(pinName);
 }
 
 const DEFAULT_CODE = `// Arduino 시뮬레이터

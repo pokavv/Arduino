@@ -99,12 +99,28 @@ while (true) {
     scheduler.start();
 
     const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
-    const fn = new AsyncFunction('gpio', 'scheduler', 'postFn', '_ctx', fullCode);
+    let fn: (...args: unknown[]) => Promise<unknown>;
+    try {
+      fn = new AsyncFunction('gpio', 'scheduler', 'postFn', '_ctx', fullCode);
+    } catch (err: unknown) {
+      // AsyncFunction 생성 실패 = 컴파일(구문) 에러
+      const msg = err instanceof Error ? err.message : String(err);
+      const lineMatch = msg.match(/line\s+(\d+)/i);
+      post({ type: 'COMPILE_ERROR', message: msg, line: lineMatch ? +lineMatch[1] : undefined });
+      return;
+    }
     await fn(gpio, scheduler, post, _ctx);
 
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') {
       return; // 정상 종료
+    }
+    // SyntaxError가 실행 중 발생하는 경우(예: eval 등)도 컴파일 에러로 분류
+    if (err instanceof SyntaxError) {
+      const msg = err.message;
+      const lineMatch = msg.match(/line\s+(\d+)/i);
+      post({ type: 'COMPILE_ERROR', message: msg, line: lineMatch ? +lineMatch[1] : undefined });
+      return;
     }
     post({
       type: 'RUNTIME_ERROR',

@@ -1371,7 +1371,7 @@
       <div class="toolbar-sep"></div>
 
       <!-- 파일 관련 -->
-      <button id="btn-new"  class="toolbar-btn" title="새 회로 (Ctrl+N)">
+      <button id="btn-new"  class="toolbar-btn" title="새 회로 (Ctrl+N)" aria-label="새 회로">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="flex-shrink:0">
           <rect x="2" y="1" width="8" height="10" rx="1" stroke="currentColor" stroke-width="1.2"/>
           <line x1="4" y1="4" x2="8" y2="4" stroke="currentColor" stroke-width="1"/>
@@ -1381,7 +1381,7 @@
         새 회로
       </button>
 
-      <button id="btn-save"  class="toolbar-btn" title="저장 (Ctrl+S)">
+      <button id="btn-save"  class="toolbar-btn" title="저장 (Ctrl+S)" aria-label="회로 저장">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="flex-shrink:0">
           <rect x="1" y="1" width="10" height="10" rx="1" stroke="currentColor" stroke-width="1.2"/>
           <rect x="3.5" y="1" width="5" height="3.5" fill="currentColor" opacity="0.5"/>
@@ -1391,7 +1391,7 @@
         저장
       </button>
 
-      <button id="btn-load"  class="toolbar-btn" title="불러오기 (Ctrl+O)">
+      <button id="btn-load"  class="toolbar-btn" title="불러오기 (Ctrl+O)" aria-label="회로 불러오기">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="flex-shrink:0">
           <path d="M1 3a1 1 0 011-1h2.5l1 1.5H10a1 1 0 011 1v4a1 1 0 01-1 1H2a1 1 0 01-1-1V3z" stroke="currentColor" stroke-width="1.2"/>
         </svg>
@@ -1403,7 +1403,7 @@
       <div class="toolbar-sep"></div>
 
       <!-- 실행 -->
-      <button id="btn-run" class="toolbar-btn" title="시뮬레이션 실행/정지 (Ctrl+Enter)">
+      <button id="btn-run" class="toolbar-btn" title="시뮬레이션 실행/정지 (Ctrl+Enter)" aria-label="시뮬레이션 실행/정지">
         <svg id="run-icon" width="11" height="12" viewBox="0 0 11 12" fill="currentColor" style="flex-shrink:0">
           <path d="M2 1.5l8 4.5-8 4.5V1.5z"/>
         </svg>
@@ -1415,15 +1415,15 @@
       <div class="toolbar-sep"></div>
 
       <!-- 편집 -->
-      <button id="btn-undo" class="toolbar-btn icon-only" title="실행 취소 (Ctrl+Z)">↩</button>
-      <button id="btn-redo" class="toolbar-btn icon-only" title="다시 실행 (Ctrl+Y)">↪</button>
+      <button id="btn-undo" class="toolbar-btn icon-only" title="실행 취소 (Ctrl+Z)" aria-label="실행 취소">↩</button>
+      <button id="btn-redo" class="toolbar-btn icon-only" title="다시 실행 (Ctrl+Y)" aria-label="다시 실행">↪</button>
 
       <div class="toolbar-sep"></div>
 
       <!-- 보기 -->
-      <button id="btn-zoom-in"  class="toolbar-btn icon-only" title="확대 (+)">+</button>
-      <button id="btn-zoom-out" class="toolbar-btn icon-only" title="축소 (-)">−</button>
-      <button id="btn-fit"      class="toolbar-btn icon-only" title="전체 보기 (F)">⊡</button>
+      <button id="btn-zoom-in"  class="toolbar-btn icon-only" title="확대 (+)" aria-label="확대">+</button>
+      <button id="btn-zoom-out" class="toolbar-btn icon-only" title="축소 (-)" aria-label="축소">−</button>
+      <button id="btn-fit"      class="toolbar-btn icon-only" title="전체 보기 (F)" aria-label="전체 보기">⊡</button>
 
       <!-- 프로젝트명 (중앙) -->
       <div id="project-title">새 회로</div>

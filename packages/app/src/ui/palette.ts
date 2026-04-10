@@ -2,17 +2,8 @@
 import type { CircuitCanvas } from '../canvas/circuit-canvas.js';
 import { fetchCompDef } from '../stores/comp-def-cache.js';
 import { componentEditor } from '../panels/component-editor.js';
-
-const API_BASE = '/api';
-
-interface CompSummary {
-  id: string; name: string; category: string;
-  description: string; icon: string; _builtIn: boolean;
-}
-
-interface BoardInfo  { id: string; name: string; vendor: string; mcu: string; }
-interface TemplateInfo { id: string; name: string; category: string; boardId: string; description: string; }
-interface TemplateDetail extends TemplateInfo { components: object[]; code: string; }
+import { fetchComponents, fetchTemplateDetail } from '../api/api-client.js';
+import type { CompSummary, TemplateInfo, TemplateDetail } from '../api/api-client.js';
 
 const CAT_LABELS: Record<string, string> = {
   mcu: '보드', passive: '수동 소자', active: '능동 소자',
@@ -42,10 +33,10 @@ export function initPalette(
 
 export async function loadPalette(): Promise<void> {
   try {
-    const data = await fetch(`${API_BASE}/components`).then(r => r.json()) as { components: CompSummary[] };
-    renderPalette(data.components);
+    const comps = await fetchComponents();
+    renderPalette(comps);
     // 팔레트 로드 후 모든 컴포넌트 def를 미리 캐시에 저장 → 드래그 시 즉시 올바른 태그 사용
-    for (const comp of data.components) {
+    for (const comp of comps) {
       fetchCompDef(comp.id).catch(() => null);
     }
   } catch {
@@ -140,7 +131,8 @@ export function appendTemplateSection(
   templates: TemplateInfo[],
   canvas: CircuitCanvas,
   simController: { stop: () => void },
-  circuitStore: { loadTemplate: (d: TemplateDetail) => void },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  circuitStore: { loadTemplate: (d: any) => void },
 ): void {
   const div = document.createElement('div');
   div.innerHTML = `<div class="palette-category">예제 템플릿</div>`;
@@ -160,7 +152,7 @@ export function appendTemplateSection(
       item.style.cursor = 'pointer';
       item.addEventListener('click', async () => {
         try {
-          const detail = await fetch(`${API_BASE}/templates/${t.id}`).then(r => r.json()) as TemplateDetail;
+          const detail = await fetchTemplateDetail(t.id);
           simController.stop(); // 실행 중인 Worker 종료 후 템플릿 로드
           circuitStore.loadTemplate(detail);
           const hint = document.getElementById('canvas-hint');

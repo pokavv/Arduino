@@ -1,63 +1,13 @@
 import { circuitStore, type PlacedComponent, type PlacedWire } from '../stores/circuit-store.js';
-import { getCachedCompDef } from '../stores/comp-def-cache.js';
+import { getCachedCompDef, fetchCompDef } from '../stores/comp-def-cache.js';
+import type { CompDef } from '../api/api-client.js';
 
-const API_BASE = '/api';
+/** property-panel 내부에서 사용하는 CompDef 별칭 (기존 코드 호환) */
+type ComponentDefRemote = CompDef;
 
-/** 서버에서 가져온 컴포넌트 정의 캐시 */
-const _defCache = new Map<string, ComponentDefRemote>();
-
-interface PinDefRemote {
-  name: string;
-  label: string;
-  description: string;
-  type: string;
-  required: boolean;
-}
-
-interface PropDefRemote {
-  key: string;
-  label: string;
-  type: string;
-  default: unknown;
-  options?: string[];
-  min?: number;
-  max?: number;
-  step?: number;
-  unit?: string;
-}
-
-interface ComponentDefRemote {
-  id: string;
-  name: string;
-  category: string;
-  description: string;
-  element: string;
-  props: PropDefRemote[];
-  pins: PinDefRemote[];
-  electrical: {
-    vccMin?: number;
-    vccMax?: number;
-    currentMa?: number;
-    maxCurrentMa?: number;
-    forwardVoltage?: Record<string, number>;
-    logic?: string;
-    pinMaxCurrentMa?: number;
-  };
-  validation: Array<{ rule: string; message: string; severity: string; pin?: string }>;
-  notes: string[];
-}
-
+/** fetchDef — comp-def-cache를 통해 CompDef를 조회 (중복 캐시 제거) */
 async function fetchDef(type: string): Promise<ComponentDefRemote | null> {
-  if (_defCache.has(type)) return _defCache.get(type)!;
-  try {
-    const r = await fetch(`${API_BASE}/components/${type}`);
-    if (!r.ok) return null;
-    const def = await r.json() as ComponentDefRemote;
-    _defCache.set(type, def);
-    return def;
-  } catch {
-    return null;
-  }
+  return fetchCompDef(type);
 }
 
 /**

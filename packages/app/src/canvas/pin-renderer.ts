@@ -4,21 +4,15 @@
 import { circuitStore } from '../stores/circuit-store.js';
 import { getCachedCompDef } from '../stores/comp-def-cache.js';
 import { type SimElementLike } from './sim-element-types.js';
+import { PIN_DOT_COLORS, PIN_DOT_DEFAULT } from './pin-colors.js';
 
 // ─── 핀 기능별 색상 ──────────────────────────────────────────────────────────
 
 export function pinFillColor(pinName: string): string {
-  if (/^VCC$|^ANODE$|^RED$|^V\+/i.test(pinName))      return '#ff5555';
-  if (/^GND$/i.test(pinName))                          return '#44dd88';
-  if (/^SIGNAL$|^SIG$|^TRIG$|^PWM/i.test(pinName))   return '#ffaa33';
-  if (/^DATA$|^DIN$|^ECHO$|^SDA$|^SCL$/i.test(pinName)) return '#5599ff';
-  if (/^WIPER$/i.test(pinName))                        return '#cc77ff';
-  if (/^COMMON$/i.test(pinName))                       return '#dddddd';
-  if (/^GREEN$/i.test(pinName))                        return '#44ee77';
-  if (/^BLUE$/i.test(pinName))                         return '#5599ff';
-  if (/^PIN1/i.test(pinName))                          return '#6688ff';
-  if (/^PIN2/i.test(pinName))                          return '#ffaa44';
-  return '#44aaff';
+  for (const [pattern, color] of PIN_DOT_COLORS) {
+    if (pattern.test(pinName)) return color;
+  }
+  return PIN_DOT_DEFAULT;
 }
 
 // ─── 핀 절대 좌표 계산 ───────────────────────────────────────────────────────
