@@ -21,6 +21,8 @@ declare global {
   interface Window {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     monaco: any;
+    // テスト用グローバル
+    __circuitStore: typeof circuitStore;
   }
 }
 
@@ -203,6 +205,9 @@ circuitStore.subscribe(() => {
     circuitValidator.validateAsync().then(results => renderValidation(results));
   }, 500);
 });
+
+// E2E 테스트 접근용 글로벌 (개발/테스트 환경)
+window.__circuitStore = circuitStore;
 
 console.log('%c⚡ Arduino Web Simulator 준비 완료', 'color:#4a9eff;font-size:14px;font-weight:bold');
 

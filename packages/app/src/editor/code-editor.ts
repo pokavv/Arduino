@@ -195,7 +195,7 @@ export class CodeEditor {
 
     this._container.innerHTML = '';
     const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
-    this._monacoEditor = window.monaco.editor.create(this._container, {
+    this._monacoEditor = (window as any).__monacoEditor = window.monaco.editor.create(this._container, {
       value:               circuitStore.activeBoardCode,
       language:            'arduino',
       theme:               isDark ? 'vs-dark' : 'vs',
